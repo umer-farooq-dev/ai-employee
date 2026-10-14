@@ -1,0 +1,15 @@
+<div class="counters6">
+  <div class="container">
+    <div class="row">
+      {% for item in c.items %}
+      <div class="col-lg-3 col-6">
+        <div class="counter-box box{{ forloop.counter }}" data-aos="zoom-out" data-aos-duration="{% cycle 800 1000 700 1200 %}">
+          <h2><span class="counter">{{ item.number }}</span>{{ item.suffix }}</h2>
+          <p>{{ item.label }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<div class="space100"></div>

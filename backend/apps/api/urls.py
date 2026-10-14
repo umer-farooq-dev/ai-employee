@@ -4,12 +4,15 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
+from . import views_company as company
 
 admin = DefaultRouter(trailing_slash=True)
 admin.register("companies", views.CompanyViewSet, basename="admin-companies")
 admin.register("users", views.UserViewSet, basename="admin-users")
 admin.register("roles", views.RoleViewSet, basename="admin-roles")
 admin.register("plans", views.PlanViewSet, basename="admin-plans")
+admin.register("industries", views.IndustryViewSet, basename="admin-industries")
+admin.register("enquiries", views.EnquiryViewSet, basename="admin-enquiries")
 admin.register("cms/pages", views.PageViewSet, basename="admin-cms-pages")
 admin.register("cms/sections", views.SectionViewSet, basename="admin-cms-sections")
 admin.register("email-templates", views.EmailTemplateViewSet, basename="admin-email-templates")
@@ -17,9 +20,21 @@ admin.register("logs/audit", views.AuditLogViewSet, basename="admin-audit-logs")
 admin.register("logs/api", views.ApiLogViewSet, basename="admin-api-logs")
 admin.register("logs/errors", views.ErrorLogViewSet, basename="admin-error-logs")
 
+team = DefaultRouter(trailing_slash=True)
+team.register("members", company.TeamMemberViewSet, basename="team-members")
+team.register("invitations", company.InvitationViewSet, basename="team-invitations")
+
+public = DefaultRouter(trailing_slash=True)
+public.register("industries", company.PublicIndustryViewSet, basename="public-industries")
+
 api_v1 = [
     path("me/", views.MeView.as_view(), name="me"),
-    path("company/", views.OwnCompanyView.as_view(), name="own-company"),
+    path("me/phone-otp/", company.PhoneOTPView.as_view(), name="me-phone-otp"),
+    path("company/", company.OwnCompanyView.as_view(), name="own-company"),
+    path("company/hours/", company.CompanyHoursView.as_view(), name="company-hours"),
+    path("company/onboarding/", company.OnboardingView.as_view(), name="company-onboarding"),
+    path("company/team/transfer-ownership/", company.TransferOwnershipView.as_view(), name="team-transfer"),
+    path("company/team/", include(team.urls)),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),
     path("admin/uploads/", views.UploadView.as_view(), name="admin-uploads"),
     path("admin/sessions/", views.SessionsView.as_view(), name="admin-sessions"),
@@ -30,4 +45,8 @@ public_v1 = [
     path("branding/", views.PublicBrandingView.as_view(), name="public-branding"),
     path("cms/<slug:key>/", views.PublicPageView.as_view(), name="public-cms-page"),
     path("plans/", views.PublicPlansView.as_view(), name="public-plans"),
+    path("enquiries/", company.PublicEnquiryView.as_view(), name="public-enquiries"),
+    path("registration-options/", company.RegistrationOptionsView.as_view(), name="public-registration-options"),
+    path("invitations/<str:token>/", company.InvitationPublicView.as_view(), name="public-invitation"),
+    path("", include(public.urls)),
 ]

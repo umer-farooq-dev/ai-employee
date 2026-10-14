@@ -1,4 +1,5 @@
-{# Company panel menu: grows phase by phase (PRD-01 CP-02). Only screens that exist are listed. #}
+{% load panel_tags %}
+{# Company panel menu (CP-02): items per role and plan from apps/panel/menu.py; later-phase screens open "coming soon". #}
 <div class="startbar d-print-none">
     {% url 'panel:company_home' as home_url %}
     {% include 'panel/partials/brand.html' with home_url=home_url %}
@@ -7,7 +8,12 @@
             <div class="d-flex align-items-start flex-column w-100">
                 <ul class="navbar-nav mb-auto w-100">
                     <li class="menu-label pt-0 mt-0"><span>{{ request.company.name|default:"Main Menu" }}</span></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ home_url }}"><i class="iconoir-home-simple menu-icon"></i><span>Dashboard</span></a></li>
+                    {% company_menu as items %}
+                    {% for item in items %}
+                    <li class="nav-item"><a class="nav-link{% if request.path == item.url %} active{% endif %}" href="{{ item.url }}">
+                        <i class="iconoir-{{ item.icon }} menu-icon"></i><span>{{ item.label }}</span>
+                        {% if not item.ready %}<span class="badge bg-light text-muted ms-auto">Soon</span>{% endif %}</a></li>
+                    {% endfor %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'panel:profile' %}"><i class="iconoir-user menu-icon"></i><span>My Profile</span></a></li>
                 </ul>
             </div>

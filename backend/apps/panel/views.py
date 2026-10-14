@@ -42,6 +42,8 @@ class ProfileForm(BootstrapMixin, forms.ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
+        if "phone" in self.changed_data:
+            user.phone_verified_at = None  # a new number must be verified again (AUTH-02)
         user.notification_prefs = {
             **user.notification_prefs,
             "email_security_alerts": self.cleaned_data["email_security_alerts"],

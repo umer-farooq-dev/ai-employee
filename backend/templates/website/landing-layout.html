@@ -1,27 +1,11 @@
 {% extends 'website/base.html' %}
-
-{% block html_attribute %}{% endblock html_attribute %}
-
-{% block title %}{% endblock title %}
-
-{% block icon %}{% endblock icon %}
-
-{% block extra_css %}{% endblock extra_css %}
-
-{% block body_attribute %}{% endblock body_attribute %}
-
+{# Header, call to action and footer are the site-wide CMS sections (Super Admin → Website Content → Site-wide). #}
 {% block content %}
-
-{% include 'website/partials/header.html' %}
-
+{% include 'website/partials/header.html' with c=site.header %}
+<main id="main">
 {% block page_content %}{% endblock page_content %}
-
-{% include 'website/partials/cta.html' %}
-{% include 'website/partials/footer.html' %}
+</main>
+{% if site.cta %}{% include 'website/partials/cta.html' with c=site.cta %}{% endif %}
+{% include 'website/partials/footer.html' with c=site.footer %}
 {% include 'website/partials/back-to-top.html' %}
-
-{% block modal %}{% endblock modal %}
-
 {% endblock content %}
-
-{% block extra_javascript %}{% endblock extra_javascript %}

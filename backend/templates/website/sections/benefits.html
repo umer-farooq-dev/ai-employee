@@ -1,0 +1,29 @@
+{% load static %}
+<div class="buy-sell-bottom2">
+  <div class="container">
+    <div class="row"><div class="col-lg-6 m-auto text-center"><div class="heading9">{% include 'website/sections/_heading.html' %}</div></div></div>
+  </div>
+  <div class="container">
+    <div class="bg">
+      <div class="row align-items-center">
+        <div class="col-lg-3">
+          {% for box in c.boxes|slice:":2" %}{% include 'website/sections/_benefit_box.html' with n=forloop.counter %}{% endfor %}
+        </div>
+        <div class="col-lg-6">
+          <div class="service1-main-images" data-aos="zoom-out" data-aos-duration="900">
+            {% if c.centre_image %}<div class="main-img1"><img src="{{ c.centre_image }}" alt="" loading="lazy"></div>{% endif %}
+            {% if c.secondary_image %}<div class="main-img2 animate1"><img src="{{ c.secondary_image }}" alt="" loading="lazy"></div>{% endif %}
+            <div class="shape1"><img src="{% static 'website/img/shapes/system-shape1.png' %}" alt="" loading="lazy"></div>
+            <div class="shape2"><img src="{% static 'website/img/shapes/system-shape2.png' %}" alt="" loading="lazy"></div>
+            <div class="shape3"><img src="{% static 'website/img/shapes/system-shape3.png' %}" alt="" loading="lazy"></div>
+            <div class="shape4"><img src="{% static 'website/img/shapes/system-shape4.png' %}" alt="" loading="lazy"></div>
+          </div>
+        </div>
+        <div class="col-lg-3">
+          {% for box in c.boxes|slice:"2:" %}{% include 'website/sections/_benefit_box.html' with n=forloop.counter|add:2 %}{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="space100"></div>

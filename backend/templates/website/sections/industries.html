@@ -1,0 +1,24 @@
+{# Industry cards are read live from Super Admin → Industries (active only). #}
+<div class="feratures-page-area sp">
+  <div class="container">
+    <div class="row"><div class="col-lg-7 m-auto text-center"><div class="heading9">
+      {% include 'website/sections/_heading.html' %}
+      {% if c.intro %}<div class="space16"></div><p>{{ c.intro }}</p>{% endif %}
+    </div></div></div>
+    <div class="space40"></div>
+    <div class="row">
+      {% for item in industries %}
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="pricing-box h-100" data-aos="fade-up" data-aos-duration="{% cycle 800 1000 1200 %}">
+          <div class="pricing-box-single h-100">
+            {% if item.icon %}<img src="{{ item.icon }}" alt="" loading="lazy" style="max-height:56px" class="mb-3">{% endif %}
+            <h3 class="h4"><a href="{% url 'website:industry' item.key %}">{{ item.name }}</a></h3>
+            <p class="pera">{{ item.short_description }}</p>
+            {% if c.link_label %}<a href="{% url 'website:industry' item.key %}" class="theme-btn2 mt-3">{{ c.link_label }}<span class="visually-hidden"> — {{ item.name }}</span></a>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

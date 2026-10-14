@@ -1,0 +1,53 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Settings{% endblock title %}
+{% block page_content %}
+<div class="row mt-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Company profile</h4></div>
+            <div class="card-body">
+                {% if company.logo %}<img src="{{ company.logo }}" alt="" class="mb-3 border rounded p-1" style="max-height:56px">{% endif %}
+                <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="op" value="profile">
+                    <fieldset {% if not can_manage %}disabled{% endif %}>
+                        {% include 'panel/partials/form_fields.html' %}
+                        {% if can_manage %}<button class="btn btn-primary">Save profile</button>{% endif %}
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <form method="post">{% csrf_token %}<input type="hidden" name="op" value="hours">
+        <fieldset {% if not can_manage %}disabled{% endif %}>
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Business hours</h4></div>
+            <div class="card-body">
+                <p class="text-muted small">Your AI Employee uses these hours for appointments and after-hours replies.</p>
+                {% for day, row in days %}
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-3 text-capitalize fw-medium">{{ day }}</div>
+                    <div class="col"><input type="time" class="form-control form-control-sm" name="{{ day }}_open" value="{{ row.open|default:'' }}" aria-label="{{ day }} opens"></div>
+                    <div class="col"><input type="time" class="form-control form-control-sm" name="{{ day }}_close" value="{{ row.close|default:'' }}" aria-label="{{ day }} closes"></div>
+                    <div class="col-auto"><label class="small"><input type="checkbox" class="form-check-input" name="{{ day }}_closed" {% if row.closed %}checked{% endif %}> Closed</label></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Holidays</h4></div>
+            <div class="card-body" id="holidays">
+                {% for h in company.holidays %}
+                <div class="row g-2 mb-2"><div class="col-5"><input type="date" class="form-control form-control-sm" name="holiday_date" value="{{ h.date }}" aria-label="Date"></div>
+                    <div class="col"><input class="form-control form-control-sm" name="holiday_name" value="{{ h.name }}" aria-label="Name"></div></div>
+                {% endfor %}
+                <div class="row g-2 mb-2"><div class="col-5"><input type="date" class="form-control form-control-sm" name="holiday_date" aria-label="Date"></div>
+                    <div class="col"><input class="form-control form-control-sm" name="holiday_name" placeholder="e.g. Diwali" aria-label="Name"></div></div>
+                <p class="text-muted small mb-0">Clear a row to remove a holiday. Save to add another row.</p>
+            </div>
+            {% if can_manage %}<div class="card-footer"><button class="btn btn-primary">Save hours &amp; holidays</button></div>{% endif %}
+        </div>
+        </fieldset>
+        </form>
+    </div>
+</div>
+{% endblock page_content %}

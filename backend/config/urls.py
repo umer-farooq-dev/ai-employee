@@ -5,7 +5,6 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from apps.api.urls import api_v1, public_v1
 
 urlpatterns = [
-    path("", include("apps.website.urls")),
     path("", include("apps.panel.urls")),
     path("", include("apps.core.urls")),
     path("superadmin/", include("apps.superadmin.urls")),
@@ -16,6 +15,7 @@ urlpatterns = [
     path("public/v1/", include((public_v1, "public"), namespace="public")),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/v1/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="api-docs"),
+    path("", include("apps.website.urls")),  # last: CMS pages are matched by slug
 ]
 
 if settings.DEBUG:

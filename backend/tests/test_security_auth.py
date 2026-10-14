@@ -80,10 +80,12 @@ def test_password_policy_from_settings(set_setting):
 
 
 @pytest.mark.django_db
-def test_signup_is_closed_until_phase_2(client):
-    response = client.get("/accounts/signup/")
-    assert b"closed" in response.content.lower()
+def test_registration_switch_closes_signup(client, set_setting):
+    set_setting("registration.enabled", False)
+    assert b"closed" in client.get("/accounts/signup/").content.lower()
     assert b"/accounts/signup/" not in client.get("/accounts/login/").content
+    set_setting("registration.enabled", True)
+    assert b"/accounts/signup/" in client.get("/accounts/login/").content
 
 
 @pytest.mark.django_db

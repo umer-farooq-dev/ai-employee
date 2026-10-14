@@ -1,0 +1,9 @@
+{% extends 'website/landing-layout.html' %}
+{# Every page is a list of CMS sections; each type has its template in website/sections/. #}
+{% block page_content %}
+{% for s in sections %}
+<section{% if s.anchor %} id="{{ s.anchor }}"{% endif %}>
+{% with c=s.content template="website/sections/"|add:s.type|add:".html" %}{% include template %}{% endwith %}
+</section>
+{% endfor %}
+{% endblock page_content %}

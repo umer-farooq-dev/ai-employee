@@ -1,0 +1,80 @@
+{% load static %}
+{# WEB-06: texts from the CMS, phone / email from General Settings, enquiries saved to Super Admin → Enquiries. #}
+<div class="contact-page-area sp" id="contact">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 m-auto text-center">
+        <div class="common-main-headding">
+          {% if c.heading %}<h1>{{ c.heading }}</h1>{% endif %}
+          {% if c.paragraph %}<p>{{ c.paragraph }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="space60"></div>
+    <div class="contact-form-all">
+      <div class="row align-items-center">
+        <div class="col-lg-7">
+          <div class="form-inputs">
+            {% if request.GET.sent %}
+            <div class="alert alert-success" role="status">{{ c.success_message }}</div>
+            {% else %}
+            {% if c.form_heading %}<h2 class="h5">{{ c.form_heading }}</h2>{% endif %}
+            {% if c.form_text %}<div class="space16"></div><p>{{ c.form_text }}</p>{% endif %}
+            {% if messages %}<div class="alert alert-danger mt-3" role="alert">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}
+            <div class="space30"></div>
+            <form method="post" action="{% url 'website:enquiry' %}" novalidate>
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <div class="d-none" aria-hidden="true">{{ enquiry_form.company_website }}</div>
+              {% with f=enquiry_form %}
+              <div class="row">
+                <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.name.id_for_label }}">{{ f.name.label }}</label>
+                  <input type="text" name="name" id="{{ f.name.id_for_label }}" placeholder="{{ f.name.label }}*" required maxlength="150" autocomplete="name"></div></div>
+                <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.business_name.id_for_label }}">{{ f.business_name.label }}</label>
+                  <input type="text" name="business_name" id="{{ f.business_name.id_for_label }}" placeholder="{{ f.business_name.label }}*" required maxlength="200" autocomplete="organization"></div></div>
+                <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.phone.id_for_label }}">{{ f.phone.label }}</label>
+                  <input type="tel" name="phone" id="{{ f.phone.id_for_label }}" placeholder="{{ f.phone.label }}*" required maxlength="16" autocomplete="tel"></div></div>
+                <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.email.id_for_label }}">{{ f.email.label }}</label>
+                  <input type="email" name="email" id="{{ f.email.id_for_label }}" placeholder="{{ f.email.label }}*" required autocomplete="email"></div></div>
+                <div class="col-lg-12"><div class="input"><label class="visually-hidden" for="{{ f.industry.id_for_label }}">{{ f.industry.label }}</label>{{ f.industry }}</div></div>
+                <div class="col-lg-12">
+                  <div class="input"><label class="visually-hidden" for="{{ f.message.id_for_label }}">{{ f.message.label }}</label>
+                    <textarea name="message" id="{{ f.message.id_for_label }}" rows="3" placeholder="{{ f.message.label }}"></textarea></div>
+                  <div class="button"><button type="submit" class="theme-btn2">{{ c.button_label }}</button></div>
+                </div>
+              </div>
+              {% endwith %}
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="contact-page-boxs">
+            {% if platform.support_phone %}
+            <div class="single-box">
+              <div class="icon"><img src="{% static 'website/img/icons/contact-page-icon1.png' %}" alt=""></div>
+              <div class="headding"><a href="tel:{{ platform.support_phone }}">{{ platform.support_phone }}</a></div>
+            </div>
+            {% endif %}
+            {% if platform.support_email %}
+            <div class="single-box">
+              <div class="icon"><img src="{% static 'website/img/icons/contact-page-icon2.png' %}" alt=""></div>
+              <div class="headding"><a href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a></div>
+            </div>
+            {% endif %}
+            {% if c.hours_text %}
+            <div class="single-box">
+              <div class="icon"><img src="{% static 'website/img/icons/contact-page-icon3.png' %}" alt=""></div>
+              <div class="headding"><p class="mb-0">{{ c.hours_text }}</p></div>
+            </div>
+            {% endif %}
+            {% if platform.address %}<p class="mt-3">{{ platform.address|linebreaksbr }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <img class="shape1" src="{% static 'website/img/shapes/apps-shape2.png' %}" alt="">
+  <img class="shape2" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
+  <img class="shape3" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
+</div>

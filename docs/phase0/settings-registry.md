@@ -22,12 +22,14 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `general.app_icon` | image | — | PWA manifest, future Flutter app |
 | `general.login_image` | image | — | login / register pages |
 | `general.color_primary` / `general.color_secondary` | colour | eSoft purple `#6534F4` / `#101537` | CSS variables on website and panels |
+| `general.color_company_panel` | colour | `#0D9488` | company panel accent (CP-01) |
 | `general.widget_powered_by` | text | "Powered by AI Employee" | chat widget |
 | `contact.support_email` | email | — | footer, emails, contact page |
 | `contact.support_phone` / `contact.whatsapp` | phone (E.164) | — | footer, contact page |
 | `contact.address` | textarea | — | footer, invoices |
 | `contact.legal_name` / `contact.gstin` / `contact.pan` | text | — | GST invoices |
 | `contact.social_links` | list[platform, URL] | — | website footer |
+| `contact.team_notify_emails` | list[email] | — (support email) | new registrations, website enquiries |
 | `contact.copyright` | text | "© {year} AI Employee" | footers |
 | `locale.timezone` | choice | Asia/Kolkata | display of all times (storage stays UTC) |
 | `locale.currency` | choice | INR | prices, invoices |
@@ -35,6 +37,7 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `locale.default_language` | choice | en | panels, emails |
 | `seo.meta_title` / `seo.meta_description` / `seo.og_image` | text / image | — | default for every page |
 | `seo.analytics_ids` | list[text] | — | website head |
+| `seo.allow_indexing` | boolean | true | robots.txt / noindex (off on demo servers) |
 | `email.sender_name` / `email.sender_address` | text / email | platform name / no-reply@… | all emails |
 | `email.header_html` / `email.footer_html` | rich | — | email layout |
 | `maintenance.enabled` | boolean | false | website and panels (Super Admin stays open) |
@@ -46,8 +49,12 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 |---|---|---|
 | `registration.enabled` | boolean | true |
 | `registration.approval_required` | boolean | true (new companies wait for Super Admin approval, AUTH-12) |
+| `registration.approval_required` | boolean | true (AUTH-12) |
+| `registration.email_verification` | choice (mandatory / optional) | optional during development → mandatory at launch |
 | `registration.mobile_otp_required` | boolean | false |
-| `registration.email_verification` | choice (mandatory / optional) | mandatory |
+| `registration.otp_length` / `otp_valid_minutes` / `otp_max_attempts` | number | 6 / 10 / 5 |
+| `registration.business_sizes` | list | 1-10, 11-50, 51-200, 201+ |
+| `team.invite_valid_days` | number | 7 |
 | `registration.trial_enabled` / `registration.trial_days` | boolean / number | true / 14 |
 | `registration.default_plan` | plan reference | Starter |
 
@@ -65,6 +72,14 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `security.upload_allowed_types` | list[mime] | pdf, docx, xlsx, csv, png, jpg, webp, svg | |
 | `security.signed_url_seconds` | number | 300 | private file link validity |
 | `security.api_rate_user` / `security.api_rate_anon` / `security.api_rate_company` | text | 1000/hour / 100/hour / 5000/hour | REST API throttling (API-06) |
+| `security.api_rate_public_form` | text | 10/hour | website / app forms per IP |
+
+## C2. SMS (mobile OTP) — Phase 2 · screen: Settings → SMS
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `sms.provider` | choice | development log | real provider added when the client chooses one; keys in Super Admin |
+| `sms.otp_message` | text | "{{ code }} is your … code" | |
 
 ## D. Data retention & privacy — Phase 7/8 · screen: Settings → Data & Privacy
 

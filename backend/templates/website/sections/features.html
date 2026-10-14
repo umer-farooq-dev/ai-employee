@@ -1,0 +1,23 @@
+<div class="work-prosess9 sp _relative">
+  <div class="container">
+    <div class="row"><div class="col-lg-7 m-auto text-center"><div class="heading9">{% include 'website/sections/_heading.html' %}</div></div></div>
+    <div class="space30"></div>
+    <div class="row">
+      {% for card in c.cards %}
+      <div class="{% if forloop.counter <= 2 %}col-lg-6{% else %}col-lg-4{% endif %}">
+        <div class="work-box-area {% cycle 'left-top' 'right-top' 'right-top' 'left-bottom' 'right-bottom' %}">
+          <div class="single-box" data-aos="zoom-in-up" data-aos-duration="{% cycle 800 1000 900 1200 1200 %}">
+            <div class="heading7">
+              <h3 class="h4">{% if card.url %}<a href="{{ card.url }}">{{ card.title }}</a>{% else %}{{ card.title }}{% endif %}</h3>
+              <div class="space16"></div>
+              <p>{{ card.text }}</p>
+            </div>
+            {% if card.image %}<div class="space40"></div><div class="image"><img src="{{ card.image }}" alt="" loading="lazy"></div>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<div class="space100"></div>

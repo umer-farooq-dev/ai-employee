@@ -1,0 +1,3 @@
+{# Badge + heading used by most sections. Expects c (content); level="h1" for the page's main heading. #}
+{% if c.badge_text %}<span class="span" data-aos="zoom-in-left" data-aos-duration="700">{% if c.badge_icon %}<img src="{{ c.badge_icon }}" alt=""> {% endif %}{{ c.badge_text }}</span>{% endif %}
+{% if c.heading %}{% if level == "h1" %}<h1 class="text-anime-style-3">{{ c.heading }}</h1>{% else %}<h2 class="text-anime-style-3">{{ c.heading }}</h2>{% endif %}{% endif %}

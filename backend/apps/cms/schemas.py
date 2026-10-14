@@ -160,6 +160,11 @@ SECTION_TYPES = [
             f("monthly_label", "Monthly toggle label"),
             f("yearly_label", "Yearly toggle label"),
             f("yearly_saving_text", "Yearly saving text"),
+            f("per_month_text", "Per month text", help="e.g. /month"),
+            f("per_year_text", "Per year text", help="e.g. /year"),
+            f("button_label", "Plan button label"),
+            f("custom_price_text", "Price text for custom plans"),
+            f("custom_button_label", "Button label for custom plans"),
         ],
     ),
     (
@@ -170,6 +175,7 @@ SECTION_TYPES = [
         HEADING
         + [
             f("intro", "Intro", "textarea"),
+            f("link_label", "Card link label"),
         ],
     ),
     (
@@ -220,6 +226,77 @@ SECTION_TYPES = [
             f("body", "Body", "rich"),
         ],
     ),
+    # Inner pages (Phase 2)
+    (
+        "page_hero",
+        "Page hero",
+        "Top banner of an inner page.",
+        False,
+        [
+            f("heading", "Heading"),
+            f("paragraph", "Paragraph", "textarea"),
+            f("button", "Button", "link"),
+            f("button2", "Second button", "link"),
+            f("image", "Image", "image"),
+        ],
+    ),
+    (
+        "steps",
+        "Steps / feature rows",
+        "Rows with image and text, alternating sides.",
+        False,
+        HEADING
+        + [
+            f(
+                "items",
+                "Rows",
+                "list",
+                fields=[
+                    f("badge", "Small label"),
+                    f("title", "Title"),
+                    f("text", "Text", "textarea"),
+                    f("image", "Image", "image"),
+                    f("button", "Button", "link"),
+                ],
+            ),
+        ],
+    ),
+    (
+        "card_grid",
+        "Card grid",
+        "Cards in a grid, e.g. AI Employee types.",
+        False,
+        HEADING
+        + [
+            f("intro", "Intro", "textarea"),
+            f(
+                "cards",
+                "Cards",
+                "list",
+                fields=[
+                    f("icon", "Icon", "image"),
+                    f("title", "Title"),
+                    f("text", "Text", "textarea"),
+                    f("url", "Link (optional)"),
+                ],
+            ),
+        ],
+    ),
+    (
+        "contact",
+        "Contact / demo form",
+        "Phone and email come from General Settings; enquiries go to Super Admin → Enquiries.",
+        True,
+        [
+            f("heading", "Heading"),
+            f("paragraph", "Paragraph", "textarea"),
+            f("form_heading", "Form heading"),
+            f("form_text", "Form text", "textarea"),
+            f("button_label", "Button label"),
+            f("success_message", "Message after sending", "textarea"),
+            f("hours_text", "Working hours text"),
+        ],
+    ),
 ]
 
 # Seed pages: (key, slug, title, [section type keys in order])
@@ -246,4 +323,13 @@ SEED_PAGES = [
     ("privacy", "privacy", "Privacy Policy", ["rich_text"]),
     ("refund", "refund", "Refund & Cancellation Policy", ["rich_text"]),
     ("ai-usage", "ai-usage", "Acceptable Use / AI Usage Policy", ["rich_text"]),
+    # Phase 2 (WEB-02)
+    ("how-it-works", "how-it-works", "How It Works", ["page_hero", "steps"]),
+    ("ai-employees", "ai-employees", "AI Employee Types", ["page_hero", "card_grid", "faq"]),
+    ("industries", "industries", "Industries", ["page_hero", "industries"]),
+    ("features", "features", "Features", ["page_hero", "steps", "benefits"]),
+    ("pricing", "pricing", "Pricing", ["page_hero", "pricing", "faq"]),
+    ("about", "about", "About", ["page_hero", "solution", "counters", "card_grid"]),
+    ("contact", "contact", "Contact / Book a Demo", ["contact"]),
+    ("faq", "faq", "FAQ", ["page_hero", "faq"]),
 ]

@@ -1,17 +1,12 @@
-{% load static i18n %}
-<div class="overlay flex cac vac preloader-parent">
+<div class="overlay flex cac vac preloader-parent" aria-hidden="true">
   <div>
     <div class="loader preloader flex vac">
       <svg width="200" height="200">
         <circle class="background" cx="90" cy="90" r="80" transform="rotate(-90, 100, 90)"/>
         <circle class="outer" cx="90" cy="90" r="80" transform="rotate(-90, 100, 90)"/>
       </svg>
-      <span class="circle-background">
-
-          </span>
-      <span class="logo animated fade-in">
-               <img src="{% static 'website/img/logo/header-logo1.png' %}" alt="">
-          </span>
+      <span class="circle-background"></span>
+      <span class="logo animated fade-in"><img src="{% firstof platform.logo_small platform.favicon %}" alt=""></span>
     </div>
   </div>
 </div>

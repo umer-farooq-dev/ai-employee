@@ -9,17 +9,42 @@
         <a class="btn btn-sm btn-light" href="{% url 'superadmin:company_list' %}">Back</a>
     </div>
 </div>
+{% if company.awaiting_approval and can.approve %}
+<div class="card border-warning">
+    <div class="card-header"><h5 class="card-title mb-0">{% if company.status == 'pending' %}Waiting for approval{% else %}Rejected{% endif %}</h5></div>
+    <div class="card-body">
+        {% if company.status == 'rejected' %}<p class="mb-2">Reason: {{ company.rejected_reason }}</p>{% endif %}
+        <p class="text-muted small">Check the details below. Approving opens the company panel and starts the trial or plan; the owner is emailed.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="{% url 'superadmin:company_approve' company.pk %}">{% csrf_token %}
+                <input type="hidden" name="decision" value="approve"><button class="btn btn-success">Approve</button></form>
+            {% if company.status == 'pending' %}
+            <form method="post" action="{% url 'superadmin:company_approve' company.pk %}" class="d-flex gap-2 flex-grow-1">{% csrf_token %}
+                <input type="hidden" name="decision" value="reject">
+                <input class="form-control" name="reason" placeholder="Reason (sent to the owner)" required>
+                <button class="btn btn-outline-danger">Reject</button></form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 <div class="row">
     <div class="col-lg-6">
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Details</h5></div>
             <div class="card-body"><dl class="row mb-0">
+                <dt class="col-5">Industry</dt><dd class="col-7">{{ company.industry.name|default:"—" }}</dd>
+                <dt class="col-5">Business size</dt><dd class="col-7">{{ company.business_size|default:"—" }}</dd>
                 <dt class="col-5">Plan</dt><dd class="col-7">{{ company.plan.name|default:"—" }}</dd>
+                {% if company.trial_ends_at %}<dt class="col-5">Trial ends</dt><dd class="col-7">{{ company.trial_ends_at|date:"d M Y" }}</dd>{% endif %}
+                <dt class="col-5">Website</dt><dd class="col-7">{% if company.website %}<a href="{{ company.website }}" target="_blank" rel="noopener noreferrer">{{ company.website }}</a>{% else %}—{% endif %}</dd>
                 <dt class="col-5">Email</dt><dd class="col-7">{{ company.email|default:"—" }}</dd>
                 <dt class="col-5">Phone</dt><dd class="col-7">{{ company.phone|default:"—" }}</dd>
                 <dt class="col-5">GSTIN</dt><dd class="col-7">{{ company.gstin|default:"—" }}</dd>
                 <dt class="col-5">City / State</dt><dd class="col-7">{{ company.city }} {{ company.state }}</dd>
                 <dt class="col-5">Requires 2FA</dt><dd class="col-7">{{ company.require_2fa|yesno:"Yes,No" }}</dd>
                 <dt class="col-5">Created</dt><dd class="col-7">{{ company.created_at }}</dd>
+                {% if company.terms_accepted_at %}<dt class="col-5">Terms accepted</dt><dd class="col-7">{{ company.terms_accepted_at }} · {{ company.terms_accepted_ip|default:"" }}</dd>{% endif %}
+                {% if company.approved_at %}<dt class="col-5">Approved</dt><dd class="col-7">{{ company.approved_at }} · {{ company.approved_by.email|default:"" }}</dd>{% endif %}
                 {% if company.suspended_at %}<dt class="col-5">Suspended</dt><dd class="col-7">{{ company.suspended_at }} — {{ company.suspended_reason }}</dd>{% endif %}
             </dl>
             <p class="text-muted small mt-3 mb-0">Usage figures appear here when usage metering is built (Phase 7).</p></div>

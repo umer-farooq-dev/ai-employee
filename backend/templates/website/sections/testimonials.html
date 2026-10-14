@@ -1,0 +1,29 @@
+{% load static %}
+{% if c.items %}
+<div class="tes9 sp">
+  <div class="container">
+    <div class="row align-items-center"><div class="col-lg-6 text-center m-auto"><div class="heading9">{% include 'website/sections/_heading.html' %}</div></div></div>
+    <div class="space60"></div>
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="tes2-slider-all" data-aos="fade-up" data-aos-duration="900">
+          {% for t in c.items %}
+          <div class="single-slider">
+            {% if t.rating %}<ul class="stars" aria-label="{{ t.rating }} out of 5">{% for star in "12345" %}{% if forloop.counter <= t.rating %}<li><i class="fa-solid fa-star" aria-hidden="true"></i></li>{% endif %}{% endfor %}</ul>{% endif %}
+            <div class="icon"><img src="{% static 'website/img/icons/tes2-icon.png' %}" alt=""></div>
+            <p>“{{ t.quote }}”</p>
+            <div class="single-slider-bottom">
+              <div class="headdding-area">
+                {% if t.photo %}<div class="image"><img src="{{ t.photo }}" alt="" loading="lazy"></div>{% endif %}
+                <div class="headding"><h3 class="h5">{{ t.name }}</h3><p>{{ t.designation }}</p></div>
+              </div>
+              {% if t.logo %}<div class="logo"><img src="{{ t.logo }}" alt="" loading="lazy"></div>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}

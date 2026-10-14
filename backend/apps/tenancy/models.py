@@ -34,14 +34,29 @@ class TenantModel(BaseModel):
 class Company(BaseModel):
     """A registered business (tenant root)."""
 
+    PENDING, REJECTED = "pending", "rejected"
     TRIAL, ACTIVE, SUSPENDED, CANCELLED = "trial", "active", "suspended", "cancelled"
-    STATUSES = [(TRIAL, "Trial"), (ACTIVE, "Active"), (SUSPENDED, "Suspended"), (CANCELLED, "Cancelled")]
+    STATUSES = [
+        (PENDING, "Pending approval"),
+        (REJECTED, "Rejected"),
+        (TRIAL, "Trial"),
+        (ACTIVE, "Active"),
+        (SUSPENDED, "Suspended"),
+        (CANCELLED, "Cancelled"),
+    ]
+    WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
     name = models.CharField(max_length=200)
     legal_name = models.CharField(max_length=200, blank=True)
     slug = models.SlugField(max_length=80, unique=True)
     status = models.CharField(max_length=20, choices=STATUSES, default=TRIAL, db_index=True)
     plan = models.ForeignKey("billing.Plan", null=True, blank=True, on_delete=models.PROTECT, related_name="companies")
+    trial_ends_at = models.DateTimeField(null=True, blank=True)
+    industry = models.ForeignKey(
+        "industries.Industry", null=True, blank=True, on_delete=models.PROTECT, related_name="companies"
+    )
+    business_size = models.CharField(max_length=30, blank=True)
+    logo = models.CharField(max_length=500, blank=True, help_text="Image URL")
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=16, blank=True)
     website = models.URLField(blank=True)
@@ -52,6 +67,17 @@ class Company(BaseModel):
     timezone = models.CharField(max_length=50, blank=True, help_text="Empty = platform default")
     default_language = models.CharField(max_length=10, blank=True, help_text="Empty = platform default")
     require_2fa = models.BooleanField(default=False, help_text="Company enforces 2FA for all its users")
+    business_hours = models.JSONField(default=dict, blank=True, help_text="{mon: {open, close, closed}, …}")
+    holidays = models.JSONField(default=list, blank=True, help_text="[{date, name}, …]")
+    onboarding = models.JSONField(default=dict, blank=True, help_text="Completed onboarding steps {key: timestamp}")
+    # Registration and approval (AUTH-01, AUTH-12)
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    terms_accepted_ip = models.GenericIPAddressField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    rejected_reason = models.CharField(max_length=500, blank=True)
     settings = models.JSONField(default=dict, blank=True)
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_reason = models.CharField(max_length=255, blank=True)
@@ -67,6 +93,11 @@ class Company(BaseModel):
     @property
     def is_suspended(self):
         return self.status == self.SUSPENDED
+
+    @property
+    def awaiting_approval(self):
+        """Pending or rejected: the owner can sign in but only sees the approval status page (AUTH-12)."""
+        return self.status in (self.PENDING, self.REJECTED)
 
 
 class Membership(TenantModel):
@@ -85,3 +116,32 @@ class Membership(TenantModel):
 
     def __str__(self):
         return f"{self.user} @ {self.company_id}"
+
+
+class Invitation(TenantModel):
+    """Team invitation by email (AUTH-07). Only a hash of the token is stored; the link is emailed once."""
+
+    PENDING, ACCEPTED, CANCELLED = "pending", "accepted", "cancelled"
+    STATUSES = [(PENDING, "Pending"), (ACCEPTED, "Accepted"), (CANCELLED, "Cancelled")]
+
+    email = models.EmailField()
+    role = models.ForeignKey("rbac.Role", on_delete=models.PROTECT, limit_choices_to={"scope": "company"})
+    token_hash = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=20, choices=STATUSES, default=PENDING, db_index=True)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.email} → {self.company_id}"
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+
+        return self.expires_at <= timezone.now()

@@ -1,0 +1,31 @@
+{% load admin_tags %}
+{# Plans are read live from Super Admin → Plans & Pricing (public, active plans). #}
+<div class="pricing-plan-page sp">
+  <div class="container">
+    <div class="row"><div class="col-lg-8 m-auto text-center"><div class="heading9">
+      {% include 'website/sections/_heading.html' %}
+      {% if c.subtext %}<div class="space16"></div><p>{{ c.subtext }}</p>{% endif %}
+    </div></div></div>
+    <div class="space30"></div>
+    <div class="princing-plans">
+      {% if c.yearly_label %}
+      <div class="row"><div class="col-12 text-center">
+        <div class="plan-toggle-wrap">
+          {% if c.yearly_saving_text %}<p class="pera">{{ c.yearly_saving_text }}</p>{% endif %}
+          <div class="toggle-inner toggle-inner2">
+            <input id="ce-toggle" type="checkbox" checked aria-label="{{ c.monthly_label }} / {{ c.yearly_label }}">
+            <span class="custom-toggle"></span>
+            <span class="t-month">{{ c.monthly_label }}</span>
+            <span class="t-year">{{ c.yearly_label }}</span>
+          </div>
+        </div>
+      </div></div>
+      <div class="space60"></div>
+      {% endif %}
+      <div class="tab-content">
+        <div id="monthly">{% include 'website/sections/_plans.html' with yearly=False %}</div>
+        {% if c.yearly_label %}<div id="yearly" style="display:none;">{% include 'website/sections/_plans.html' with yearly=True %}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>

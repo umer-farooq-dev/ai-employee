@@ -1,0 +1,28 @@
+{% if c.items %}
+<div class="faq6 sp">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 m-auto text-center">
+        <div class="heading6">{% include 'website/sections/_heading.html' %}</div>
+        <div class="space40"></div>
+        <div class="accordion accordion1 text-start" id="faq-{{ s.anchor|default:'list' }}">
+          {% for item in c.items %}
+          <div class="accordion-item{% if forloop.first %} active{% endif %}" data-aos="fade-up" data-aos-duration="{% cycle 700 900 1100 1300 %}">
+            <h3 class="accordion-header" id="faq-h-{{ forloop.counter }}">
+              <button class="accordion-button{% if not forloop.first %} collapsed{% endif %}" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#faq-c-{{ forloop.counter }}" aria-expanded="{{ forloop.first|yesno:'true,false' }}" aria-controls="faq-c-{{ forloop.counter }}">
+                {{ item.question }}
+              </button>
+            </h3>
+            <div id="faq-c-{{ forloop.counter }}" class="accordion-collapse collapse{% if forloop.first %} show{% endif %}" aria-labelledby="faq-h-{{ forloop.counter }}"
+                 data-bs-parent="#faq-{{ s.anchor|default:'list' }}">
+              <div class="accordion-body">{{ item.answer|safe }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}

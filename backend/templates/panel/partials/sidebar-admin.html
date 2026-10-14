@@ -13,11 +13,13 @@
                     {% if u|can:"companies.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:company_list' %}"><i class="iconoir-building menu-icon"></i><span>Companies</span></a></li>{% endif %}
                     {% if u|can:"users.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:user_list' %}"><i class="iconoir-group menu-icon"></i><span>Users</span></a></li>{% endif %}
                     {% if u|can:"roles.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:role_list' %}"><i class="iconoir-shield-check menu-icon"></i><span>Roles &amp; Permissions</span></a></li>{% endif %}
+                    {% if u|can:"industries.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:industry_list' %}"><i class="iconoir-industry menu-icon"></i><span>Industries</span></a></li>{% endif %}
                     {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>
                     {% if u|can:"settings.general" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:general_settings' %}"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>{% endif %}
                     {% if u|can:"settings.system" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:system_settings' %}"><i class="iconoir-lock menu-icon"></i><span>System Settings</span></a></li>{% endif %}
                     {% if u|can:"cms.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:cms_pages' %}"><i class="iconoir-page-edit menu-icon"></i><span>Website Content</span></a></li>{% endif %}
+                    {% if u|can:"enquiries.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:enquiry_list' %}"><i class="iconoir-chat-bubble-question menu-icon"></i><span>Enquiries</span></a></li>{% endif %}
                     {% if u|can:"email_templates.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:email_template_list' %}"><i class="iconoir-mail menu-icon"></i><span>Email Templates</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Security</span></li>
                     {% if u|can:"logs.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:logs' %}"><i class="iconoir-journal menu-icon"></i><span>Logs</span></a></li>{% endif %}

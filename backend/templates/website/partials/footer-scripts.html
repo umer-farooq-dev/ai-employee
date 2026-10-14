@@ -1,6 +1,4 @@
-{% load static i18n %}
-<!--=====JS=======-->
-
+{% load static %}
 <script src="{% static 'website/js/bootstrap.min.js' %}"></script>
 <script src="{% static 'website/js/aos.js' %}"></script>
 <script src="{% static 'website/js/fontawesome.js' %}"></script>
@@ -15,4 +13,13 @@
 <script src="{% static 'website/js/text-animation.js' %}"></script>
 <script src="{% static 'website/js/SmoothScroll.js' %}"></script>
 <script src="{% static 'website/js/tilt.jquery.js' %}"></script>
+{# WEB-08: with reduced motion switched on, drop the animation hooks before the template script starts them. #}
+<script>
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll("[data-aos]").forEach(function (el) { el.removeAttribute("data-aos"); });
+    document.querySelectorAll(".text-anime-style-1,.text-anime-style-2,.text-anime-style-3").forEach(function (el) {
+      el.classList.remove("text-anime-style-1", "text-anime-style-2", "text-anime-style-3");
+    });
+  }
+</script>
 <script src="{% static 'website/js/main.js' %}"></script>

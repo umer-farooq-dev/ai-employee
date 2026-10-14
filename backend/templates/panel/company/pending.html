@@ -1,0 +1,22 @@
+{% extends 'panel/auth.html' %}
+{# AUTH-12 / AUTH-02: status page shown until mobile verification and Super Admin approval are done. #}
+{% block title %}Account status{% endblock %}
+{% block auth_content %}
+{% if reason == 'phone' %}
+    <h5 class="mb-2">Verify your mobile number</h5>
+    <p class="text-muted">We will send a code to <strong>{{ request.user.phone }}</strong>.</p>
+    <form method="post" class="mb-3">{% csrf_token %}<input type="hidden" name="op" value="send">
+        <button class="btn btn-light w-100">Send code</button></form>
+    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="verify">
+        {% include 'panel/partials/form_fields.html' %}
+        <button class="btn btn-primary w-100">Verify</button></form>
+{% elif reason == 'pending' %}
+    <h5 class="mb-2">Thank you for registering {{ company.name }}</h5>
+    <p class="text-muted mb-0">Our team is reviewing your details. You will get an email as soon as your account is approved.</p>
+{% elif reason == 'rejected' %}
+    <h5 class="mb-2">Registration not approved</h5>
+    <p class="text-muted">{{ company.rejected_reason }}</p>
+    {% if platform.support_email %}<p class="mb-0">Questions? Write to <a href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a>.</p>{% endif %}
+{% endif %}
+<form method="post" action="{% url 'account_logout' %}" class="mt-4 text-center">{% csrf_token %}<button class="btn btn-link btn-sm">Sign out</button></form>
+{% endblock %}

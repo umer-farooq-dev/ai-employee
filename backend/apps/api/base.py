@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 from apps.platform_config import services as config
 from apps.rbac.services import has_perm
 from apps.tenancy.context import activate, deactivate
-from apps.tenancy.middleware import PLATFORM_PATHS, resolve_membership
+from apps.tenancy.middleware import PLATFORM_PATHS, gate_blocks, gate_reason, resolve_membership
 from apps.tenancy.models import Company
 
 
@@ -24,6 +24,10 @@ class TenantContextMixin:
             membership = resolve_membership(user)
             company = membership.company if membership else None
             self._check_token_user(user, company)
+            reason = gate_reason(user, company) if gate_blocks(request.path) else None
+            if reason:
+                code = "phone_verification_required" if reason == "phone" else f"company_{reason}"
+                raise PermissionDenied({"code": code, "message": "Not available yet."})
         request.company = django_request.company = company
         staff_area = user.is_authenticated and user.is_staff and request.path.startswith(PLATFORM_PATHS)
         self._tenant_tokens = activate(company.id if company else None, bypass=staff_area)

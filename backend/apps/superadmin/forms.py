@@ -1,13 +1,16 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 
 from apps.billing.models import ENTITLEMENTS, Plan
 from apps.core.uploads import save_public
+from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
 from apps.platform_config.registry import SETTINGS
 from apps.rbac.catalog import PERMISSIONS
 from apps.rbac.models import Role
 from apps.tenancy.models import Company
+from apps.website.models import Enquiry
 
 User = get_user_model()
 
@@ -35,7 +38,10 @@ class CompanyForm(BootstrapMixin, forms.ModelForm):
         fields = [
             "name",
             "legal_name",
+            "industry",
+            "business_size",
             "plan",
+            "trial_ends_at",
             "email",
             "phone",
             "website",
@@ -52,8 +58,41 @@ class CompanyForm(BootstrapMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["plan"].queryset = Plan.objects.filter(status=Plan.ACTIVE)
+        self.fields["trial_ends_at"].widget = forms.DateTimeInput(
+            attrs={"type": "datetime-local", "class": "form-control"}
+        )
         if not self.instance._state.adding:
             del self.fields["owner_email"]
+
+
+class IndustryForm(BootstrapMixin, forms.ModelForm):
+    """Super Admin → Industries. Icon and image can be uploaded or given as a URL."""
+
+    icon_upload = forms.ImageField(required=False, label="Upload icon")
+    image_upload = forms.ImageField(required=False, label="Upload page image")
+
+    class Meta:
+        model = Industry
+        fields = ["name", "key", "short_description", "description", "icon", "image", "is_active", "sort_order"]
+        widgets = {"description": forms.Textarea(attrs={"rows": 5})}
+
+    def clean(self):
+        data = super().clean()
+        for field in ("icon", "image"):
+            upload = data.get(f"{field}_upload")
+            if upload:
+                try:
+                    data[field] = save_public(upload, "industries")
+                except ValidationError as exc:
+                    self.add_error(f"{field}_upload", exc)
+        return data
+
+
+class EnquiryForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = Enquiry
+        fields = ["status", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 4})}
 
 
 class MemberForm(BootstrapMixin, forms.Form):

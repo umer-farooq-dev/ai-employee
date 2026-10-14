@@ -1,14 +1,39 @@
 {% extends 'panel/company/layout.html' %}
 {% block title %}Dashboard{% endblock title %}
 {% block page_content %}
-<div class="row">
-    <div class="col-12">
+<div class="row mt-3">
+    <div class="col-lg-8">
         <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">Getting started</h4>
+                <span class="text-muted small">{{ onboarding.completed }} of {{ onboarding.total }} done</span>
+            </div>
             <div class="card-body">
-                <h4 class="card-title mb-2">Dashboard</h4>
-                <p class="text-muted mb-0">Company panel shell. Features are added phase by phase.</p>
+                <div class="progress mb-3" style="height:8px" role="progressbar" aria-valuenow="{{ onboarding.percent }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" style="width:{{ onboarding.percent }}%;background:var(--brand-primary)"></div>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for step in onboarding.steps %}
+                    <li class="list-group-item d-flex align-items-center gap-2 px-0">
+                        {% if step.done %}<i class="iconoir-check-circle text-success fs-20"></i>{% else %}<i class="iconoir-circle text-muted fs-20"></i>{% endif %}
+                        <span class="{% if step.done %}text-muted text-decoration-line-through{% endif %}">{{ step.label }}</span>
+                        {% if not step.done %}{% if step.available %}<a class="btn btn-sm btn-light ms-auto" href="{% url step.url_name %}">Open</a>{% else %}<span class="badge bg-light text-muted ms-auto">Coming soon</span>{% endif %}{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card"><div class="card-body">
+            <h5 class="card-title">{{ company.name }}</h5>
+            <dl class="row mb-0 small">
+                <dt class="col-5">Status</dt><dd class="col-7">{{ company.get_status_display }}</dd>
+                <dt class="col-5">Plan</dt><dd class="col-7">{{ company.plan.name|default:"—" }}</dd>
+                {% if trial_days_left is not None %}<dt class="col-5">Trial</dt><dd class="col-7">{% if trial_days_left >= 0 %}{{ trial_days_left }} day{{ trial_days_left|pluralize }} left{% else %}ended{% endif %}</dd>{% endif %}
+                <dt class="col-5">Industry</dt><dd class="col-7">{{ company.industry.name|default:"—" }}</dd>
+            </dl>
+        </div></div>
     </div>
 </div>
 {% endblock page_content %}

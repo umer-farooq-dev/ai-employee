@@ -19,8 +19,8 @@ def lockout_config():
 
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
-        # Company registration (AUTH-01) is built in Phase 2; it will honour the `registration.enabled` setting.
-        return False
+        """AUTH-01: company registration on / off from Super Admin → System Settings → Registration."""
+        return config.get("registration.enabled")
 
     def pre_authenticate(self, request, **credentials):
         """AUTH-06: lockout after N failed attempts per account and per IP; N and duration come from Super Admin."""

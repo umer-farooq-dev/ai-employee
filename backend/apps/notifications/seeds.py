@@ -80,4 +80,53 @@ SEED_TEMPLATES = [
         P.format("New two-factor recovery codes were generated for your {{ platform_name }} account."),
         ["platform_name", "user"],
     ),
+    # Phase 2: registration, approval, team, website enquiries
+    (
+        "company/registered_team",
+        "New company registration (to platform team)",
+        "New registration: {{ company.name }}",
+        P.format("A new company registered on {{ platform_name }} and is waiting for review.")
+        + P.format("<b>{{ company.name }}</b> — {{ company.industry.name }}, {{ company.city }}, {{ company.state }}")
+        + P.format("Owner: {{ owner.full_name }} ({{ owner.email }}, {{ owner.phone }})")
+        + P.format('<a href="{{ review_url }}">Review in Super Admin</a>'),
+        ["platform_name", "company", "owner", "review_url"],
+    ),
+    (
+        "company/approved",
+        "Company approved",
+        "Your {{ platform_name }} account is approved",
+        P.format("Good news! Your company <b>{{ company.name }}</b> has been approved.")
+        + P.format("You can now sign in and set up your AI Employee.")
+        + P.format('<a href="{{ login_url }}">Sign in</a>'),
+        ["platform_name", "company", "login_url"],
+    ),
+    (
+        "company/rejected",
+        "Company registration not approved",
+        "Your {{ platform_name }} registration",
+        P.format("We could not approve the registration of <b>{{ company.name }}</b>.")
+        + P.format("Reason: {{ reason }}")
+        + P.format("Reply to this email or contact {{ support_email }} if you have questions."),
+        ["platform_name", "company", "reason", "support_email"],
+    ),
+    (
+        "team/invitation",
+        "Team invitation",
+        "{{ inviter.full_name|default:inviter.email }} invited you to {{ company.name }}",
+        P.format("You have been invited to join <b>{{ company.name }}</b> on {{ platform_name }} as {{ role.name }}.")
+        + P.format('<a href="{{ accept_url }}">Accept invitation</a>')
+        + P.format("This invitation is valid until {{ expires_at|date:'d M Y' }}."),
+        ["platform_name", "company", "inviter", "role", "accept_url", "expires_at"],
+    ),
+    (
+        "website/enquiry_team",
+        "Website enquiry (to platform team)",
+        "New enquiry: {{ enquiry.business_name }}",
+        P.format("A new enquiry arrived from the website.")
+        + P.format("{{ enquiry.name }} — {{ enquiry.business_name }} ({{ enquiry.industry.name|default:'—' }})")
+        + P.format("{{ enquiry.email }} · {{ enquiry.phone }}")
+        + P.format("{{ enquiry.message|linebreaksbr }}")
+        + P.format('<a href="{{ review_url }}">Open in Super Admin</a>'),
+        ["platform_name", "enquiry", "review_url"],
+    ),
 ]

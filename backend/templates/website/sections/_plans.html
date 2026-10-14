@@ -1,0 +1,32 @@
+{% load admin_tags %}
+<div class="row justify-content-center">
+  {% for plan in plans %}
+  <div class="col-md-6 col-lg-4 col-xl-3">
+    <div class="pricing-box">
+      <div class="pricing-box-single">
+        <div class="text-center">
+          <span class="span">{{ plan.name }}</span>
+          {% if plan.is_custom %}
+          <h3>{{ c.custom_price_text }}</h3>
+          {% elif yearly and plan.price_yearly_paise %}
+          <h3>{{ plan.price_yearly_paise|inr }}</h3><p class="pera">{{ c.per_year_text }}</p>
+          {% else %}
+          <h3>{{ plan.price_monthly_paise|inr }}</h3><p class="pera">{{ c.per_month_text }}</p>
+          {% endif %}
+        </div>
+        {% if plan.is_custom %}
+        <a href="{% url 'website:page' 'contact' %}" class="theme-btn2">{{ c.custom_button_label }}</a>
+        {% else %}
+        <a href="{% url 'account_signup' %}?plan={{ plan.key|urlencode }}" class="theme-btn2">{{ c.button_label }}</a>
+        {% endif %}
+        {% if plan.description %}<p class="pera mt-3">{{ plan.description }}</p>{% endif %}
+        {% if plan.features %}
+        <ul class="list">
+          {% for feature in plan.features %}<li><span><i class="fa-solid fa-check" aria-hidden="true"></i></span> {{ feature }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>

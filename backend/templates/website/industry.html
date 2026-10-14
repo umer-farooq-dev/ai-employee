@@ -1,0 +1,29 @@
+{% extends 'website/landing-layout.html' %}
+{# One page per active industry (WEB-02), generated from Super Admin → Industries. #}
+{% block title %}{{ industry.name }} | {{ platform.platform_name }}{% endblock title %}
+{% block description %}{{ industry.short_description|default:platform.tagline }}{% endblock description %}
+{% block page_content %}
+{% load static %}
+<div class="pages-hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <div class="main-headding">
+          <h1>{{ industry.name }}</h1>
+          {% if industry.short_description %}<p>{{ industry.short_description }}</p>{% endif %}
+          {% if site.header.cta.label %}<div class="space30"></div>
+          <div class="hero-btns"><a href="{{ site.header.cta.url }}" class="theme-btn2">{{ site.header.cta.label }}</a></div>{% endif %}
+        </div>
+      </div>
+      <div class="col-lg-6">
+        {% if industry.image or industry.icon %}<div class="hero-image shape-animaiton3"><img src="{% firstof industry.image industry.icon %}" alt=""></div>{% endif %}
+      </div>
+    </div>
+  </div>
+  <img class="hero-shape1" src="{% static 'website/img/shapes/common-hero-shape1.png' %}" alt="">
+  <img class="hero-shape2" src="{% static 'website/img/shapes/common-hero-shape2.png' %}" alt="">
+</div>
+{% if industry.description %}
+<div class="sp"><div class="container"><div class="row"><div class="col-lg-9 m-auto legal-body">{{ industry.description|safe }}</div></div></div></div>
+{% endif %}
+{% endblock page_content %}

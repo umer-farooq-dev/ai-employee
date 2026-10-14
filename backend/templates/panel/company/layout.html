@@ -1,2 +1,5 @@
 {% extends 'panel/layout-vertical.html' %}
+{# CP-01: same Rizz template as Super Admin, own menu and accent colour (General Settings → company panel colour). #}
+{% block brand_override %}<style>:root{--brand-primary:{{ platform.color_company_panel }};--bs-primary:{{ platform.color_company_panel }}}
+.startbar .navbar-nav .nav-link.active,.startbar .navbar-nav .nav-link:hover{color:var(--brand-primary)}</style>{% endblock %}
 {% block sidebar %}{% include 'panel/partials/sidebar-company.html' %}{% endblock sidebar %}

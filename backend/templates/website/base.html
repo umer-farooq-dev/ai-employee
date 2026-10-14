@@ -1,37 +1,51 @@
-{% load static i18n %}
-<!DOCTYPE html>
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}" {% block html_attribute %}{% endblock html_attribute %}>
+{% load static %}<!DOCTYPE html>
+{% with seo=page.seo|default:None %}
+<html lang="{{ platform.default_language|default:'en' }}">
 <head>
-  <!-- Title Meta -->
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
-  <title>{% block title %}{% endblock title %}</title>
-  {% block icon %} {% endblock icon %}
-
-  {% block css %}
-
-  {% block extra_css %} {% endblock extra_css %}
-
+  {% block seo %}
+  {# WEB-07: page SEO from the CMS, falling back to General Settings → SEO #}
+  <title>{% block title %}{% firstof seo.meta_title page.title platform.meta_title %} | {{ platform.platform_name }}{% endblock title %}</title>
+  <meta name="description" content="{% block description %}{% firstof seo.meta_description platform.meta_description platform.tagline %}{% endblock description %}">
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ platform.platform_name }}">
+  <meta property="og:title" content="{% firstof seo.meta_title page.title platform.meta_title platform.platform_name %}">
+  <meta property="og:description" content="{% firstof seo.meta_description platform.meta_description platform.tagline %}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  {% firstof seo.og_image platform.og_image as og_image %}{% if og_image %}<meta property="og:image" content="{% if og_image|slice:':4' == 'http' %}{{ og_image }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ og_image }}{% endif %}">{% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+  {% if not platform.allow_indexing %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  {% endblock seo %}
+  <link rel="icon" href="{{ platform.favicon }}">
+  <script type="application/ld+json">{{ structured_data|default:''|safe }}</script>
   {% include 'website/partials/head-css.html' %}
-
-  {% endblock css %}
-
+  <style>
+    :root { --brand-primary: {{ platform.color_primary }}; --brand-secondary: {{ platform.color_secondary }}; }
+    .skip-link { position: absolute; left: -9999px; top: 0; z-index: 10000; background: #fff; padding: 8px 16px; }
+    .skip-link:focus { left: 8px; top: 8px; }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid var(--brand-primary); outline-offset: 2px; }
+    .contact-form-all .input select, .login-form .single-inputs select { width: 100%; height: 56px; border: none; border-radius: 4px; padding: 0 16px;
+      margin-bottom: 20px; background: #F4F6FF; color: #3d3d3d; }
+    /* WEB-08: visitors who turned animations off get a still page */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      .preloader-parent { display: none !important; }
+    }
+  </style>
+  {% for tag in platform.analytics_ids %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ tag|urlencode }}"></script>
+  {% endfor %}
+  {% if platform.analytics_ids %}<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());{% for tag in platform.analytics_ids %}gtag('config','{{ tag|escapejs }}');{% endfor %}</script>{% endif %}
 </head>
-<body {% block body_attribute %}{% endblock body_attribute %}>
-
+<body class="body">
+<a class="skip-link" href="#main">Skip to content</a>
 {% include 'website/partials/preloader.html' %}
-
 {% block content %}{% endblock content %}
-
-{% block javascript %}
-
 {% include 'website/partials/footer-scripts.html' %}
-
-{% block extra_javascript %} {% endblock extra_javascript %}
-
-{% endblock javascript %}
-
+{% block extra_javascript %}{% endblock extra_javascript %}
 </body>
 </html>
+{% endwith %}

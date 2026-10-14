@@ -20,6 +20,7 @@ from apps.audit.services import record
 from apps.billing.models import Plan
 from apps.cms import services as cms
 from apps.cms.models import Page, Section
+from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
 from apps.platform_config import services as config
 from apps.platform_config.registry import GROUPS
@@ -28,12 +29,16 @@ from apps.rbac.services import has_perm
 from apps.tenancy import services as tenancy
 from apps.tenancy.context import platform_context
 from apps.tenancy.models import Company, Membership
+from apps.website import services as website
+from apps.website.models import Enquiry
 
 from . import cms_form
 from .forms import (
     CompanyForm,
     EmailTemplateForm,
+    EnquiryForm,
     ImpersonateForm,
+    IndustryForm,
     MemberForm,
     PlanForm,
     RoleForm,
@@ -78,6 +83,8 @@ def dashboard(request):
         "companies": Company.objects.filter(deleted_at__isnull=True).count(),
         "active": Company.objects.filter(status=Company.ACTIVE, deleted_at__isnull=True).count(),
         "trial": Company.objects.filter(status=Company.TRIAL, deleted_at__isnull=True).count(),
+        "pending approval": Company.objects.filter(status=Company.PENDING, deleted_at__isnull=True).count(),
+        "new enquiries": Enquiry.objects.filter(status=Enquiry.NEW).count(),
         "suspended": Company.objects.filter(status=Company.SUSPENDED).count(),
         "users": User.objects.count(),
         "staff": User.objects.filter(is_staff=True).count(),
@@ -89,7 +96,12 @@ def dashboard(request):
 # ------------------------------------------------------------------ companies (SA-03, TEN-06)
 @staff_perm("companies.view")
 def company_list(request):
-    qs = Company.objects.filter(deleted_at__isnull=True).select_related("plan").annotate(members=Count("membership"))
+    qs = (
+        Company.objects.filter(deleted_at__isnull=True)
+        .select_related("plan")
+        .annotate(members=Count("membership"))
+        .order_by("name")
+    )
     q, status = request.GET.get("q", ""), request.GET.get("status", "")
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(email__icontains=q) | Q(slug__icontains=q))
@@ -138,7 +150,7 @@ def company_detail(request, pk):
             "audit": AuditLog.objects.filter(company=company)[:10],
             "can": {
                 k: has_perm(request.user, f"companies.{k}")
-                for k in ("manage", "suspend", "impersonate", "export", "delete")
+                for k in ("manage", "suspend", "impersonate", "export", "delete", "approve")
             },
         },
     )
@@ -514,3 +526,80 @@ def sessions(request):
         return redirect("superadmin:sessions")
     qs = UserSession.objects.select_related("user").order_by("-last_seen_at")
     return render(request, "panel/admin/sessions.html", {"page": page_of(request, qs)})
+
+
+# ------------------------------------------------------------------ company approval (AUTH-12)
+@require_POST
+@staff_perm("companies.approve")
+def company_approve(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    try:
+        if request.POST.get("decision") == "reject":
+            tenancy.reject_company(company, request.POST.get("reason", ""), request=request)
+            messages.success(request, "Registration rejected; the owner was emailed.")
+        else:
+            tenancy.approve_company(company, request=request)
+            messages.success(request, "Company approved; the owner was emailed.")
+    except ValidationError as exc:
+        _errors(request, exc)
+    return redirect("superadmin:company_detail", pk=pk)
+
+
+# ------------------------------------------------------------------ industries (Phase 2 list; templates in Phase 3)
+@staff_perm("industries.manage")
+def industry_list(request):
+    return render(
+        request,
+        "panel/admin/industries/list.html",
+        {"industries": Industry.objects.annotate(company_count=Count("companies"))},
+    )
+
+
+@staff_perm("industries.manage")
+def industry_form(request, pk=None):
+    item = get_object_or_404(Industry, pk=pk) if pk else None
+    form = IndustryForm(request.POST or None, request.FILES or None, instance=item)
+    if request.method == "POST" and form.is_valid():
+        item = form.save()
+        record(request, "industry.save", "industry", item.id, changes=form.changed_data)
+        messages.success(request, "Industry saved.")
+        return redirect("superadmin:industry_list")
+    return render(
+        request,
+        "panel/admin/form.html",
+        {"form": form, "title": f"Industry: {item}" if item else "New industry", "back": "superadmin:industry_list"},
+    )
+
+
+# ------------------------------------------------------------------ website enquiries (WEB-06)
+@staff_perm("enquiries.view")
+def enquiry_list(request):
+    qs = Enquiry.objects.select_related("industry")
+    q, status = request.GET.get("q", ""), request.GET.get("status", "")
+    if q:
+        qs = qs.filter(
+            Q(name__icontains=q) | Q(business_name__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q)
+        )
+    if status:
+        qs = qs.filter(status=status)
+    return render(
+        request,
+        "panel/admin/enquiries/list.html",
+        {"page": page_of(request, qs), "q": q, "status": status, "statuses": Enquiry.STATUSES},
+    )
+
+
+@staff_perm("enquiries.view")
+def enquiry_detail(request, pk):
+    enquiry = get_object_or_404(Enquiry.objects.select_related("industry", "handled_by"), pk=pk)
+    form = EnquiryForm(request.POST or None, instance=enquiry)
+    if request.method == "POST":
+        if not has_perm(request.user, "enquiries.manage"):
+            raise PermissionDenied
+        if form.is_valid():
+            website.update_enquiry(
+                enquiry, form.cleaned_data["status"], form.cleaned_data["notes"], request.user, request
+            )
+            messages.success(request, "Enquiry updated.")
+            return redirect("superadmin:enquiry_detail", pk=pk)
+    return render(request, "panel/admin/enquiries/detail.html", {"enquiry": enquiry, "form": form})

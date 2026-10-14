@@ -1,0 +1,52 @@
+{% extends 'website/base.html' %}
+{# AUTH-01: company registration on the website design (eSoft account page). Fields come from apps/accounts/forms.py. #}
+{% block title %}Register your business | {{ platform.platform_name }}{% endblock title %}
+{% block content %}
+<main id="main" class="log-in-area sp _relative">
+  <div class="container">
+    <div class="row"><div class="col-lg-6 m-auto text-center">
+      <div class="main-logo"><a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a></div>
+    </div></div>
+    <div class="space60"></div>
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+        <div class="login-form">
+          <div class="headding">
+            <h1 class="h2">Register your business</h1>
+            <p>Already registered? <a href="{% url 'account_login' %}">Sign in</a></p>
+          </div>
+          {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+          <form method="post" action="{% url 'account_signup' %}" class="inputs" novalidate>
+            {% csrf_token %}
+            {{ redirect_field }}
+            <input type="hidden" name="plan" value="{% firstof form.plan.value request.GET.plan '' %}">
+            <div class="row">
+              {% include 'account/_signup_field.html' with f=form.business_name col=6 %}
+              {% include 'account/_signup_field.html' with f=form.full_name col=6 %}
+              {% include 'account/_signup_field.html' with f=form.email col=6 %}
+              {% include 'account/_signup_field.html' with f=form.phone col=6 %}
+              {% include 'account/_signup_field.html' with f=form.industry col=6 %}
+              {% include 'account/_signup_field.html' with f=form.business_size col=6 %}
+              {% include 'account/_signup_field.html' with f=form.city col=6 %}
+              {% include 'account/_signup_field.html' with f=form.state col=6 %}
+              {% include 'account/_signup_field.html' with f=form.website col=6 %}
+              {% include 'account/_signup_field.html' with f=form.gstin col=6 %}
+              {% include 'account/_signup_field.html' with f=form.password1 col=6 %}
+              {% include 'account/_signup_field.html' with f=form.password2 col=6 %}
+              <div class="col-12">
+                <div class="form-check my-3">
+                  <input class="form-check-input" type="checkbox" name="accept_terms" id="id_accept_terms" required {% if form.accept_terms.value %}checked{% endif %}>
+                  <label class="form-check-label" for="id_accept_terms">I accept the <a href="{% url 'website:page' 'terms' %}" target="_blank">Terms of Service</a>
+                    and <a href="{% url 'website:page' 'privacy' %}" target="_blank">Privacy Policy</a></label>
+                  {% for e in form.accept_terms.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+              </div>
+              <div class="button"><button type="submit" class="theme-btn2">Create account</button></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock content %}

@@ -1,154 +1,67 @@
-{% load static i18n %}
-
-<!--===== FOOTER AREA START =======-->
-
-<div class="footer2 _relative">
+{% load static %}
+{# Footer: badges and link columns from the CMS; social links, logo and copyright from General Settings. #}
+<footer class="footer2 _relative">
   <div class="container">
-    <div class="rwo">
+    {% if c.badges %}
+    <div class="row">
       <div class="footer-icon-box-all">
+        {% for b in c.badges %}
         <div class="footer-icon-box">
-          <div class="icon">
-            <img src="{% static 'website/img/icons/footer-icon1.png' %}" alt="">
-          </div>
-          <div class="headding">
-            <p>Free training & 24-hours</p>
-          </div>
+          {% if b.icon %}<div class="icon"><img src="{{ b.icon }}" alt="" loading="lazy"></div>{% endif %}
+          <div class="headding"><p>{{ b.text }}</p></div>
         </div>
-
-        <div class="footer-icon-box">
-          <div class="icon">
-            <img src="{% static 'website/img/icons/footer-icon2.png' %}" alt="">
-          </div>
-          <div class="headding">
-            <p>Serious about security & privacy</p>
-          </div>
-        </div>
-
-        <div class="footer-icon-box">
-          <div class="icon">
-            <img src="{% static 'website/img/icons/footer-icon3.png' %}" alt="">
-          </div>
-          <div class="headding">
-            <p>Highest levels of uptime the last 12 months</p>
-          </div>
-        </div>
-
+        {% endfor %}
       </div>
     </div>
-
     <div class="space50"></div>
+    {% endif %}
     <div class="row">
-
+      {% regroup c.links by column as columns %}
+      {% for column in columns %}
       <div class="col-lg col-md-6 col-12">
         <div class="single-footer-items">
-          <h3>Product</h3>
-
+          <h3>{{ column.grouper }}</h3>
           <ul class="menu-list">
-            <li><a href="#">Pricing</a></li>
-            <li><a href="#">Integration</a></li>
-            <li><a href="#">Features</a></li>
-            <li><a href="#">Templates</a></li>
-            <li><a href="#">Changelog</a></li>
+            {% for l in column.list %}<li><a href="{{ l.url }}">{{ l.label }}</a></li>{% endfor %}
           </ul>
         </div>
       </div>
-
-      <div class="col-lg col-md-6 col-12">
-        <div class="single-footer-items">
-          <h3>Support</h3>
-
-          <ul class="menu-list">
-            <li><a href="#">On-boarding</a></li>
-            <li><a href="#">Help center</a></li>
-            <li><a href="#">Contact us</a></li>
-            <li><a href="#">Experts</a></li>
-            <li><a href="#">Status</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="col-lg col-md-6 col-12">
-        <div class="single-footer-items">
-          <h3>Resources</h3>
-
-          <ul class="menu-list">
-            <li><a href="#">Community</a></li>
-            <li><a href="#">Affiliates</a></li>
-            <li><a href="#">Partnerships</a></li>
-            <li><a href="#">Perks & Benefits</a></li>
-            <li><a href="#">Api docs</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="col-lg col-md-6 col-12">
-        <div class="single-footer-items">
-          <h3>Company</h3>
-
-          <ul class="menu-list">
-            <li><a href="#">About</a></li>
-            <li><a href="#">Our blog</a></li>
-            <li><a href="#">In the press</a></li>
-            <li><a href="#">Brand assets</a></li>
-            <li><a href="#">Work with us</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="col-lg col-md-6 col-12">
-        <div class="single-footer-items">
-          <h3>Download</h3>
-
-          <ul class="menu-list">
-            <li><a href="#">iPhone & iPad</a></li>
-            <li><a href="#">Android</a></li>
-            <li><a href="#">MacOS</a></li>
-            <li><a href="#">Window</a></li>
-          </ul>
-        </div>
-      </div>
-
-
+      {% endfor %}
+      {% if platform.social_links or platform.support_email or platform.support_phone %}
       <div class="col-lg-3 col-md-6 col-12">
         <div class="single-footer-items">
-          <h3>Social Links</h3>
-
-          <ul class="social-icons">
-            <li><a href="#"><i class="fa-brands fa-linkedin-in"></i></a></li>
-            <li><a href="#"><i class="fa-brands fa-x-twitter"></i></a></li>
-            <li><a href="#"><i class="fa-brands fa-youtube"></i></a></li>
-            <li><a href="#"><i class="fa-brands fa-instagram"></i></a></li>
+          {% if platform.support_email or platform.support_phone %}
+          <ul class="menu-list">
+            {% if platform.support_phone %}<li><a href="tel:{{ platform.support_phone }}">{{ platform.support_phone }}</a></li>{% endif %}
+            {% if platform.support_email %}<li><a href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a></li>{% endif %}
           </ul>
-
+          {% endif %}
+          {% if platform.social_links %}
+          <ul class="social-icons">
+            {% for s in platform.social_links %}
+            <li><a href="{{ s.url }}" target="_blank" rel="noopener" aria-label="{{ s.platform }}"><i class="fa-brands fa-{{ s.platform|lower|slugify }}" aria-hidden="true"></i></a></li>
+            {% endfor %}
+          </ul>
+          {% endif %}
         </div>
       </div>
-
+      {% endif %}
     </div>
-
     <div class="space40"></div>
-
     <div class="copyright-area">
       <div class="row align-items-center">
         <div class="col-md-5">
-          <div class="logo">
-            <a href="#"><img
-              src="{% static 'website/img/logo/header-logo2.png' %}" alt=""></a>
-          </div>
+          <div class="logo"><a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}" loading="lazy"></a></div>
         </div>
         <div class="col-md-7">
           <div class="coppyright text-right">
-            <a href="/">{{ platform.copyright }}</a>
-            <a href="#">Security</a>
-            <a href="#">Your Privacy</a>
-            <a href="#">Terms</a>
+            <span>{{ platform.copyright }}</span>
+            {% for l in c.bottom_links %}<a href="{{ l.url }}">{{ l.label }}</a>{% endfor %}
           </div>
         </div>
       </div>
     </div>
   </div>
-
-  <img class="footer-shape" src="{% static 'website/img/shapes/footer2-shape.png' %}" alt="">
-  <img class="footer-shape2" src="{% static 'website/img/shapes/footer2-shape2.png' %}" alt="">
-</div>
-
-<!--===== FOOTER AREA END =======-->
+  <img class="footer-shape" src="{% static 'website/img/shapes/footer2-shape.png' %}" alt="" loading="lazy">
+  <img class="footer-shape2" src="{% static 'website/img/shapes/footer2-shape2.png' %}" alt="" loading="lazy">
+</footer>

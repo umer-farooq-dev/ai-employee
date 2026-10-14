@@ -35,6 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=150, blank=True)
     phone = models.CharField(max_length=16, blank=True, validators=[phone_validator])
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True)
     timezone = models.CharField(max_length=50, blank=True, help_text="Empty = platform default")
     notification_prefs = models.JSONField(default=dict, blank=True)
@@ -61,3 +62,22 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class PhoneOTP(models.Model):
+    """One-time code for mobile verification (AUTH-02). Only a hash of the code is stored."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="phone_otps")
+    phone = models.CharField(max_length=16, validators=[phone_validator])
+    code_hash = models.CharField(max_length=128)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"OTP for {self.phone}"

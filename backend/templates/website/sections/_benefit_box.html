@@ -1,0 +1,9 @@
+<div class="box-area-all{% if n > 1 %} box-area-all{{ n }}{% endif %}" data-aos="flip-right" data-aos-duration="900">
+  {% if box.icon %}<div class="icon"><img src="{{ box.icon }}" alt="" loading="lazy"></div>{% endif %}
+  <div class="single-box heading7">
+    <h3 class="h5">{% if box.url %}<a href="{{ box.url }}">{{ box.title }}</a>{% else %}{{ box.title }}{% endif %}</h3>
+    <div class="space10"></div>
+    <p>{{ box.text }}</p>
+  </div>
+</div>
+{% if n == 1 or n == 3 %}<div class="space50"></div>{% endif %}

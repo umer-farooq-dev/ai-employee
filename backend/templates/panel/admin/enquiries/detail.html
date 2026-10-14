@@ -1,0 +1,33 @@
+{% extends 'panel/admin/layout.html' %}
+{% load admin_tags %}
+{% block title %}Enquiry: {{ enquiry.business_name }}{% endblock %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">{{ enquiry.business_name }}</h4><span class="text-muted">{{ enquiry.created_at|date:"d M Y H:i" }} · {{ enquiry.get_status_display }}</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'superadmin:enquiry_list' %}">Back</a>
+</div>
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Details</h5></div>
+            <div class="card-body"><dl class="row mb-0">
+                <dt class="col-4">Name</dt><dd class="col-8">{{ enquiry.name }}</dd>
+                <dt class="col-4">Email</dt><dd class="col-8"><a href="mailto:{{ enquiry.email }}">{{ enquiry.email }}</a></dd>
+                <dt class="col-4">Phone</dt><dd class="col-8"><a href="tel:{{ enquiry.phone }}">{{ enquiry.phone }}</a></dd>
+                <dt class="col-4">Industry</dt><dd class="col-8">{{ enquiry.industry.name|default:"—" }}</dd>
+                <dt class="col-4">Message</dt><dd class="col-8">{{ enquiry.message|linebreaksbr|default:"—" }}</dd>
+                <dt class="col-4">Page</dt><dd class="col-8 text-break">{{ enquiry.source_url|default:"—" }}</dd>
+                <dt class="col-4">Handled by</dt><dd class="col-8">{{ enquiry.handled_by.email|default:"—" }}</dd>
+            </dl></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Follow-up</h5></div>
+            <div class="card-body">
+                {% if request.user|can:"enquiries.manage" %}
+                <form method="post">{% csrf_token %}{% include 'panel/partials/form_fields.html' %}<button class="btn btn-primary">Save</button></form>
+                {% else %}<p class="mb-0">{{ enquiry.notes|linebreaksbr|default:"No notes." }}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

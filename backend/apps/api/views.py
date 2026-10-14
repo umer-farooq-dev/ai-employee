@@ -19,12 +19,15 @@ from apps.billing.models import Plan
 from apps.cms import services as cms
 from apps.cms.models import Page, Section
 from apps.core.uploads import save_public
+from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
 from apps.platform_config import services as config
 from apps.platform_config.registry import GROUPS, SETTINGS
 from apps.rbac.models import Role
 from apps.tenancy import services as tenancy
 from apps.tenancy.models import Company
+from apps.website import services as website
+from apps.website.models import Enquiry
 
 from . import serializers as s
 from .base import AdminViewSet, TenantContextMixin, any_perm, perm
@@ -51,16 +54,6 @@ class MeView(TenantContextMixin, generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         serializer.save()
         record(self.request, "profile.update", "user", self.request.user.id)
-
-
-class OwnCompanyView(TenantContextMixin, generics.RetrieveAPIView):
-    """The signed-in user's company (tenant resolved from membership, never from input)."""
-
-    serializer_class = s.OwnCompanySerializer
-    permission_classes = [permissions.IsAuthenticated, perm("company.view")]
-
-    def get_object(self):
-        return self.request.company
 
 
 # ------------------------------------------------------------------ admin: companies & users
@@ -103,9 +96,64 @@ class CompanyViewSet(AdminViewSet):
         tenancy.set_status(self.get_object(), Company.ACTIVE, request=request)
         return Response(s.CompanySerializer(self.get_object()).data)
 
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, perm("companies.approve")])
+    def approve(self, request, pk=None):
+        """AUTH-12: approve a pending (or rejected) registration; the owner is emailed."""
+        company = _django_errors(tenancy.approve_company, self.get_object(), request=request._request)
+        return Response(s.CompanySerializer(company).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, perm("companies.approve")])
+    def reject(self, request, pk=None):
+        company = _django_errors(
+            tenancy.reject_company, self.get_object(), request.data.get("reason", ""), request=request._request
+        )
+        return Response(s.CompanySerializer(company).data)
+
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated, perm("companies.export")])
     def export(self, request, pk=None):
         return Response(tenancy.export_company(self.get_object(), request=request), content_type="application/json")
+
+
+class IndustryViewSet(AdminViewSet):
+    """Industries shown on the website and in registration (templates are added in Phase 3)."""
+
+    serializer_class = s.IndustrySerializer
+    view_perm = manage_perm = "industries.manage"
+    pagination_class = None
+    http_method_names = ["get", "post", "patch", "head", "options"]
+    queryset = Industry.objects.all()
+
+    def perform_create(self, serializer):
+        item = serializer.save()
+        record(self.request, "industry.save", "industry", item.id, changes=serializer.data)
+
+    perform_update = perform_create
+
+
+class EnquiryViewSet(AdminViewSet):
+    """WEB-06 inbox: list / filter by status, update status and notes."""
+
+    serializer_class = s.EnquirySerializer
+    view_perm, manage_perm = "enquiries.view", "enquiries.manage"
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        qs = Enquiry.objects.select_related("industry")
+        if self.request.query_params.get("status"):
+            qs = qs.filter(status=self.request.query_params["status"])
+        return qs
+
+    def perform_update(self, serializer):
+        d = serializer.validated_data
+        e = serializer.instance
+        serializer.instance = _django_errors(
+            website.update_enquiry,
+            e,
+            d.get("status", e.status),
+            d.get("notes", e.notes),
+            self.request.user,
+            self.request._request,
+        )
 
 
 class UserViewSet(AdminViewSet):

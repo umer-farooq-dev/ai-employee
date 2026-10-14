@@ -17,6 +17,7 @@
         <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }}}
         .btn-primary{background-color:var(--brand-primary);border-color:var(--brand-primary)}
         .text-brand{color:var(--brand-primary)!important}</style>
+        {% block brand_override %}{% endblock brand_override %}
     {% endblock css %}
 </head>
 <body {% block body_attribute %}{% endblock body_attribute %}>

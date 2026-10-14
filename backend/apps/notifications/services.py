@@ -17,6 +17,11 @@ def branding_context():
     }
 
 
+def team_recipients():
+    """Platform team inbox for registrations and enquiries (General Settings), falling back to the support email."""
+    return config.get("contact.team_notify_emails") or [e for e in [config.get("contact.support_email")] if e]
+
+
 def from_email():
     return f"{config.get('email.sender_name')} <{config.get('email.sender_address')}>"
 

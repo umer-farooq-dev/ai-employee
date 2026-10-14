@@ -1,0 +1,25 @@
+<div class="feratures-page-area sp">
+  <div class="container">
+    {% if c.heading or c.badge_text %}
+    <div class="row"><div class="col-lg-7 m-auto text-center"><div class="heading9">{% include 'website/sections/_heading.html' %}</div></div></div>
+    <div class="space60"></div>
+    {% endif %}
+    {% for item in c.items %}
+    <div class="row align-items-center">
+      <div class="col-lg-6{% if forloop.counter|divisibleby:2 %} order-lg-2{% endif %}">
+        {% if item.image %}<div class="image" data-aos="fade-up" data-aos-duration="900"><img src="{{ item.image }}" alt="" loading="lazy"></div>{% endif %}
+      </div>
+      <div class="col-lg-6">
+        <div class="headding2 {% if forloop.counter|divisibleby:2 %}features-right{% else %}features-left{% endif %}">
+          {% if item.badge %}<span class="span">{{ item.badge }}</span>{% endif %}
+          <h3 class="h5">{{ item.title }}</h3>
+          <div class="space16"></div>
+          <p>{{ item.text }}</p>
+          {% if item.button.label %}<div class="space30"></div><a href="{{ item.button.url }}" class="theme-btn2">{{ item.button.label }}</a>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% if not forloop.last %}<div class="space100"></div>{% endif %}
+    {% endfor %}
+  </div>
+</div>

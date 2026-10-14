@@ -1,20 +1,26 @@
 from allauth.mfa.models import Authenticator
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.audit.models import ApiRequestLog, AuditLog, ErrorLog
 from apps.billing.models import Plan, PlanEntitlement
 from apps.cms.models import Page, Section
+from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
 from apps.rbac.models import Role
 from apps.rbac.services import clean_permissions
-from apps.tenancy.models import Company
+from apps.tenancy.models import Company, Invitation, Membership
+from apps.website.models import Enquiry
 
 User = get_user_model()
 
 
 class CompanySerializer(serializers.ModelSerializer):
     plan = serializers.SlugRelatedField(slug_field="key", queryset=Plan.objects.all(), allow_null=True, required=False)
+    industry = serializers.SlugRelatedField(
+        slug_field="key", queryset=Industry.objects.all(), allow_null=True, required=False
+    )
 
     class Meta:
         model = Company
@@ -35,15 +41,34 @@ class CompanySerializer(serializers.ModelSerializer):
             "timezone",
             "default_language",
             "require_2fa",
+            "industry",
+            "business_size",
+            "trial_ends_at",
+            "terms_accepted_at",
+            "approved_at",
+            "rejected_reason",
             "suspended_at",
             "suspended_reason",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["slug", "status", "suspended_at", "suspended_reason"]
+        read_only_fields = [
+            "slug",
+            "status",
+            "suspended_at",
+            "suspended_reason",
+            "terms_accepted_at",
+            "approved_at",
+            "rejected_reason",
+        ]
 
 
 class OwnCompanySerializer(serializers.ModelSerializer):
+    """AUTH-09: the signed-in user's company. Status, plan and approval fields are read-only."""
+
+    plan = serializers.SlugRelatedField(slug_field="key", read_only=True)
+    industry = serializers.SlugRelatedField(slug_field="key", read_only=True)
+
     class Meta:
         model = Company
         fields = [
@@ -51,16 +76,113 @@ class OwnCompanySerializer(serializers.ModelSerializer):
             "name",
             "legal_name",
             "status",
+            "plan",
+            "industry",
+            "trial_ends_at",
+            "rejected_reason",
+            "logo",
             "email",
             "phone",
             "website",
+            "gstin",
+            "address",
             "city",
             "state",
             "timezone",
             "default_language",
             "created_at",
         ]
-        read_only_fields = fields
+        read_only_fields = ["status", "plan", "industry", "trial_ends_at", "rejected_reason", "created_at"]
+
+    def validate_gstin(self, value):
+        from apps.core.india import validate_gstin
+
+        value = (value or "").upper().strip()
+        try:
+            validate_gstin(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from None
+        return value
+
+    def validate_phone(self, value):
+        from apps.accounts.models import phone_validator
+        from apps.core.india import normalise_phone
+
+        if not value:
+            return value
+        value = normalise_phone(value)
+        try:
+            phone_validator(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from None
+        return value
+
+
+class CompanyHoursSerializer(serializers.Serializer):
+    business_hours = serializers.DictField(required=False)
+    holidays = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class IndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Industry
+        fields = ["id", "key", "name", "short_description", "description", "icon", "image", "is_active", "sort_order"]
+
+
+class PublicIndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Industry
+        fields = ["key", "name", "short_description", "description", "icon", "image"]
+
+
+class EnquirySerializer(serializers.ModelSerializer):
+    industry = serializers.SlugRelatedField(slug_field="key", read_only=True)
+
+    class Meta:
+        model = Enquiry
+        fields = [
+            "id",
+            "name",
+            "business_name",
+            "phone",
+            "email",
+            "industry",
+            "message",
+            "status",
+            "notes",
+            "source_url",
+            "created_at",
+        ]
+        read_only_fields = ["name", "business_name", "phone", "email", "message", "source_url", "created_at"]
+
+
+class PublicEnquirySerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=150)
+    business_name = serializers.CharField(max_length=200)
+    phone = serializers.CharField(max_length=20)
+    email = serializers.EmailField()
+    industry = serializers.SlugRelatedField(slug_field="key", queryset=Industry.objects.filter(is_active=True))
+    message = serializers.CharField(required=False, allow_blank=True, max_length=5000)
+
+
+class MemberSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source="user.email", read_only=True)
+    full_name = serializers.CharField(source="user.full_name", read_only=True)
+    role = serializers.SlugRelatedField(slug_field="key", read_only=True)
+
+    class Meta:
+        model = Membership
+        fields = ["id", "email", "full_name", "role", "status", "joined_at"]
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+    role = serializers.SlugRelatedField(slug_field="key", queryset=Role.objects.filter(scope="company"))
+    invited_by = serializers.EmailField(source="invited_by.email", read_only=True, default=None)
+
+    class Meta:
+        model = Invitation
+        fields = ["id", "email", "role", "status", "invited_by", "expires_at", "created_at"]
+        read_only_fields = ["status", "expires_at", "created_at"]
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -94,8 +216,23 @@ class MeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "full_name", "phone", "avatar", "timezone", "notification_prefs", "availability"]
-        read_only_fields = ["email"]
+        fields = [
+            "id",
+            "email",
+            "full_name",
+            "phone",
+            "phone_verified_at",
+            "avatar",
+            "timezone",
+            "notification_prefs",
+            "availability",
+        ]
+        read_only_fields = ["email", "phone_verified_at"]
+
+    def update(self, instance, validated_data):
+        if "phone" in validated_data and validated_data["phone"] != instance.phone:
+            instance.phone_verified_at = None  # a new number must be verified again (AUTH-02)
+        return super().update(instance, validated_data)
 
 
 class RoleSerializer(serializers.ModelSerializer):

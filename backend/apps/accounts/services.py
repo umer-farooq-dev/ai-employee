@@ -1,4 +1,7 @@
-"""User management used by Super Admin screens and the Admin API (SA-04, SA-18)."""
+"""User management used by Super Admin screens and the Admin API (SA-04, SA-18), and mobile OTP (AUTH-02)."""
+
+import secrets
+from datetime import timedelta
 
 from allauth.account.forms import ResetPasswordForm
 from allauth.account.models import EmailAddress
@@ -7,8 +10,13 @@ from allauth.usersessions.models import UserSession
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.audit.services import record
+from apps.notifications import sms
+from apps.platform_config import services as config
+
+from .models import PhoneOTP
 
 User = get_user_model()
 
@@ -76,3 +84,49 @@ def end_sessions(user, request=None, audit=True):
     if audit:
         record(request, "user.end_sessions", "user", user.id, category="security", changes={"sessions": count})
     return count
+
+
+# ------------------------------------------------------------------ mobile OTP (AUTH-02)
+def _otp_hash(otp_id, code):
+    from django.utils.crypto import salted_hmac
+
+    return salted_hmac("phone-otp", f"{otp_id}:{code}").hexdigest()
+
+
+def phone_verification_required(user) -> bool:
+    return bool(config.get("registration.mobile_otp_required") and not user.is_staff and not user.phone_verified_at)
+
+
+def send_phone_otp(user, request=None):
+    """Send a one-time code to the user's phone. Sending is limited to `otp_max_attempts` per validity window."""
+    if not user.phone:
+        raise ValidationError("Add a mobile number first.")
+    minutes = config.get("registration.otp_valid_minutes")
+    now = timezone.now()
+    recent = PhoneOTP.objects.filter(user=user, created_at__gte=now - timedelta(minutes=minutes)).count()
+    if recent >= config.get("registration.otp_max_attempts"):
+        raise ValidationError(f"Too many codes sent. Try again in {minutes} minutes.")
+    code = "".join(secrets.choice("0123456789") for _ in range(config.get("registration.otp_length")))
+    otp = PhoneOTP(user=user, phone=user.phone, expires_at=now + timedelta(minutes=minutes))
+    otp.code_hash = _otp_hash(otp.id, code)
+    otp.save()
+    sms.send(user.phone, sms.render("sms.otp_message", {"code": code, "minutes": minutes}))
+    record(request, "phone.otp_sent", "user", user.id, user=user, category="security")
+    return otp
+
+
+def verify_phone_otp(user, code, request=None):
+    otp = PhoneOTP.objects.filter(user=user, phone=user.phone, used_at__isnull=True).first()
+    if not otp or otp.expires_at <= timezone.now():
+        raise ValidationError("The code has expired. Send a new one.")
+    if otp.attempts >= config.get("registration.otp_max_attempts"):
+        raise ValidationError("Too many wrong attempts. Send a new code.")
+    if not secrets.compare_digest(otp.code_hash, _otp_hash(otp.id, str(code).strip())):
+        otp.attempts += 1
+        otp.save(update_fields=["attempts"])
+        record(request, "phone.otp_failed", "user", user.id, user=user, category="security")
+        raise ValidationError("Wrong code.")
+    otp.used_at = user.phone_verified_at = timezone.now()
+    otp.save(update_fields=["used_at"])
+    user.save(update_fields=["phone_verified_at"])
+    record(request, "phone.verified", "user", user.id, user=user, category="security")

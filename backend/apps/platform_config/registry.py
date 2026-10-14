@@ -27,8 +27,9 @@ GROUPS = {
     "locale": ("general", "Localisation"),
     "seo_email": ("general", "SEO & email"),
     "maintenance": ("general", "Maintenance mode"),
-    "registration": ("system", "Registration"),
+    "registration": ("system", "Registration & team"),
     "security": ("system", "Security"),
+    "sms": ("system", "SMS (mobile OTP)"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
@@ -55,6 +56,7 @@ SETTINGS = [
     Setting("general.login_image", "image", "", "Login page image", "branding"),
     Setting("general.color_primary", "color", "#6534F4", "Primary colour", "branding"),
     Setting("general.color_secondary", "color", "#101537", "Secondary colour", "branding"),
+    Setting("general.color_company_panel", "color", "#0D9488", "Company panel accent colour", "branding"),
     Setting("general.widget_powered_by", "text", "Powered by AI Employee", 'Chat widget "Powered by" text', "branding"),
     Setting("contact.support_email", "email", "", "Support email", "contact"),
     Setting(
@@ -71,6 +73,14 @@ SETTINGS = [
     Setting("contact.gstin", "text", "", "GSTIN", "contact"),
     Setting("contact.pan", "text", "", "PAN", "contact"),
     Setting("contact.social_links", "links", [], "Social media links", "contact"),
+    Setting(
+        "contact.team_notify_emails",
+        "list",
+        [],
+        "Team notification emails",
+        "contact",
+        help="New registrations and website enquiries are emailed here. Empty = support email.",
+    ),
     Setting(
         "contact.copyright",
         "text",
@@ -93,7 +103,15 @@ SETTINGS = [
     Setting("seo.meta_title", "text", "", "Default meta title", "seo_email"),
     Setting("seo.meta_description", "textarea", "", "Default meta description", "seo_email"),
     Setting("seo.og_image", "image", "", "Default social share image", "seo_email"),
-    Setting("seo.analytics_ids", "list", [], "Analytics tracking IDs", "seo_email"),
+    Setting("seo.analytics_ids", "list", [], "Analytics tracking IDs", "seo_email", help="Google tag IDs, e.g. G-XXXX"),
+    Setting(
+        "seo.allow_indexing",
+        "boolean",
+        True,
+        "Allow search engines",
+        "seo_email",
+        help="Switch off on demo / staging servers so they are not listed in Google.",
+    ),
     Setting("email.sender_name", "text", "AI Employee", "Email sender name", "seo_email"),
     Setting("email.sender_address", "email", "no-reply@localhost", "Email sender address", "seo_email"),
     Setting("email.header_html", "rich", "", "Email header", "seo_email"),
@@ -115,18 +133,39 @@ SETTINGS = [
     ),
     # B. Registration (used by company registration in Phase 2)
     Setting("registration.enabled", "boolean", True, "Company registration open", "registration"),
-    Setting("registration.mobile_otp_required", "boolean", False, "Mobile OTP verification", "registration"),
+    Setting(
+        "registration.approval_required",
+        "boolean",
+        True,
+        "New companies need Super Admin approval",
+        "registration",
+        help="While pending, the owner can sign in but only sees the approval status page.",
+    ),
     Setting(
         "registration.email_verification",
         "choice",
-        "mandatory",
+        "optional",
         "Email verification",
         "registration",
         choices=(("mandatory", "Mandatory"), ("optional", "Optional")),
+        help="Optional during development; set to Mandatory before launch.",
     ),
+    Setting("registration.mobile_otp_required", "boolean", False, "Mobile OTP verification", "registration"),
+    Setting("registration.otp_length", "number", 6, "OTP length (digits)", "registration", min=4, max=8),
+    Setting("registration.otp_valid_minutes", "number", 10, "OTP valid for (minutes)", "registration", min=1, max=60),
+    Setting("registration.otp_max_attempts", "number", 5, "Wrong OTP attempts allowed", "registration", min=1, max=20),
     Setting("registration.trial_enabled", "boolean", True, "Free trial", "registration"),
     Setting("registration.trial_days", "number", 14, "Trial days", "registration", min=0, max=365),
     Setting("registration.default_plan", "text", "starter", "Default plan key", "registration"),
+    Setting(
+        "registration.business_sizes",
+        "list",
+        ["1-10", "11-50", "51-200", "201+"],
+        "Business size options",
+        "registration",
+        help="One option per line (employees).",
+    ),
+    Setting("team.invite_valid_days", "number", 7, "Team invitation valid for (days)", "registration", min=1, max=90),
     # C. Security
     Setting("security.password_min_length", "number", 10, "Minimum password length", "security", min=8, max=128),
     Setting("security.lockout_attempts", "number", 5, "Failed logins before lockout", "security", min=3, max=50),
@@ -184,6 +223,27 @@ SETTINGS = [
     ),
     Setting("security.api_rate_anon", "text", "100/hour", "API rate limit per IP (anonymous)", "security"),
     Setting("security.api_rate_company", "text", "5000/hour", "API rate limit per company", "security"),
+    Setting(
+        "security.api_rate_public_form", "text", "10/hour", "Website forms per IP (registration, enquiries)", "security"
+    ),
+    # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
+    Setting(
+        "sms.provider",
+        "choice",
+        "log",
+        "SMS provider",
+        "sms",
+        choices=(("log", "Development log (no SMS is sent)"),),
+        help="The development log only works on local / test servers.",
+    ),
+    Setting(
+        "sms.otp_message",
+        "text",
+        "{{ code }} is your {{ platform_name }} verification code. It expires in {{ minutes }} minutes.",
+        "OTP message",
+        "sms",
+        help="Variables: {{ code }}, {{ minutes }}, {{ platform_name }}",
+    ),
 ]
 
 BY_KEY = {s.key: s for s in SETTINGS}

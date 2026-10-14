@@ -1,0 +1,24 @@
+<div class="hero-area9">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-5">
+        <div class="main-heading">
+          {% include 'website/sections/_heading.html' with level="h1" %}
+          {% if c.paragraph %}<div class="space16"></div><p>{{ c.paragraph }}</p>{% endif %}
+          {% if c.button.label %}<div class="space30"></div>
+          <div class="buttons"><a href="{{ c.button.url }}" class="theme-btn15">{{ c.button.label }}
+            <span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a></div>{% endif %}
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="main-images">
+          {% for f in c.floating_images %}{% if f.image %}
+          <div class="image{{ forloop.counter }}{% cycle ' shape-animaiton3' ' shape-animaiton2' ' animate1' '' '' %}"><img src="{{ f.image }}" alt=""></div>
+          {% endif %}{% endfor %}
+          {% if c.main_image %}<div class="main-img"><img src="{{ c.main_image }}" alt="{{ c.heading }}"></div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="space100"></div>

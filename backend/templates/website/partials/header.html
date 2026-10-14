@@ -1,5 +1,4 @@
-{% load static %}
-{# Shared header (eSoft HR layout). Phase 1/2: logo, menu items and buttons come from Super Admin (General Settings + CMS). #}
+{# Shared header (eSoft index5 layout). Logo from General Settings; menu, login label and button from the CMS. #}
 <header>
   <div class="header-area header-area9 header-area-all d-none d-lg-block" id="header">
     <div class="container">
@@ -9,20 +8,20 @@
             <div class="site-logo home1-site-logo">
               <a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a>
             </div>
-            <div class="main-menu-ex main-menu-ex1">
+            <nav class="main-menu-ex main-menu-ex1" aria-label="Main">
               <ul>
-                <li><a href="{% url 'website:home' %}">Home</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#about">About Us</a></li>
-                <li><a href="#contact">Contact</a></li>
-                <li><a href="{% url 'account_login' %}">Login</a></li>
+                {% for item in c.menu %}
+                <li><a href="{{ item.url }}"{% if item.new_tab %} target="_blank" rel="noopener"{% endif %}{% if request.path == item.url %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+                {% endfor %}
+                {% if c.login_label %}<li><a href="{% url 'account_login' %}">{{ c.login_label }}</a></li>{% endif %}
               </ul>
-            </div>
+            </nav>
+            {% if c.cta.label %}
             <div class="header-buttons">
-              <a href="{% url 'account_signup' %}" class="theme-btn15">Get Started
-                <span><i class="fa-solid fa-arrow-right"></i></span></a>
+              <a href="{{ c.cta.url }}" class="theme-btn15">{{ c.cta.label }}
+                <span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>
             </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -37,9 +36,9 @@
         <div class="mobile-logo">
           <a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a>
         </div>
-        <div class="mobile-nav-icon">
-          <i class="fa-duotone fa-bars-staggered"></i>
-        </div>
+        <button type="button" class="mobile-nav-icon border-0 bg-transparent" aria-label="Open menu">
+          <i class="fa-duotone fa-bars-staggered" aria-hidden="true"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -49,19 +48,15 @@
   <div class="logo-m">
     <a href="{% url 'website:home' %}"><img src="{{ platform.logo_light }}" alt="{{ platform.platform_name }}"></a>
   </div>
-  <div class="menu-close">
-    <i class="fa-solid fa-xmark"></i>
-  </div>
+  <button type="button" class="menu-close border-0 bg-transparent" aria-label="Close menu">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
   <div class="mobile-nav">
     <ul>
-      <li><a href="{% url 'website:home' %}">Home</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="#about">About Us</a></li>
-      <li><a href="#contact">Contact</a></li>
-      <li><a href="{% url 'account_login' %}">Login</a></li>
+      {% for item in c.menu %}<li><a href="{{ item.url }}"{% if item.new_tab %} target="_blank" rel="noopener"{% endif %}>{{ item.label }}</a></li>{% endfor %}
+      {% if c.login_label %}<li><a href="{% url 'account_login' %}">{{ c.login_label }}</a></li>{% endif %}
     </ul>
-    <a class="sidebar1-btn" href="{% url 'account_signup' %}"><span>Get Started</span>
-      <span class="arrow"><i class="fa-regular fa-arrow-right"></i></span></a>
+    {% if c.cta.label %}<a class="sidebar1-btn" href="{{ c.cta.url }}"><span>{{ c.cta.label }}</span>
+      <span class="arrow"><i class="fa-regular fa-arrow-right" aria-hidden="true"></i></span></a>{% endif %}
   </div>
 </div>

@@ -1,0 +1,26 @@
+{% load static %}
+<div class="pages-hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <div class="main-headding">
+          {% if c.heading %}<h1>{{ c.heading }}</h1>{% endif %}
+          {% if c.paragraph %}<p>{{ c.paragraph }}</p>{% endif %}
+          {% if c.button.label or c.button2.label %}
+          <div class="space30"></div>
+          <div class="hero-btns">
+            {% if c.button.label %}<a href="{{ c.button.url }}" class="theme-btn2">{{ c.button.label }}</a>{% endif %}
+            {% if c.button2.label %}<a href="{{ c.button2.url }}" class="theme-btn3">{{ c.button2.label }}</a>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-lg-6">
+        {% if c.image %}<div class="hero-image shape-animaiton3"><img src="{{ c.image }}" alt=""></div>{% endif %}
+      </div>
+    </div>
+  </div>
+  <img class="hero-shape1" src="{% static 'website/img/shapes/common-hero-shape1.png' %}" alt="">
+  <img class="hero-shape2" src="{% static 'website/img/shapes/common-hero-shape2.png' %}" alt="">
+  <img class="hero-shape3" src="{% static 'website/img/shapes/common-hero-shape3.png' %}" alt="">
+</div>

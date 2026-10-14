@@ -1,9 +1,15 @@
 from django.urls import path
-from django.views.generic import TemplateView
+
+from . import views
 
 app_name = "website"
 
-# Phase 0: eSoft HR layout (index5 sections in pages/home.html). Phase 2 renders every section from the Super Admin CMS.
+# Included last in config/urls.py: <slug> pages are a catch-all for the CMS pages.
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="website/pages/home.html"), name="home"),
+    path("", views.page, name="home"),
+    path("robots.txt", views.robots, name="robots"),
+    path("sitemap.xml", views.sitemap, name="sitemap"),
+    path("enquiry/", views.enquiry, name="enquiry"),
+    path("industries/<slug:key>/", views.industry, name="industry"),
+    path("<slug:slug>/", views.page, name="page"),
 ]

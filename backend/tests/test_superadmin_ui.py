@@ -6,14 +6,17 @@ from django.urls import reverse
 
 from apps.billing.models import Plan
 from apps.cms.models import Page, Section
+from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
 from apps.rbac.models import Role
 from apps.tenancy.models import Company
+from apps.website.models import Enquiry
 
 
 @pytest.mark.django_db
 def test_every_screen_renders(admin_client, owner_a, company_a):
     plan = Plan.objects.first()
+    enquiry = Enquiry.objects.create(name="A", business_name="B", phone="+919876543210", email="a@example.com")
     names = [
         "dashboard",
         "company_list",
@@ -30,6 +33,9 @@ def test_every_screen_renders(admin_client, owner_a, company_a):
         "email_template_list",
         "logs",
         "sessions",
+        "industry_list",
+        "industry_create",
+        "enquiry_list",
     ]
     urls = [reverse(f"superadmin:{n}") for n in names] + [
         reverse("superadmin:company_detail", args=[company_a.pk]),
@@ -43,6 +49,8 @@ def test_every_screen_renders(admin_client, owner_a, company_a):
         reverse("superadmin:logs_kind", args=["security"]),
         reverse("superadmin:logs_kind", args=["api"]),
         reverse("superadmin:logs_kind", args=["errors"]),
+        reverse("superadmin:industry_edit", args=[Industry.objects.first().pk]),
+        reverse("superadmin:enquiry_detail", args=[enquiry.pk]),
         "/profile/",
         "/accounts/2fa/",
         "/accounts/sessions/",
@@ -128,3 +136,20 @@ def test_password_reset_uses_database_template(client, owner_a, set_setting):
     client.post("/accounts/password/reset/", {"email": owner_a.email})
     message = mail.outbox[-1]
     assert message.subject == "Reset for Sara AI" and message.from_email.startswith("Sara Team")
+
+
+@pytest.mark.django_db
+def test_industry_and_enquiry_screens(admin_client, client, support):
+    admin_client.post(
+        "/superadmin/industries/new/",
+        {"name": "Healthcare", "key": "healthcare", "short_description": "Clinics", "is_active": "on", "sort_order": 5},
+    )
+    assert client.get("/industries/healthcare/").status_code == 200
+    enquiry = Enquiry.objects.create(name="A", business_name="B", phone="+919876543210", email="a@example.com")
+    client.force_login(support)
+    assert client.get("/superadmin/industries/").status_code == 403
+    client.post(f"/superadmin/enquiries/{enquiry.pk}/", {"status": "closed", "notes": "Called back"})
+    enquiry.refresh_from_db()
+    assert enquiry.status == "closed" and enquiry.handled_by == support
+    api = client.get("/api/v1/admin/enquiries/?status=closed").json()["results"]
+    assert api[0]["notes"] == "Called back"

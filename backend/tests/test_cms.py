@@ -54,15 +54,16 @@ def test_clean_content_follows_schema():
 @pytest.mark.django_db
 def test_draft_publish_version_restore(super_admin, client):
     hero = Section.objects.get(page__key="home", section_type__key="hero")
+    seeded = hero.content["heading"]  # Phase 2 seed content is published as version 1
     cms.save_draft(hero, {"heading": "Version one"}, super_admin)
-    assert client.get("/public/v1/cms/home/").json()["sections"][0]["content"] == {}  # draft is not public
+    assert client.get("/public/v1/cms/home/").json()["sections"][0]["content"]["heading"] == seeded  # draft not public
     cms.publish(hero, super_admin)
     cms.save_draft(hero, {"heading": "Version two"}, super_admin)
     cms.publish(hero, super_admin)
     data = client.get("/public/v1/cms/home/").json()
     assert data["sections"][0]["content"]["heading"] == "Version two"
-    assert hero.versions.count() == 2
-    cms.restore(hero, 1, super_admin)
+    assert hero.versions.count() == 3
+    cms.restore(hero, 2, super_admin)
     hero.refresh_from_db()
     assert hero.draft_content["heading"] == "Version one" and hero.content["heading"] == "Version two"
 
@@ -104,5 +105,5 @@ def test_section_editor_and_api(admin_client, client):
         content_type="application/json",
     )
     assert api.status_code == 200 and api.json()["has_draft"]
-    assert admin_client.post(f"/api/v1/admin/cms/sections/{section.pk}/publish/").json()["version"] == 2
+    assert admin_client.post(f"/api/v1/admin/cms/sections/{section.pk}/publish/").json()["version"] == 3
     assert client.get("/public/v1/cms/home/").json()["sections"][2]["content"]["items"][0]["label"] == "x"
