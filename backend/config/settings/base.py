@@ -87,7 +87,7 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_LOGOUT_ON_GET = False
-LOGIN_REDIRECT_URL = "/panel/"
+LOGIN_REDIRECT_URL = "panel:home"
 
 LANGUAGE_CODE = "en-in"
 TIME_ZONE = "Asia/Kolkata"  # display timezone; USE_TZ stores everything in UTC

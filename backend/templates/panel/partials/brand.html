@@ -1,0 +1,11 @@
+{% load static %}
+{# Phase 1: logos come from General Settings. #}
+<div class="brand">
+    <a href="{{ home_url|default:'#' }}" class="logo">
+        <span><img src="{% static 'panel/images/logo-sm.png' %}" alt="logo" class="logo-sm"></span>
+        <span>
+            <img src="{% static 'panel/images/logo-light.png' %}" alt="logo" class="logo-lg logo-light">
+            <img src="{% static 'panel/images/logo-dark.png' %}" alt="logo" class="logo-lg logo-dark">
+        </span>
+    </a>
+</div>

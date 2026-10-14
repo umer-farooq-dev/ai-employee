@@ -38,10 +38,10 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 - [x] **Custom User model PEHLI migration se pehle** (email login, +91 phone, UUID primary key)
 - [x] `django.contrib.admin` install **nahi** karna
 - [x] Pinned `requirements` (Django, DRF, drf-spectacular, django-allauth[mfa], psycopg, redis, django-environ; Celery / Channels / pgvector apne phase mein)
-- [x] `docker-compose.yml`: postgres+pgvector, redis, mailpit, minio, freellmapi
+- [x] `docker-compose.yml`: postgres+pgvector, redis, mailpit, freellmapi (MinIO/S3 jab file uploads aayein, P1)
 - [x] `.env.example` (koi secret git mein nahi)
 - [x] `accounts` app (custom User). Baqi apps (`tenancy`, `rbac`, `platform_config`, `cms`, `audit`) Phase 1 mein code ke saath
-- [ ] Service layer folder pattern (views aur APIs dono services call karein)
+- [x] Service layer convention: `apps/<app>/services.py` (README → Code conventions)
 
 **Quality from day 1**
 - [x] pre-commit: ruff, black, gitleaks (djLint baad mein, jab templates hamare apne ho jayein)
@@ -53,15 +53,19 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 - [x] eSoft → `templates/website/`, `static/website/`
 - [x] Rizz → `templates/panel/`, `static/panel/`
 - [x] Copy **nahi** karna: Docs folders, `db.sqlite3`, RTL, extra locales, baqi 8 demo homepages, UI-kit showcase pages
-- [ ] Website base layout: `index5` header + footer as shared partials
-- [ ] Panel base layout: Rizz sidebar + topbar (admin aur company ke alag sidebar)
+- [x] Website base layout: shared header (`partials/header.html`) + CTA + footer; home = `pages/home.html` (index5 sections)
+- [x] Panel base layout: `/superadmin/` (staff only) aur `/app/` (company) — alag sidebars, shared topbar + footer
 
 **Mapping & PoC**
-- [ ] Template mapping sheet: website ke 13 sections ke fields (PRD-01 Section 8)
-- [ ] Settings registry list: har configurable value aur us ki Super Admin screen
-- [ ] FreeLLMAPI chalu + keys add
-- [ ] Voice PoC: Hindi / English / Bengali × 2-3 STT/TTS providers → latency (P50 ≤ 1.2 s) + quality
-- [ ] AI PoC: Hinglish/Bengali extraction (budget, location, BHK)
+- [x] Template mapping sheet → `docs/phase0/website-section-mapping.md`
+- [x] Settings registry list → `docs/phase0/settings-registry.md`
+- [x] FreeLLMAPI container chalu (http://localhost:3001)
+- [ ] FreeLLMAPI dashboard mein free provider keys + client key → `.env` `LLM_API_KEY` (**aap**)
+- [x] Voice PoC script ready: `poc/voice_bakeoff.py`
+- [ ] Voice PoC run: Sarvam / Google / ElevenLabs keys `.env` mein → report + har language ka provider (**keys aap ki taraf se**)
+- [x] AI PoC script ready: `poc/ai_extraction.py` (10 Hinglish / Hindi / Bengali / English cases)
+- [ ] AI PoC run on FreeLLMAPI → `poc/output/ai_report.md`
+- [ ] Terraform skeleton → staging ke saath (AWS account aane par, P1 ke end tak)
 
 **Phase 0 gate:** CI green · mapping sheet done · PoC report · provider choice per language
 

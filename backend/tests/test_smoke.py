@@ -34,5 +34,21 @@ def test_website_home_renders(client):
 
 
 @pytest.mark.django_db
-def test_panel_requires_login(client):
-    assert client.get("/panel/").status_code == 302
+def test_company_panel_requires_login(client):
+    assert client.get("/app/").status_code == 302
+
+
+@pytest.mark.django_db
+def test_super_admin_is_staff_only(client):
+    user = User.objects.create_user("owner@example.com", "a-strong-password-123")
+    client.force_login(user)
+    assert client.get("/superadmin/").status_code == 302
+    assert client.get("/app/").status_code == 200
+    assert client.get("/dashboard/").url == "/app/"
+
+
+@pytest.mark.django_db
+def test_staff_lands_on_super_admin(client):
+    client.force_login(User.objects.create_superuser("admin@example.com", "a-strong-password-123"))
+    assert client.get("/dashboard/").url == "/superadmin/"
+    assert client.get("/superadmin/").status_code == 200

@@ -1,0 +1,67 @@
+{% load static %}
+{# Shared header (eSoft HR layout). Phase 1/2: logo, menu items and buttons come from Super Admin (General Settings + CMS). #}
+<header>
+  <div class="header-area header-area9 header-area-all d-none d-lg-block" id="header">
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <div class="header-elements">
+            <div class="site-logo home1-site-logo">
+              <a href="{% url 'website:home' %}"><img src="{% static 'website/img/logo/header-logo2.png' %}" alt="Logo"></a>
+            </div>
+            <div class="main-menu-ex main-menu-ex1">
+              <ul>
+                <li><a href="{% url 'website:home' %}">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#about">About Us</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="{% url 'account_login' %}">Login</a></li>
+              </ul>
+            </div>
+            <div class="header-buttons">
+              <a href="{% url 'account_signup' %}" class="theme-btn15">Get Started
+                <span><i class="fa-solid fa-arrow-right"></i></span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-header mobile-header3 d-block d-lg-none">
+  <div class="container-fluid">
+    <div class="col-12">
+      <div class="mobile-header-elements">
+        <div class="mobile-logo">
+          <a href="{% url 'website:home' %}"><img src="{% static 'website/img/logo/header-logo2.png' %}" alt="Logo"></a>
+        </div>
+        <div class="mobile-nav-icon">
+          <i class="fa-duotone fa-bars-staggered"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sidebar mobile-sidebar4 d-block d-lg-none">
+  <div class="logo-m">
+    <a href="{% url 'website:home' %}"><img src="{% static 'website/img/logo/header-logo1.png' %}" alt="Logo"></a>
+  </div>
+  <div class="menu-close">
+    <i class="fa-solid fa-xmark"></i>
+  </div>
+  <div class="mobile-nav">
+    <ul>
+      <li><a href="{% url 'website:home' %}">Home</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#about">About Us</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="{% url 'account_login' %}">Login</a></li>
+    </ul>
+    <a class="sidebar1-btn" href="{% url 'account_signup' %}"><span>Get Started</span>
+      <span class="arrow"><i class="fa-regular fa-arrow-right"></i></span></a>
+  </div>
+</div>

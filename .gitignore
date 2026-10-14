@@ -13,3 +13,4 @@ node_modules/
 # purchased template sources (needed parts are copied into backend/)
 WebsiteTemplate/
 AdminTemplate/
+poc/output/

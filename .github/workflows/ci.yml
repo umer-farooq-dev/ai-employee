@@ -33,14 +33,17 @@ jobs:
       - run: pip install -r backend/requirements/dev.txt
       - name: Lint
         run: |
-          ruff check backend
-          black --check backend
+          ruff check backend poc
+          black --check backend poc
       - name: Migrations are up to date
         run: python backend/manage.py makemigrations --check --dry-run
         env:
           DJANGO_SETTINGS_MODULE: config.settings.test
       - name: Tests
-        run: pytest
+        run: |
+          pytest
+          python poc/voice_bakeoff.py --selftest
+          cd poc && python ai_extraction.py --selftest
       - name: Security - code
         run: bandit -q -r backend/apps backend/config -x '*/tests/*,*/migrations/*'
       - name: Security - dependencies

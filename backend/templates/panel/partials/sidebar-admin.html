@@ -1,0 +1,24 @@
+{# Super Admin menu. Items link to '#' until their Phase 1 screens exist. #}
+<div class="startbar d-print-none">
+    {% url 'panel:admin_home' as home_url %}
+    {% include 'panel/partials/brand.html' with home_url=home_url %}
+    <div class="startbar-menu">
+        <div class="startbar-collapse" id="startbarCollapse" data-simplebar>
+            <div class="d-flex align-items-start flex-column w-100">
+                <ul class="navbar-nav mb-auto w-100">
+                    <li class="menu-label pt-0 mt-0"><span>Super Admin</span></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ home_url }}"><i class="iconoir-home-simple menu-icon"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-building menu-icon"></i><span>Companies</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-group menu-icon"></i><span>Users</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-shield-check menu-icon"></i><span>Roles &amp; Permissions</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>
+                    <li class="menu-label mt-2"><span>Platform</span></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-page-edit menu-icon"></i><span>Website Content</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-cpu menu-icon"></i><span>AI Providers</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-journal menu-icon"></i><span>Audit Logs</span></a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

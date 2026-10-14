@@ -15,6 +15,9 @@ known-first-party = ["apps", "config"]
 line-length = 120
 extend-exclude = "migrations"
 
+[tool.pyright]
+extraPaths = ["backend"]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["backend"]

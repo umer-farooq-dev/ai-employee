@@ -1,0 +1,18 @@
+{# Company panel menu. Grows phase by phase (PRD-01 CP-02); items link to '#' until built. #}
+<div class="startbar d-print-none">
+    {% url 'panel:company_home' as home_url %}
+    {% include 'panel/partials/brand.html' with home_url=home_url %}
+    <div class="startbar-menu">
+        <div class="startbar-collapse" id="startbarCollapse" data-simplebar>
+            <div class="d-flex align-items-start flex-column w-100">
+                <ul class="navbar-nav mb-auto w-100">
+                    <li class="menu-label pt-0 mt-0"><span>Main Menu</span></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ home_url }}"><i class="iconoir-home-simple menu-icon"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-group menu-icon"></i><span>Team</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-building menu-icon"></i><span>Company Profile</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-help-circle menu-icon"></i><span>Support</span></a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
