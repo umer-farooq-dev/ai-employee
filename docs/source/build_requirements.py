@@ -64,8 +64,8 @@ MODULES = [
          ("AUTH-01", "Company registration", "Fields: <b>Business name</b>; <b>Owner full name</b>; <b>Work email</b>; "
           "<b>Mobile number</b> (+91 default); <b>Password</b> (policy from Super Admin); <b>Industry</b> (active templates only); "
           "<b>City</b>; <b>State</b>; Business size (optional); Website (optional); GSTIN (optional, printed on invoices); "
-          "<b>Accept Terms & Privacy</b> (stored with timestamp and IP). Creates the Company, the Owner user and a trial or plan "
-          "according to Super Admin settings.", "§1, §28", "P2"),
+          "<b>Accept Terms & Privacy</b> (stored with timestamp and IP). Creates the Company (status <b>Pending approval</b>) and the "
+          "Owner user; the trial or plan starts when Super Admin approves it (AUTH-12).", "§1, §28", "P2"),
          ("AUTH-02", "Verification", "Email verification (link or OTP). Mobile OTP verification, switchable on/off in Super Admin; "
           "SMS sent through the SMS provider adapter.", "REC", "P2"),
          ("AUTH-03", "Login & sessions", "Email + password login, remember-me, logout, configurable session timeout, list and revoke "
@@ -81,8 +81,13 @@ MODULES = [
           "availability status for handoff (Online / Away / Offline), password and 2FA settings.", "REC", "P1"),
          ("AUTH-09", "Company profile", "Display name, legal name, logo, address, GSTIN, contact email and phone, website, timezone, "
           "default language, business hours, holidays.", "§1", "P2"),
-         ("AUTH-10", "Onboarding checklist", "Guided checklist after registration: Create AI Employee → Add knowledge → Connect "
-          "phone / WhatsApp → Test → Activate. Progress tracked per company.", "§1", "P2"),
+         ("AUTH-10", "Onboarding checklist", "Guided checklist after approval: the AI Employee is ready-made (EMP-14); the company "
+          "adds its knowledge → catalogue → connects phone / WhatsApp → tests → activates. Progress tracked per company.", "§1", "P2"),
+         ("AUTH-12", "Company approval by Super Admin", "Every new registration waits for Super Admin review (requirement switchable "
+          "in Super Admin, default on). While pending, the owner can log in but sees only an approval status page. Super Admin "
+          "reviews the details and <b>approves</b> (company panel opens, trial or plan starts) or <b>rejects</b> with a reason; the "
+          "owner is emailed either way and every decision is audited. From Phase 4, approval also creates the company's AI "
+          "Employee from its industry template (EMP-14).", "DEC", "P2"),
          ("AUTH-11", "Role-based access control", "Permission check on every screen and every API call. Roles and permission sets "
           "stored in the database and editable in Super Admin (defaults in Section 5).", "§25", "P1"),
      ]),
@@ -175,6 +180,11 @@ MODULES = [
           "configuration version (who / when / what).", "§20", "P4"),
          ("EMP-13", "Employee analytics", "Calls, connected, leads, qualified, hot, appointments, transfers, usage, per employee with "
           "date filter.", "§20", "P7"),
+         ("EMP-14", "Ready-made AI Employee on approval", "When Super Admin approves a company (AUTH-12), an AI Employee is "
+          "created automatically from the company's industry template (role, script, qualification questions, greetings, "
+          "languages) in draft. Super Admin can also assign or change it with one click. The company only adds its own data "
+          "(knowledge, catalogue, numbers); activation is allowed only after the test passes (EMP-11). More employees can be "
+          "created with the wizard within plan limits.", "DEC", "P4"),
      ]),
     ("M07", "AI Employee Engine (Core Runtime)",
      "One engine powers every AI Employee, in every industry, on every channel.",
@@ -479,7 +489,7 @@ MODULES = [
           "Django's built-in admin (django.contrib.admin) is not installed.", "DEC", "P1 → all"),
          ("SA-02", "Platform dashboard", "Companies, active AI Employees, calls, minutes, MRR / revenue, usage, errors, provider health.",
           "§22", "P7"),
-         ("SA-03", "Companies", "List / search, detail, create, edit, suspend / activate, change plan, usage, data export / deletion, "
+         ("SA-03", "Companies", "List / search, detail, create, edit, approve / reject new registrations (AUTH-12), suspend / activate, change plan, usage, data export / deletion, "
           "support login (impersonation with audit trail and visible banner).", "§22", "P1"),
          ("SA-04", "Users", "All users, roles, reset password, lock / unlock, reset 2FA, deactivate.", "§22", "P1"),
          ("SA-05", "Industries & industry templates", "Everything in M04, including activate / deactivate.", "§22", "P3"),
@@ -692,11 +702,13 @@ PHASES = [
                      "log in and invite its team.",
         "scope": [
             ("Website", "WEB-01 to WEB-03, WEB-05 to WEB-08: all content from Super Admin (WEB-04)"),
-            ("Registration & team", "AUTH-01, AUTH-02, AUTH-07, AUTH-09, AUTH-10"),
+            ("Registration & team", "AUTH-01, AUTH-02, AUTH-07, AUTH-09, AUTH-10, AUTH-12 (Super Admin approval)"),
             ("Company panel", "CP-01, CP-02 (shell), CP-06 (profile)"),
         ],
-        "admin": ["Platform enquiries inbox", "Registered companies appear in Super Admin with onboarding status"],
-        "tests": ["E2E: visitor → register company → verify → login → 2FA → invite team member",
+        "admin": ["Platform enquiries inbox", "Company approval queue: review details, approve / reject with reason",
+                  "Registered companies appear in Super Admin with approval and onboarding status", "Approval required on / off"],
+        "tests": ["E2E: visitor → register company → verify → pending page → Super Admin approves → login → invite team member",
+                  "Rejected or pending company cannot open the panel or the API",
                   "Change any website section in Super Admin → visible on the website without deployment",
                   "No hard-coded text left in the website template (review checklist)",
                   "Website Lighthouse ≥ 90 on mobile and desktop; device testing on all five device classes"],
@@ -729,7 +741,7 @@ PHASES = [
         "objective": "Deliver the AI Employee creation wizard, the shared AI engine, the knowledge base with approval workflow and the "
                      "tools framework. AI Employees work end-to-end in text (test console) for all three MVP industries.",
         "scope": [
-            ("Roles", "ROLE-02 to ROLE-05"), ("AI Employee management", "EMP-01 to EMP-12 (text testing)"),
+            ("Roles", "ROLE-02 to ROLE-05"), ("AI Employee management", "EMP-01 to EMP-12 (text testing), EMP-14 (ready-made employee on approval)"),
             ("Engine", "ENG-01 to ENG-12"), ("Knowledge base", "KB-01 to KB-11"),
             ("Tools", "TOOL-01 to TOOL-07, TOOL-13 to TOOL-15"), ("Scoring", "SCORE-01, SCORE-03, SCORE-04, SCORE-06"),
             ("Other", "CAT-03, CAL-06, TEN-04, USE-01 (AI usage), SA-06, SA-08, SA-09, SEC-11, SEC-14, COMP-01"),
@@ -1094,6 +1106,9 @@ def make_story():
               ["D22", "No Next.js", "Both templates already ship as Django projects, so pages are Django templates with Bootstrap / "
                                    "jQuery. Business logic sits in a service layer used by both page views and REST APIs."],
               ["D24", "Hosting & domain", "Chosen by the client at deployment (Phase 8). The system is hosting-agnostic (Docker); nothing provider-specific is built before that decision."],
+              ["D25", "Company approval & ready-made AI Employee", "New companies are approved by Super Admin before using the "
+                                         "panel (P2). On approval the AI Employee is created from the industry template (P4); "
+                                         "the company adds only its own knowledge, catalogue and numbers, and activates after the test passes."],
               ["D23", "Free LLM for testing", "Development and staging use free LLM tiers via a self-hosted FreeLLMAPI gateway to "
                                              "avoid AI costs for us and the client. Never in production, never with real customer "
                                              "data; final quality and latency tests on the real model (SA-28)."],

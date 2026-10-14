@@ -45,6 +45,7 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | Key | Type | Default |
 |---|---|---|
 | `registration.enabled` | boolean | true |
+| `registration.approval_required` | boolean | true (new companies wait for Super Admin approval, AUTH-12) |
 | `registration.mobile_otp_required` | boolean | false |
 | `registration.email_verification` | choice (mandatory / optional) | mandatory |
 | `registration.trial_enabled` / `registration.trial_days` | boolean / number | true / 14 |

@@ -331,8 +331,8 @@ def fig_cicd():
 # ============================================================================ data model
 TABLES = {
     "Identity & Tenancy": [
-        ("companies", "id, name, legal_name, slug, industry_id, template_version_id, status (trial / active / suspended / "
-                      "cancelled), gstin, address (jsonb), timezone, default_language, logo_key, business_hours (jsonb), "
+        ("companies", "id, name, legal_name, slug, industry_id, template_version_id, status (pending / rejected / trial / active / suspended / "
+                      "cancelled), approved_by, approved_at, rejection_reason, gstin, address (jsonb), timezone, default_language, logo_key, business_hours (jsonb), "
                       "settings (jsonb overrides), onboarding_state (jsonb), created_at, updated_at, deleted_at", "Tenant root"),
         ("users", "id, email (unique), phone, password_hash (Argon2), full_name, avatar_key, is_staff, mfa_enabled, "
                   "mfa_secret_enc, locale, timezone, availability (online / away / offline), last_login_at, status", "Global"),

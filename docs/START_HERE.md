@@ -82,6 +82,27 @@ _AI Providers screen (SA-09) Phase 4 mein hai, Voice / channel providers (SA-10)
 
 ---
 
+## Phase 2 — Website, Company Registration & Company Panel
+
+1. [ ] Website (eSoft index5) har section CMS se, animations, Lighthouse 90+ (WEB-01, WEB-04)
+2. [ ] Website pages: How It Works, AI Employee Types, Industries, Features, Pricing (live plans), About, Contact / Demo, FAQ (WEB-02)
+3. [ ] Legal pages CMS se (WEB-03)
+4. [ ] Get Started → registration (WEB-05); Contact / demo form → Platform Enquiries inbox + email (WEB-06)
+5. [ ] SEO: meta / OG, sitemap.xml, robots.txt, structured data (WEB-07); responsive + accessible + reduced motion (WEB-08)
+6. [ ] Company registration (AUTH-01) + email verification / mobile OTP switch (AUTH-02)
+7. [ ] **Super Admin approval** (AUTH-12): pending company sirf status page dekhe; approve / reject with reason, email, audit; `registration.approval_required` setting
+8. [ ] Team: invite, roles, resend / cancel, deactivate, ownership transfer, plan seat limit (AUTH-07)
+9. [ ] Company profile (AUTH-09) + settings ka pehla hissa: business hours, holidays (CP-06)
+10. [ ] Onboarding checklist (AUTH-10)
+11. [ ] Company panel shell on Rizz, menus per role / plan (CP-01, CP-02)
+12. [ ] Har feature ki REST API + tests
+
+**Phase 2 gate:** E2E (register → verify → pending → approve → login → invite) · website section badlo → bina deployment dikhe · no hard-coded text review · Lighthouse 90+ · device testing · CI green · client sign-off
+
+_Approval par AI Employee template se khud banna (EMP-14) Phase 4 mein — AI engine wahin banta hai._
+
+---
+
 ## Har phase ke rules (kabhi miss nahi karne)
 
 - **No hard-coding** — har business value Super Admin / database se
