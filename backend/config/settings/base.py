@@ -115,7 +115,9 @@ MFA_ADAPTER = "apps.accounts.adapter.MFAAdapter"
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+# Paused during development (owner decision). Phase 2 registration follows the `registration.email_verification`
+# setting; set back to "mandatory" before launch (START_HERE → Launch se pehle).
+ACCOUNT_EMAIL_VERIFICATION = "optional"
 ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_SESSION_REMEMBER = None  # "Remember me" checkbox on the login form
 ACCOUNT_EMAIL_NOTIFICATIONS = True  # security alerts: password / email changed

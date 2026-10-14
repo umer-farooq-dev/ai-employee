@@ -105,6 +105,7 @@ _AI Providers screen (SA-09) Phase 4 mein hai, Voice / channel providers (SA-10)
 
 ## Launch se pehle (Phase 8)
 - Super Admin → Settings → Security → **"2FA mandatory for platform staff" on karna** (development mein owner ke kehne par off)
+- **Email verification wapas mandatory** (`ACCOUNT_EMAIL_VERIFICATION` / `registration.email_verification`) — development mein paused
 
 ## Pending (client se)
 - AI Marketing Employee ki definition
