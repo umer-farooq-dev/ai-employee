@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+# Third-party minified bundles from the purchased templates produce false positives; our own code is still scanned.
+[allowlist]
+description = "Vendor assets from eSoft / Rizz templates"
+paths = [
+  '''backend/static/panel/vendor/''',
+  '''backend/static/panel/js/vendors\.min\.js''',
+  '''backend/static/panel/js/vendors\.js''',
+  '''backend/static/website/js/.*\.min\.js''',
+]
