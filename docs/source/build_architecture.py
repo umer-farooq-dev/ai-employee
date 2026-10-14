@@ -55,7 +55,7 @@ def fig_containers():
                          "Super Admin\nDjango + Rizz", "Chat Widget\nembeddable JS", "Customers\nphone · WhatsApp"]):
         g.box(x, 308, 88, 36, t, fill=TEAL_BG, stroke=TEAL)
         g.arrow([(x + 44, 308), (x + 44, 294)], color=TEAL)
-    g.box(0, 272, W, 22, "Edge: Route 53 · CloudFront CDN · AWS WAF · Application Load Balancer (HTTPS / WSS)",
+    g.box(0, 272, W, 22, "Edge: reverse proxy (HTTPS / WSS, rate limits) · optional CDN · hosting and domain chosen by client",
           fill=SOFT, stroke=MUTED, fs=7.6)
     cw = (W - 2 * 9.6) / 3
     cx = [0, cw + 9.6, 2 * (cw + 9.6)]
@@ -68,9 +68,9 @@ def fig_containers():
         g.arrow([(x + cw / 2, 192), (x + cw / 2, 178)], color=BLUE, both=True)
     g.box(0, 152, W, 26, "Shared Python packages: agent_runtime (AI engine) · providers (adapters) · tenancy · domain models",
           fill=TEAL_BG, stroke=TEAL, fs=7.8)
-    data = ["PostgreSQL 16\npgvector · row-level security\nMulti-AZ · read replica",
+    data = ["PostgreSQL 16\npgvector · row-level security\nbackups · PITR",
             "Redis 7\ncache · queues · locks\nrate limits · usage counters",
-            "Object storage (S3)\nKB files · recordings\nmedia · invoices"]
+            "Object storage\nKB files · recordings\nmedia · invoices"]
     for x, t in zip(cx, data):
         g.box(x, 80, cw, 50, t, fill=PURPLE_BG, stroke=PURPLE, fs=8)
         g.arrow([(x + cw / 2, 152), (x + cw / 2, 130)], color=PURPLE, both=True)
@@ -150,7 +150,7 @@ def fig_ingestion():
     g = Dia(W, 128)
     n, bw = 7, 62
     gap = (W - n * bw) / (n - 1)
-    steps = ["Source\nURL · PDF · DOCX\nFAQ · text", "Store\nprivate S3\nmalware scan", "Queue\nkb_ingest\nworker",
+    steps = ["Source\nURL · PDF · DOCX\nFAQ · text", "Store\nprivate storage\nmalware scan", "Queue\nkb_ingest\nworker",
              "Parse\ntext · tables\nOCR if needed", "Chunk\nlanguage detect\n~500 tokens", "Embed\nmultilingual\nmodel (adapter)",
              "Index\npgvector HNSW\n+ full-text"]
     for i, t in enumerate(steps):
@@ -277,44 +277,38 @@ def fig_domains():
     return g.d
 
 
-def fig_aws():
-    g = Dia(W, 272)
-    g.box(0, 214, 80, 34, "Visitors, users\nand customers", fill=TEAL_BG, stroke=TEAL)
-    g.box(0, 150, 80, 44, "Provider webhooks\n+ media streams\ntelephony · WhatsApp", fill=AMBER_BG, stroke=AMBER)
-    g.box(0, 88, 80, 34, "GitHub Actions\nCI / CD", fill=SOFT, stroke=MUTED)
-    g.box(0, 20, 80, 44, "ap-south-2\n(Hyderabad)\nbackup snapshots", fill=SOFT, stroke=MUTED)
-    g.group(95, 4, 398, 264, "AWS ap-south-1 (MUMBAI)", stroke=NAVY, color=NAVY)
-    g.box(105, 222, 135, 30, "Route 53 · CloudFront CDN\nAWS WAF", fill=SOFT, stroke=MUTED)
-    g.box(250, 222, 135, 30, "Application Load Balancer\nHTTPS · WebSockets", fill=SOFT, stroke=MUTED)
-    g.group(105, 40, 280, 170, "VPC (private, 2 AZs)", stroke=BLUE, color=BLUE)
-    for x, y, t in [(115, 150, "ECS Fargate: Django web\nwebsite · panels (templates)"),
-                    (250, 150, "ECS Fargate: Core API\nDjango ASGI · autoscaled"),
-                    (115, 108, "ECS Fargate: Voice Gateway\nautoscale on active calls"),
-                    (250, 108, "ECS Fargate: Workers + Beat\nautoscale on queue depth")]:
+def fig_deploy():
+    g = Dia(W, 250)
+    g.box(0, 192, 80, 34, "Visitors, users\nand customers", fill=TEAL_BG, stroke=TEAL)
+    g.box(0, 128, 80, 44, "Provider webhooks\n+ media streams\ntelephony · WhatsApp", fill=AMBER_BG, stroke=AMBER)
+    g.box(0, 66, 80, 34, "GitHub Actions\nCI / CD", fill=SOFT, stroke=MUTED)
+    g.box(0, 8, 80, 40, "Off-site\nbackup storage", fill=SOFT, stroke=MUTED)
+    g.group(95, 4, 398, 242, "HOSTING CHOSEN BY CLIENT (any Docker-capable server / VPS / cloud)", stroke=NAVY, color=NAVY)
+    g.box(105, 196, 280, 30, "Reverse proxy: HTTPS (TLS) · WebSockets · rate limits\ndomain chosen by client", fill=SOFT,
+          stroke=MUTED)
+    for x, y, t in [(115, 140, "Container: Django web + API\nwebsite · panels · REST · WSS"),
+                    (250, 140, "Container: Voice Gateway\nscaled on active calls"),
+                    (115, 98, "Container: Workers + Beat\nCelery queues"), (250, 98, "Container registry\nimages from CI")]:
         g.box(x, y, 125, 34, t)
-    g.box(115, 48, 125, 50, "RDS PostgreSQL 16\nMulti-AZ + read replica\nRDS Proxy · pgvector · KMS",
-          fill=PURPLE_BG, stroke=PURPLE)
-    g.box(250, 48, 125, 50, "ElastiCache Redis 7\nMulti-AZ\ncache · queues · locks", fill=PURPLE_BG, stroke=PURPLE)
-    for i, t in enumerate(["S3 (SSE-KMS)\nfiles · recordings", "Secrets Manager\nKMS keys", "SES\ntransactional email",
-                           "CloudWatch · OTel\nlogs · metrics · traces", "ECR\ncontainer images"]):
-        g.box(395, 222 - i * 35, 93, 28, t, fill=SOFT, stroke=MUTED, fs=7.2)
-    g.arrow([(80, 231), (105, 237)], color=TEAL)
-    g.arrow([(240, 237), (250, 237)], color=MUTED)
-    g.arrow([(80, 172), (90, 172), (90, 216), (330, 216), (330, 222)], color=AMBER)
-    g.arrow([(300, 222), (300, 184)], color=BLUE)
-    g.arrow([(270, 222), (190, 184)], color=BLUE)
-    g.arrow([(258, 222), (245, 200), (245, 125), (240, 125)], color=BLUE, dashed=True)
-    g.tag(252, 196, "WSS media → Voice GW", fs=6.2, anchor="start", color=BLUE)
-    g.arrow([(80, 105), (88, 105), (88, 24), (441, 24), (441, 82)], color=MUTED)
-    g.tag(265, 24, "build & push images", fs=6.4, color=MUTED)
-    g.arrow([(115, 60), (80, 46)], color=MUTED, dashed=True)
+    g.box(115, 30, 125, 52, "PostgreSQL 16 + pgvector\nautomated backups · PITR\nencrypted at rest", fill=PURPLE_BG,
+          stroke=PURPLE)
+    g.box(250, 30, 125, 52, "Redis 7\ncache · queues · locks", fill=PURPLE_BG, stroke=PURPLE)
+    for i, t in enumerate(["Object storage\nS3-compatible or disk", "Secrets\nenv / host secret store",
+                           "Email (SMTP)\nprovider set in Super Admin", "Monitoring\nlogs · metrics · Sentry"]):
+        g.box(395, 196 - i * 42, 93, 34, t, fill=SOFT, stroke=MUTED, fs=7.2)
+    g.arrow([(80, 209), (105, 211)], color=TEAL)
+    g.arrow([(80, 150), (92, 150), (92, 190), (245, 190), (245, 196)], color=AMBER)
+    g.arrow([(177, 196), (177, 174)], color=BLUE)
+    g.arrow([(312, 196), (312, 174)], color=BLUE)
+    g.arrow([(80, 83), (88, 83), (88, 90), (312, 90), (312, 98)], color=MUTED)
+    g.arrow([(115, 50), (80, 30)], color=MUTED, dashed=True)
     return g.d
 
 
 def fig_cicd():
     g = Dia(W, 150)
     top = [(0, 70, "Pull request\nfeature IDs in title"), (84, 118, "PR checks (parallel)\nlint · types · tests · builds\nsecurity scans · AI eval"),
-           (216, 74, "Review +\nmerge to main"), (304, 76, "Build images\npush to ECR"),
+           (216, 74, "Review +\nmerge to main"), (304, 76, "Build images\npush to registry"),
            (394, 99, "Deploy to staging\nmigrate · smoke · E2E\nZAP scan")]
     for x, w, t in top:
         g.box(x, 92, w, 46, t)
@@ -585,7 +579,7 @@ def make_story():
         ["Configurability", "100 % of business values from the database; settings registry with schemas."],
         ["Provider independence", "Adapters for every provider; fallback routes for LLM, STT and TTS."],
         ["Security", "OWASP ASVS-aligned controls, encryption, audit logs, 2FA, pen-test before launch."],
-        ["Data residency", "Primary data in AWS Mumbai (ap-south-1); backup copies in Hyderabad (ap-south-2)."],
+        ["Hosting & data residency", "Hosting provider, region and domain are chosen by the client at deployment (Phase 8). India region recommended for voice latency and Indian data law."],
         ["Recoverability", "RPO ≤ 5 minutes, RTO ≤ 4 hours (region-level), PITR 35 days."],
         ["Mobile", "Every screen responsive; installable PWA for agents."],
         ["Testability", "Unit, API, E2E, AI-evaluation and voice tests automated in CI."],
@@ -616,9 +610,9 @@ def make_story():
          "Horizontal, active-call based"],
         ["Workers", "Celery (queues per workload) + Celery Beat", "KB ingestion, post-call, campaigns, notifications, billing",
          "Horizontal, queue-depth based"],
-        ["PostgreSQL", "PostgreSQL 16 + pgvector", "System of record, vectors, RLS", "Multi-AZ, read replica, partitions"],
-        ["Redis", "Redis 7", "Cache, broker, locks, rate limits, counters", "Multi-AZ"],
-        ["Object storage", "Amazon S3", "Files, recordings, media, invoices", "Managed"],
+        ["PostgreSQL", "PostgreSQL 16 + pgvector", "System of record, vectors, RLS", "Backups, partitions (replica if hosting allows)"],
+        ["Redis", "Redis 7", "Cache, broker, locks, rate limits, counters", "Per hosting"],
+        ["Object storage", "S3-compatible storage or server disk (client hosting)", "Files, recordings, media, invoices", "Per hosting"],
     ], [0.15, 0.27, 0.36, 0.22], bold_first=True)]
     s += n.H2("Why a Modular Monolith plus a Voice Service")
     s += bullets(["<b>One codebase, clear modules:</b> Django apps per bounded context with explicit service interfaces. "
@@ -642,7 +636,7 @@ def make_story():
         ["007", "Django templates on supplied templates (no Next.js)", "eSoft and Rizz already ship as Django projects; one language, "
                                                       "one project, one deployment; SEO via server rendering."],
         ["008", "Django built-in admin not installed", "Client and team decision; custom Super Admin on our template."],
-        ["009", "AWS Mumbai, containers, Terraform", "Latency and data residency in India; portable to other clouds."],
+        ["009", "Hosting-agnostic Docker deployment", "Hosting and domain are the client's choice at deployment; containers run on any server or cloud; no provider-specific code."],
         ["010", "Pipecat for voice orchestration", "Open source, Python, streaming pipelines; LiveKit Agents evaluated in P0."],
         ["011", "Razorpay", "Indian subscriptions, UPI / cards, GST-friendly."],
         ["012", "Built-in CRM and calendar", "Decision D2 / D3; AI tools need tight, transactional integration."],
@@ -703,7 +697,7 @@ def make_story():
                   "<b>API:</b> serializers never accept company_id from clients; object permissions check membership and role.",
                   "<b>Database:</b> PostgreSQL row-level security policies on every tenant table; the application role cannot "
                   "bypass RLS. Platform jobs use a separate audited role.",
-                  "<b>Everything else:</b> Redis keys, S3 paths and vector searches are scoped the same way."])
+                  "<b>Everything else:</b> Redis keys, storage paths and vector searches are scoped the same way."])
     s += [code('''
 current_company: ContextVar[UUID | None] = ContextVar("current_company", default=None)
 
@@ -769,7 +763,7 @@ def effective_config(employee) -> dict:
         ["Chat widget and PWA", "Widget config and web-app manifest built from the same settings (icon, name, \"Powered by\")"],
         ["Future Flutter app", "Same /public/v1/branding endpoint"],
     ], [0.3, 0.7], bold_first=True)]
-    s += bullets(["Logo, favicon and icons uploaded to S3 and served through the CDN; favicon / app-icon sizes generated "
+    s += bullets(["Logo, favicon and icons uploaded to object storage and served efficiently; favicon / app-icon sizes generated "
                   "automatically on upload.",
                   "Saving General Settings bumps a settings version, clearing the Redis and CDN caches, so changes appear "
                   "everywhere within seconds without deployment.",
@@ -788,7 +782,7 @@ def effective_config(employee) -> dict:
                   "<b>Dynamic data:</b> sections such as pricing and industries read plans and active industry templates live, so they "
                   "never need manual copying.",
                   "<b>Publishing:</b> publishing clears the CDN cache for that page; the change is live within seconds, no deployment.",
-                  "<b>Images:</b> uploaded to S3 and served through the CDN in optimised sizes."])
+                  "<b>Images:</b> uploaded to object storage and served in optimised sizes."])
     s += n.H2("Django Built-in Admin")
     s += [P("<b>django.contrib.admin is not installed.</b> All Super Admin functions are custom screens in the Super Admin app "
             "(our admin template) calling the Admin API (/admin-api/v1), protected by staff roles, mandatory 2FA, IP allowlist "
@@ -922,7 +916,7 @@ class ToolContext:
     s += n.figure(fig_voice(), "Voice pipeline inside the Voice Gateway with latency budget")
     s += n.H2("Latency Budget")
     s += [table(["Stage", "Budget (P50)", "Technique"], [
-        ["Telephony network in / out", "~100 ms", "Indian provider, AWS Mumbai region, persistent WebSocket media streams"],
+        ["Telephony network in / out", "~100 ms", "Indian provider, India-region hosting (client choice), persistent WebSocket media streams"],
         ["End-of-speech detection", "200-300 ms", "VAD plus semantic turn detection; tuned per language"],
         ["STT final transcript", "100-200 ms", "Streaming STT with partial results"],
         ["LLM first token", "300-450 ms", "Fast dialogue model, prompt caching, compact context, streaming"],
@@ -978,7 +972,7 @@ class TTSAdapter(Protocol):
     s += n.H2("Inbound Call Sequence")
     s += n.figure(fig_sequence(), "Inbound call: from ring to post-call processing")
     s += n.H2("Recording, Transcript and Post-call Processing")
-    s += bullets(["Recording via provider or gateway (configurable), stored encrypted in S3 under the company path; retention "
+    s += bullets(["Recording via provider or gateway (configurable), stored encrypted in object storage under the company path; retention "
                   "job deletes after the configured days; playback through short-lived signed URLs; every access audited.",
                   "Transcript segments stored as messages with timings and confidence.",
                   "Post-call worker: summary, requirement extraction, score update, sentiment / intent (with confidence), "
@@ -1109,7 +1103,7 @@ ALTER TABLE appointments ADD CONSTRAINT no_overlap
         ["Phone numbers", "E.164 (+91…); normalised on input and import"],
         ["Flexible data", "JSONB validated by JSON schema generated from field_definitions"],
         ["Large tables", "Monthly partitions: messages, lead_activities, usage_events, audit_logs"],
-        ["Secrets", "*_enc columns encrypted with KMS-managed data keys (envelope encryption)"],
+        ["Secrets", "*_enc columns encrypted with an application master key kept outside the database (envelope encryption)"],
         ["Migrations", "Backward-compatible expand → migrate → contract; checked in CI"],
     ], [0.22, 0.78], bold_first=True)]
     s += n.H2("Table Catalogue")
@@ -1121,7 +1115,7 @@ ALTER TABLE appointments ADD CONSTRAINT no_overlap
     s += n.H2("Indexing, Partitioning and Retention")
     s += bullets(["B-tree indexes on (company_id, …) for every list and filter path; GIN on JSONB custom fields and tsvector "
                   "columns; HNSW on embeddings.",
-                  "Partitioned tables keep hot data small; old partitions archived to S3 according to retention settings.",
+                  "Partitioned tables keep hot data small; old partitions archived to object storage per retention settings.",
                   "Retention jobs: recordings and transcripts per company setting; audit logs per platform policy; usage events "
                   "retained for billing and tax periods.",
                   "Analytics queries run on the read replica; dashboard KPIs use pre-aggregated rollups."])
@@ -1282,15 +1276,15 @@ backend/
                   "that users or admins can revoke.",
                   "Support impersonation requires a reason, shows a banner and is fully audit-logged."])
     s += n.H2("Data Protection")
-    s += bullets(["TLS 1.2+ everywhere, HSTS; encryption at rest for RDS, S3, Redis and backups with KMS keys.",
+    s += bullets(["TLS 1.2+ everywhere, HSTS; encryption at rest for database, files and backups.",
                   "Envelope encryption for provider credentials, WhatsApp tokens and 2FA secrets (*_enc columns).",
-                  "Secrets in AWS Secrets Manager; never in code, images or the repository (secret scanning in CI).",
-                  "Private S3 buckets; downloads via signed URLs valid for minutes; uploads type-checked, size-limited, malware-scanned.",
+                  "Infrastructure secrets (SECRET_KEY, database URL) only in the server environment or the host's secret store; provider API keys only in Super Admin (encrypted). Never in code, images or the repository (secret scanning in CI).",
+                  "Private file storage; downloads via signed URLs valid for minutes; uploads type-checked, size-limited, malware-scanned.",
                   "Personal data masked in logs and traces; data export and deletion workflows (TEN-07)."])
     s += n.H2("Network and Application Security")
     s += bullets(["Services in private subnets; only the load balancer is public; database reachable only from application "
                   "security groups.",
-                  "AWS WAF with managed rule sets and rate rules; Super Admin host restricted by IP allowlist.",
+                  "Web application firewall / rate limiting at the reverse proxy (or the host's WAF); Super Admin restricted by IP allowlist.",
                   "Security headers (CSP, X-Frame-Options except widget iframe, Referrer-Policy); CSRF protection; strict CORS.",
                   "Webhooks: signature verification, timestamp tolerance, replay protection via event id de-duplication.",
                   "Outbound HTTP (crawler, connectors) through an egress guard blocking private IP ranges (SSRF protection)."])
@@ -1314,23 +1308,23 @@ backend/
 
     # 19
     s += n.H1("Infrastructure & Deployment")
-    s += n.figure(fig_aws(), "AWS deployment (Mumbai region, backups to Hyderabad)")
+    s += n.figure(fig_deploy(), "Deployment (hosting chosen by the client; any Docker-capable server)")
     s += n.H2("Environments")
     s += [table(["Environment", "Purpose", "Providers"], [
-        ["Local", "Developer machines: Docker Compose with PostgreSQL + pgvector, Redis, MinIO (S3), Mailpit, FreeLLMAPI",
+        ["Local", "Developer machines: Docker Compose with PostgreSQL + pgvector, Redis, Mailpit, FreeLLMAPI",
          "Mocks, sandbox keys, free LLM tiers via FreeLLMAPI"],
-        ["Staging", "Production-like, smaller; every phase demo and UAT; DAST target", "Test telephony account, Razorpay test "
+        ["Staging", "Production-like test server (chosen with the client); phase demos, UAT, DAST", "Test telephony account, Razorpay test "
                                                                                      "mode, WhatsApp test number, FreeLLMAPI "
                                                                                      "(real model for gate tests)"],
         ["Production", "Live customers", "Client's own telephony and WhatsApp accounts, Razorpay live"],
     ], [0.15, 0.55, 0.3], bold_first=True)]
     s += n.H2("Deployment Process")
-    s += bullets(["All infrastructure in Terraform; changes via pull request and plan review.",
+    s += bullets(["Hosting and domain are decided by the client before launch (Phase 8); until then nothing provider-specific is built.",
                   "Container images built once, promoted from staging to production by digest.",
                   "Database migrations run as a one-off task before rollout; always backward-compatible.",
-                  "ECS rolling deployments with health checks and automatic rollback; Voice Gateway drains active calls.",
+                  "Rolling container restarts with health checks and rollback to the previous image; Voice Gateway drains active calls.",
                   "Feature flags for risky features; production deploy requires the GitHub environment approval (phase gate).",
-                  "Portability: containers + Terraform + adapters allow a move to GCP or Azure if ever required."])
+                  "Portability: Docker images + compose files + provider adapters run on any VPS or cloud the client chooses."])
 
     # 20
     s += n.H1("CI/CD & Phase Gates")
@@ -1354,12 +1348,12 @@ backend/
     # 21
     s += n.H1("Observability")
     s += [table(["Signal", "What we collect", "Tooling"], [
-        ["Logs", "Structured JSON with request_id, company_id, conversation_id, call_id; personal data masked", "CloudWatch Logs"],
+        ["Logs", "Structured JSON with request_id, company_id, conversation_id, call_id; personal data masked", "Per hosting (container logs, Loki or host logging)"],
         ["Metrics", "API latency / errors, queue depth, active calls, per-stage voice latency, STT confidence, interruptions, "
-                    "tool error rate, tokens and cost per company, webhook failures", "CloudWatch / Prometheus-compatible"],
+                    "tool error rate, tokens and cost per company, webhook failures", "Prometheus-compatible"],
         ["Traces", "End-to-end traces across API, workers and Voice Gateway, including provider calls", "OpenTelemetry"],
         ["Errors", "Exceptions with context and release version", "Sentry"],
-        ["Dashboards", "Platform health, voice quality, provider health, business KPIs", "Grafana / CloudWatch"],
+        ["Dashboards", "Platform health, voice quality, provider health, business KPIs", "Grafana"],
         ["Alerts", "SLO burn, voice latency P95, provider error spikes, queue backlog, payment webhook failures, unusual "
                    "outbound volume", "Email / WhatsApp / on-call"],
     ], [0.13, 0.62, 0.25], bold_first=True)]
@@ -1377,15 +1371,15 @@ backend/
         ["LLM provider error / slow", "Next route in fallback order; if all fail: polite message + human transfer or callback"],
         ["STT or TTS provider error", "Switch to secondary route for the language; alert"],
         ["Telephony provider outage", "Alert; inbound numbers forward to the company's fallback number (provider-side setting)"],
-        ["Database primary failure", "Multi-AZ automatic failover (~1-2 min); connections re-established via RDS Proxy"],
+        ["Database primary failure", "Restore from automated backups / promote a replica, depending on the client's hosting setup"],
         ["Redis failure", "Multi-AZ failover; tasks are idempotent and acknowledged late, so they re-run safely"],
         ["Worker crash", "Task retried with exponential backoff; dead-letter queue after max retries"],
         ["Webhook burst", "Fast 200 acknowledgement, durable storage in webhook_events, processing from queue"],
-        ["Region loss", "Restore from cross-region backups in Hyderabad following the DR runbook"],
+        ["Region loss", "Restore from off-site backups on a new server following the DR runbook"],
     ], [0.3, 0.7], bold_first=True)]
     s += n.H2("Backups")
-    s += bullets(["RDS automated backups with point-in-time recovery (35 days); daily snapshots copied to ap-south-2.",
-                  "S3 versioning on critical buckets; lifecycle rules for retention.",
+    s += bullets(["Automated PostgreSQL backups with point-in-time recovery; daily copies stored off-site.",
+                  "File storage backed up with versioning where the host supports it; retention rules applied.",
                   "Restore drill at P8 and quarterly after launch; results recorded."])
 
     # 23
@@ -1443,7 +1437,7 @@ ai-employee/
   voice_gateway/            asyncio service (Pipecat), imports backend/packages
   backend/templates|static  website (eSoft) and panels (Rizz), see Frontend Architecture
   mobile/                   (future) Flutter app for Android + iOS, uses the same /api/v1
-  infra/terraform/          environments: staging, production
+  deploy/                   production compose files (Phase 8, for the hosting the client chooses)
   .github/workflows/        ci.yml, deploy-staging.yml, deploy-production.yml, nightly-ai-eval.yml
   docs/                     PRD, SDD, ADRs, runbooks
 ''')]
@@ -1457,7 +1451,7 @@ ai-employee/
     # 26
     s += n.H1("Risks & Mitigations")
     s += [table(["Risk", "Impact", "Mitigation"], [
-        ["Voice latency above target", "Unnatural calls", "P0 PoC, streaming everywhere, Mumbai region, fast dialogue model, "
+        ["Voice latency above target", "Unnatural calls", "P0 PoC, streaming everywhere, India-region hosting, fast dialogue model, "
                                                          "filler phrases"],
         ["Code-mixed / Bengali recognition accuracy", "Wrong extraction", "Per-language provider choice, custom vocabulary, "
                                                                          "evaluation sets, confirmation questions for key fields"],

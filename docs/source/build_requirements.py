@@ -547,7 +547,7 @@ MODULES = [
          ("SEC-01", "HTTPS", "TLS 1.2+ everywhere, HSTS, secure cookies.", "§25", "P1"),
          ("SEC-02", "Secure authentication", "Argon2 password hashing, 2FA, lockout, session controls (M02).", "§25", "P1"),
          ("SEC-03", "Role-based access", "Panel, API and object-level permission checks.", "§25", "P1"),
-         ("SEC-04", "API key protection", "Provider keys encrypted in a secrets manager; never sent to browsers; rotation supported.",
+         ("SEC-04", "API key protection", "Provider keys entered only in Super Admin and stored encrypted in the database; never in .env, code or browsers; rotation supported.",
           "§25", "P1"),
          ("SEC-05", "Database access control", "Private network, least-privilege database users, row-level security.", "§25", "P1"),
          ("SEC-06", "Company-level data isolation", "See M03.", "§25", "P1"),
@@ -577,7 +577,7 @@ MODULES = [
          ("COMP-06", "Recording consent & retention", "See REC-03.", "§17", "P5"),
          ("COMP-07", "Official WhatsApp API only", "See WA-01 and WA-08.", "§14", "P6"),
          ("COMP-08", "Collection role restrictions", "Enabled per company by Super Admin; tone and timing guardrails.", "§3", "P10"),
-         ("COMP-09", "Data privacy", "Export, deletion, retention, India-region hosting.", "§4, §25", "P7"),
+         ("COMP-09", "Data privacy", "Export, deletion, retention; hosting region chosen by client.", "§4, §25", "P7"),
      ]),
     ("M27", "Notifications & Communication", "System messages to platform users.",
      [
@@ -598,7 +598,7 @@ MODULES = [
          ("ENGR-01", "Source control", "GitHub repository, branch protection, mandatory pull-request reviews.", "§29", "P0"),
          ("ENGR-02", "CI pipeline", "GitHub Actions: lint, type checks, tests, builds, security scans on every pull request.", "§29", "P0"),
          ("ENGR-03", "Environments", "Local, staging and production; staging mirrors production.", "§29", "P0, P8"),
-         ("ENGR-04", "Infrastructure as code", "All cloud resources defined in Terraform and changed through pull requests.", "§27", "P0"),
+         ("ENGR-04", "Deployment as code", "Docker images and compose files for the hosting the client chooses; no provider-specific code.", "§27", "P8"),
          ("ENGR-05", "Monitoring & alerting", "Logs, metrics, traces, error tracking and alerts.", "REC", "P1 → P8"),
          ("ENGR-06", "API documentation", "OpenAPI specification generated from code.", "REC", "P1"),
          ("ENGR-07", "Load & performance testing", "API load tests and concurrent-call simulations.", "§32", "P5, P8"),
@@ -644,7 +644,7 @@ PHASES = [
             ("Voice PoC", "Provider bake-off: Hindi, English and Bengali × 2-3 STT / TTS providers. Scored on recognition accuracy "
                           "(including code-mixed speech), voice naturalness and end-to-end latency. Best provider chosen per language."),
             ("AI PoC", "LLM evaluation on Hinglish / Bengali extraction (budget, location, BHK) and grounded answering."),
-            ("Engineering", "GitHub repository, branch protection, CI skeleton, environments, Terraform skeleton (ENGR-01..04); "
+            ("Engineering", "GitHub repository, branch protection, CI skeleton, environments, (ENGR-01..03); "
                             "one Django 5.2 project; eSoft and Rizz templates and static files copied in; Rizz SCSS built "
                             "once with gulp."),
             ("Commercial", "Timeline, fixed development cost, third-party API, running, hosting and maintenance costs in a separate "
@@ -804,7 +804,7 @@ PHASES = [
             ("Security", "External penetration test; DAST; dependency audit; secrets review (SEC-15)"),
             ("Performance", "Load tests at launch targets (ENGR-07)"),
             ("Reliability", "Backup restore drill and DR plan (SEC-10, ENGR-08); alerting tuned"),
-            ("Go-live", "Production infrastructure; switch to client's telephony and WhatsApp accounts; runbooks; user, admin and "
+            ("Go-live", "Production setup on the hosting and domain chosen by the client; switch to client's telephony and WhatsApp accounts; runbooks; user, admin and "
                         "API guides; handover"),
         ],
         "admin": ["Production settings review: every configurable value verified in Super Admin, none in code"],
@@ -1076,7 +1076,7 @@ def make_story():
               ["D11", "Website", "Professional, animated marketing website; company registration starts there."],
               ["D12", "No hard-coding", "All configurable values live in the database and are managed from Super Admin."],
               ["D13", "Quality gates", "Every phase: tests pass → GitHub CI pass → security check pass → gate exit → next phase."],
-              ["D14", "Technology", "Python / Django 5.2 LTS backend; website and panels as Django templates on the supplied Bootstrap / jQuery templates (no Next.js); PostgreSQL, Redis, AWS Mumbai (detailed in SDD-02)."],
+              ["D14", "Technology", "Python / Django 5.2 LTS backend; website and panels as Django templates on the supplied Bootstrap / jQuery templates (no Next.js); PostgreSQL, Redis (detailed in SDD-02)."],
               ["D15", "API-first / mobile", "REST APIs for every section are built in Django alongside each feature. A future Flutter app "
                                            "(Android + iOS) will use the same APIs: same data, same workflows; only mobile design and "
                                            "app code to write."],
@@ -1093,6 +1093,7 @@ def make_story():
                                        "menu and accent colour per panel."],
               ["D22", "No Next.js", "Both templates already ship as Django projects, so pages are Django templates with Bootstrap / "
                                    "jQuery. Business logic sits in a service layer used by both page views and REST APIs."],
+              ["D24", "Hosting & domain", "Chosen by the client at deployment (Phase 8). The system is hosting-agnostic (Docker); nothing provider-specific is built before that decision."],
               ["D23", "Free LLM for testing", "Development and staging use free LLM tiers via a self-hosted FreeLLMAPI gateway to "
                                              "avoid AI costs for us and the client. Never in production, never with real customer "
                                              "data; final quality and latency tests on the real model (SA-28)."],

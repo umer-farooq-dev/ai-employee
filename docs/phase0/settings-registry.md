@@ -117,7 +117,7 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | Plans, prices, limits, overage prices | Plans & Pricing | P1 (payments P7) |
 | Roles and permissions | Roles & Permissions | P1 |
 | Email and notification templates | Settings → Templates | P1 |
-| AI providers, models per task, fallback order, Test-only flag | AI Providers | P1 (screen) / P4 (use) |
+| AI providers, models per task, fallback order, Test-only flag | AI Providers | P4 |
 | Industries and industry template versions | Industries | P3 |
 | Lead fields, statuses, sources, scoring rules | CRM Configuration | P3 |
 | Catalogue types and fields, appointment types, holidays | Industries / Calendar | P3 |

@@ -1,6 +1,7 @@
 """Phase 0 AI PoC: can the LLM turn Hinglish / Bengali / English customer speech into CRM fields?
 
-Uses any OpenAI-compatible endpoint. Defaults point at the local FreeLLMAPI container (dev only, dummy data):
+DEFERRED (owner decision): run after the system is built; the AI provider (e.g. FreeLLMAPI) and its key are
+configured in Super Admin (Phase 4), never in .env. Uses any OpenAI-compatible endpoint (dev only, dummy data):
   LLM_BASE_URL (default http://127.0.0.1:3001/v1), LLM_API_KEY, LLM_MODEL (default "auto")
 
 Run:  python poc/ai_extraction.py            -> prints per-field accuracy, writes poc/output/ai_report.md
@@ -14,8 +15,6 @@ import sys
 import time
 import urllib.request
 from pathlib import Path
-
-from voice_bakeoff import load_env
 
 OUT = Path(__file__).parent / "output"
 FIELDS = ["location", "bhk", "budget_inr", "property_type", "purpose", "visit_day"]
@@ -105,7 +104,6 @@ def score(expected, got):
 
 
 def run():
-    load_env()
     OUT.mkdir(exist_ok=True)
     per_field = {f: [0, 0] for f in FIELDS}
     rows, times, model = [], [], "?"

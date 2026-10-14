@@ -12,12 +12,11 @@ Gate rule (PRD-01 Section 4): a phase exits only when every criterion passes.
 | 6 | Templates imported, website and panel base layouts | ✅ Done | `/` (eSoft HR), `/superadmin/`, `/app/` |
 | 7 | Website section mapping sheet | ✅ Done | `docs/phase0/website-section-mapping.md` |
 | 8 | Settings registry list | ✅ Done | `docs/phase0/settings-registry.md` |
-| 9 | AI extraction PoC report (baseline accuracy) | ⏳ Waiting for keys | `poc/ai_extraction.py` ready; needs FreeLLMAPI provider keys |
-| 10 | Voice PoC report + provider per language (VOICE-08) | ⏳ Waiting for keys | `poc/voice_bakeoff.py` ready; needs Sarvam / Google / ElevenLabs keys |
-| 11 | Terraform skeleton | ↪ Moved | Built with the staging environment once the AWS account exists (before the Phase 1 gate) |
+| 9 | Voice and AI PoC run | ↪ Deferred (owner decision) | Scripts ready in `poc/`; run after the system is built, with providers and keys added in Super Admin (Phase 4 / 5) |
 
-## What is needed to close the gate
-1. FreeLLMAPI: add free provider keys in http://localhost:3001, create a client key, put it in `.env` as `LLM_API_KEY`, run `python poc/ai_extraction.py`.
-2. Voice: put at least two of `SARVAM_API_KEY`, `GOOGLE_API_KEY`, `ELEVENLABS_API_KEY` in `.env`, run `python poc/voice_bakeoff.py`, listen to the WAV files and record the provider choice per language.
+**Owner decisions recorded at this gate**
+- Provider keys are entered only in Super Admin, never in `.env` or code.
+- Hosting server and domain are the client's choice at deployment (Phase 8); the system stays hosting-agnostic.
+- Work follows PRD-01 phase by phase; nothing is pulled into an earlier phase.
 
-Phase 1 (Super Admin) work can start in parallel: it does not depend on the PoC results.
+Next: **Phase 1 — Core Platform & Super Admin First.**

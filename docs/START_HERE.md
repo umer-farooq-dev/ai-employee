@@ -11,18 +11,12 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 ## Step 0 — Development se pehle (aap ki taraf se)
 
 **Machine**
-- [x] Docker Desktop + WSL2 install (Postgres + pgvector, Redis, Mailpit, MinIO, FreeLLMAPI isi mein chalenge)
+- [x] Docker Desktop + WSL2 install (Postgres + pgvector, Redis, Mailpit, FreeLLMAPI isi mein chalte hain)
 - [x] Python 3.12, Git, Node (sirf Rizz build ke liye) — installed
 
-**Accounts**
-- [ ] GitHub private repo (naam: `ai-employee` ya jo aap rakho)
-- [ ] Free LLM keys for FreeLLMAPI: Groq, Google Gemini, Cerebras, Mistral, OpenRouter (har provider ka sirf **ek** account)
-- [ ] Voice PoC trials: Sarvam AI, Google Cloud Speech/TTS, ElevenLabs
-- [ ] Telephony test account: Exotel ya Plivo (KYC mein waqt lagta hai — abhi apply karo)
-- [ ] Razorpay test mode account
-- [ ] Meta WhatsApp Business test number
-- [ ] AWS account (staging ke waqt chahiye, P1 ke end tak)
-- [ ] Domain name (website + `admin.` sub-domain)
+**Accounts & keys** — aap / client handle karenge. Har provider ki key **sirf Super Admin** mein daali jayegi, jab us provider ki screen apne phase mein banegi (kabhi `.env` mein nahi).
+- [x] GitHub private repo: github.com/umer-farooq-dev/ai-employee
+- Hosting server aur domain: **client ka faisla**, deployment ke waqt (Phase 8)
 
 **Licenses**
 - [x] eSoft aur Rizz ka commercial / SaaS license confirm
@@ -38,7 +32,7 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 - [x] **Custom User model PEHLI migration se pehle** (email login, +91 phone, UUID primary key)
 - [x] `django.contrib.admin` install **nahi** karna
 - [x] Pinned `requirements` (Django, DRF, drf-spectacular, django-allauth[mfa], psycopg, redis, django-environ; Celery / Channels / pgvector apne phase mein)
-- [x] `docker-compose.yml`: postgres+pgvector, redis, mailpit, freellmapi (MinIO/S3 jab file uploads aayein, P1)
+- [x] `docker-compose.yml`: postgres+pgvector, redis, mailpit, freellmapi
 - [x] `.env.example` (koi secret git mein nahi)
 - [x] `accounts` app (custom User). Baqi apps (`tenancy`, `rbac`, `platform_config`, `cms`, `audit`) Phase 1 mein code ke saath
 - [x] Service layer convention: `apps/<app>/services.py` (README → Code conventions)
@@ -60,14 +54,11 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 - [x] Template mapping sheet → `docs/phase0/website-section-mapping.md`
 - [x] Settings registry list → `docs/phase0/settings-registry.md`
 - [x] FreeLLMAPI container chalu (http://localhost:3001)
-- [ ] FreeLLMAPI dashboard mein free provider keys + client key → `.env` `LLM_API_KEY` (**aap**)
 - [x] Voice PoC script ready: `poc/voice_bakeoff.py`
-- [ ] Voice PoC run: Sarvam / Google / ElevenLabs keys `.env` mein → report + har language ka provider (**keys aap ki taraf se**)
 - [x] AI PoC script ready: `poc/ai_extraction.py` (10 Hinglish / Hindi / Bengali / English cases)
-- [ ] AI PoC run on FreeLLMAPI → `poc/output/ai_report.md`
-- [ ] Terraform skeleton → staging ke saath (AWS account aane par, P1 ke end tak)
+- ↪ Voice / AI PoC **run deferred** (owner decision): testing poora system banne ke baad, providers aur keys Super Admin se
 
-**Phase 0 gate:** CI green · mapping sheet done · PoC report · provider choice per language
+**Phase 0 gate:** CI green · mapping sheet · settings registry · (PoC run deferred by owner)
 
 ---
 
@@ -83,10 +74,11 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 8. [ ] Plans & pricing data (SUB-01, SUB-02, SA-12)
 9. [ ] Audit logs, system logs (SA-17, SEC-08)
 10. [ ] Email templates + account emails (NOTI-01)
-11. [ ] AI providers screen with OpenAI-compatible type + Test-only flag (SA-09, SA-28)
-12. [ ] Har feature ki REST API + OpenAPI docs + API tests (API-01..04, 06, 07)
+11. [ ] Har feature ki REST API + OpenAPI docs + API tests (API-01..04, 06, 07)
 
-**Phase 1 gate:** tests → GitHub CI green → security check → no-hard-coding review → staging UAT → client sign-off
+**Phase 1 gate:** tests → GitHub CI green → security check → no-hard-coding review → device testing → client UAT (demo server jo client ke saath tay ho) → client sign-off
+
+_AI Providers screen (SA-09) Phase 4 mein hai, Voice / channel providers (SA-10) Phase 5-7 mein — pehle nahi._
 
 ---
 
@@ -98,14 +90,17 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 - **Business logic sirf service layer mein** — views aur APIs dono wahi call karein
 - **Har tenant table par `company_id`**, kabhi user input ya AI output se nahi
 - **Light theme**; website eSoft (HR `index5`), panels Rizz
-- **Free LLM sirf dev/staging** — production mein `test_only` blocked, dummy data only
+- **Jo cheez jis phase mein hai, usi phase mein** — pehle nahi
+- **Provider keys sirf Super Admin mein** (encrypted), kabhi `.env` / code mein nahi
+- **Hosting / domain client ka faisla** — system hosting-agnostic (Docker)
+- **Free LLM (FreeLLMAPI) sirf testing ke liye**, system banne ke baad, Super Admin se — production mein `test_only` blocked
 - Gate tests (AI quality, voice latency) **asli production model** par
 
 ## Technical conventions (pehle din se)
 
 - Primary keys: UUID · Time: UTC store, `Asia/Kolkata` display
 - Money: integer paise · Phone: E.164 (+91)
-- Secrets: sirf `.env` / secrets manager, kabhi git mein nahi
+- `.env` mein sirf infrastructure values (`SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `ENVIRONMENT`), kabhi git mein nahi
 - Migrations: backward-compatible, CI mein `makemigrations --check`
 
 ## Pending (client se)

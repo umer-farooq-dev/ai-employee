@@ -4,7 +4,9 @@ For every language and sentence:
   * TTS: each provider speaks the sentence -> request latency + a WAV file saved for human listening
   * STT: each provider transcribes reference audio (TTS output of another provider) -> latency + character error rate
 
-Providers run only when their key is set (in the environment or the project .env):
+DEFERRED (owner decision): run after the system is built. Provider keys are never put in .env;
+when Voice Providers exist in Super Admin (Phase 5) this script will read them from there.
+Until then providers run only when their key is set in the process environment:
   SARVAM_API_KEY, GOOGLE_API_KEY (Cloud Speech-to-Text + Text-to-Speech enabled), ELEVENLABS_API_KEY
   optional: ELEVENLABS_VOICE_ID, ELEVENLABS_TTS_MODEL (default eleven_v3), SARVAM_TTS_MODEL (default bulbul:v4-flash)
 
@@ -51,13 +53,6 @@ SENTENCES = {
 
 
 # ---------------------------------------------------------------- helpers
-def load_env():
-    env_file = Path(__file__).resolve().parent.parent / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            if "=" in line and not line.lstrip().startswith("#"):
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
 
 
 def http(url, body=None, headers=None, files=None):
@@ -191,10 +186,9 @@ PROVIDERS = {  # name: (key env var, tts fn, stt fn)
 
 # ---------------------------------------------------------------- run
 def run():
-    load_env()
     active = {n: p for n, p in PROVIDERS.items() if os.environ.get(p[0])}
     if not active:
-        sys.exit("No provider keys found. Set SARVAM_API_KEY, GOOGLE_API_KEY and/or ELEVENLABS_API_KEY in .env")
+        sys.exit("No provider keys found. Voice PoC is deferred until providers are set up in Super Admin.")
     OUT.mkdir(exist_ok=True)
     tts_rows, stt_rows, transcripts = [], [], []
     for lang, sentences in SENTENCES.items():
