@@ -64,5 +64,5 @@ Signup is closed until Phase 2 (company registration, AUTH-01), and the login pa
 - [x] No-hard-coding review: business values come from the settings registry or Super Admin data; `.env` holds only infrastructure
 - [x] GitHub CI green on the pushed commit (run 38579579041)
 - [ ] Device testing: Super Admin on desktop, tablet and phone browsers
-- [ ] Client UAT on a demo server agreed with the client
-- [ ] Client sign-off
+- [x] Client UAT — approved (owner confirmed 2026-10-14)
+- [x] Client sign-off — approved (owner confirmed 2026-10-14)
