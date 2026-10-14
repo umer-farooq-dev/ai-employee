@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aiemployee
+          POSTGRES_USER: aiemployee
+          POSTGRES_PASSWORD: aiemployee
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aiemployee" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SECRET_KEY: ci-only-not-secret
+      DATABASE_URL: postgres://aiemployee:aiemployee@localhost:5432/aiemployee
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements/*.txt
+      - run: pip install -r backend/requirements/dev.txt
+      - name: Lint
+        run: |
+          ruff check backend
+          black --check backend
+      - name: Migrations are up to date
+        run: python backend/manage.py makemigrations --check --dry-run
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+      - name: Tests
+        run: pytest
+      - name: Security - code
+        run: bandit -q -r backend/apps backend/config -x '*/tests/*,*/migrations/*'
+      - name: Security - dependencies
+        run: pip-audit -r backend/requirements/base.txt
+      - name: Security - secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

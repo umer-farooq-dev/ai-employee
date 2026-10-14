@@ -1,0 +1,1018 @@
+{% extends 'website/base.html' %}
+
+{% load static i18n %}
+
+{% block title %}HR Software Website{% endblock title %}
+
+{% block icon %}
+<link rel="shortcut icon" href="{% static 'website/img/logo/title5.png' %}" type="image/x-icon">
+{% endblock icon %}
+
+{% block body_attribute %}class="body"{% endblock body_attribute %}
+
+{% block content %}
+
+<!--=====HEADER START=======-->
+<header>
+  <div class="header-area header-area9 header-area-all d-none d-lg-block" id="header">
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <div class="header-elements">
+            <div class="site-logo home1-site-logo">
+              <a href="#"
+              ><img src="{% static 'website/img/logo/header-logo2.png' %}" alt="">
+              </a>
+            </div>
+
+
+            <div class="main-menu-ex main-menu-ex1">
+              <ul>
+
+                <li><a href="#">Home <i class="fa-solid fa-angle-down"></i></a>
+                  <div class="tp-submenu">
+                    <div class="row">
+                      <div class="col-lg-12">
+                        <div class="all-images-menu">
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo1.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">01.
+                              Web Page Builder</a>
+                          </div>
+
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo2.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">02.
+                              Time Tracker</a>
+                          </div>
+
+
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo3.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">03.
+                              POS Software</a>
+                          </div>
+
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo4.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">04.
+                              Password Manager</a>
+                          </div>
+
+                          <div class="homemenu-thumb" style="margin: 0 0 20px 0;">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo5.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">05.
+                              HR Software</a>
+                          </div>
+                        </div>
+
+                        <div class="all-images-menu">
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo6.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">06.
+                              Email Marketing</a>
+                          </div>
+
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo7.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">7.
+                              Project Management</a>
+                          </div>
+
+
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo8.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">08.
+                              SEO Software</a>
+                          </div>
+
+                          <div class="homemenu-thumb">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/demo9.jpg' %}" alt="">
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1"
+                                 href="#" target="_blank">One
+                                page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">09.
+                              Social Media</a>
+                          </div>
+
+                          <div class="homemenu-thumb" style="margin: 0 0 20px 0;">
+                            <div class="img1">
+                              <img src="{% static 'website/img/demo/rtl.png' %}" alt="">
+                            </div>
+                            <div class="text">
+                              <h2>RTL</h2>
+                            </div>
+                            <div class="homemenu-btn">
+                              <a class="header-btn1" href="#">Multi
+                                Page <i class="fa-solid fa-arrow-right"></i></a>
+                              <div class="space16"></div>
+                              <a class="header-btn1" href="#"
+                                 target="_blank">One page <i class="fa-solid fa-arrow-right"></i></a>
+                            </div>
+                            <a href="#" class="bottom-heading">10. RTL
+                              Version</a>
+                          </div>
+
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li><a href="#">About Us</a></li>
+
+                <li class="dropdown-menu-parrent"><a href="#">Pages <i class="fa-solid fa-angle-down"></i></a>
+                  <ul>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Features</a></li>
+                    <li><a href="#">Testimonial</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Download</a></li>
+                    <li><a href="#">404</a></li>
+                  </ul>
+                </li>
+
+                <li class="dropdown-menu-parrent"><a href="#">Blog <i class="fa-solid fa-angle-down"></i></a>
+                  <ul>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Details
+                      Left</a></li>
+                    <li><a href="#">Details
+                      Right</a></li>
+                    <li><a href="#">Blog Details</a></li>
+                  </ul>
+                </li>
+
+                <li class="dropdown-menu-parrent"><a href="#">Account <i class="fa-solid fa-angle-down"></i></a>
+                  <ul>
+                    <li><a href="#">Create Account</a></li>
+                    <li><a href="#">Login</a></li>
+                    <li><a href="#">Forgot</a></li>
+                    <li><a href="#">Reset</a></li>
+                    <li><a href="#">Verify Email</a></li>
+                    <li><a href="#">Success</a></li>
+                  </ul>
+                </li>
+
+              </ul>
+            </div>
+
+            <div class="header-buttons">
+              <a href="#" class="theme-btn15">Get Free Trial
+                <span><i class="fa-solid fa-arrow-right"></i></span></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<!--=====HEADER END=======-->
+
+
+<!--=====Mobile header start=======-->
+<div class="mobile-header mobile-header3 d-block d-lg-none ">
+  <div class="container-fluid">
+    <div class="col-12">
+      <div class="mobile-header-elements">
+        <div class="mobile-logo">
+          <a href="#"><img
+            src="{% static 'website/img/logo/header-logo2.png' %}" alt=""></a>
+        </div>
+        <div class="mobile-nav-icon">
+          <i class="fa-duotone fa-bars-staggered"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sidebar mobile-sidebar4 d-block d-lg-none">
+  <div class="logo-m">
+    <a href="#"><img src="{% static 'website/img/logo/header-logo1.png' %}"
+                                                                         alt=""></a>
+  </div>
+  <div class="menu-close">
+    <i class="fa-solid fa-xmark"></i>
+  </div>
+  <div class="mobile-nav">
+
+    <ul>
+      <li class="has-dropdown"><a href="#">Home </a>
+        <ul class="sub-menu">
+          <li class="has-dropdown has-dropdown1"><a href="#">Multipage</a>
+            <ul class="sub-menu">
+              <li><a href="#">Home 1</a></li>
+              <li><a href="#">Home 2</a></li>
+              <li><a href="#">Home 3</a></li>
+              <li><a href="#">Home 4</a></li>
+              <li><a href="#">Home 5</a></li>
+              <li><a href="#">Home 6</a></li>
+              <li><a href="#">Home 7</a></li>
+              <li><a href="#">Home 8</a></li>
+              <li><a href="#">Home 9</a></li>
+              <li><a href="#">RTL</a></li>
+            </ul>
+          </li>
+          <li class="has-dropdown has-dropdown1"><a href="#">Landing
+            Page</a>
+            <ul class="sub-menu">
+              <li><a href="#">Home 1</a></li>
+              <li><a href="#">Home 2</a></li>
+              <li><a href="#">Home 3</a></li>
+              <li><a href="#">Home 4 </a></li>
+              <li><a href="#">Home 5 </a></li>
+              <li><a href="#">Home 6 </a></li>
+              <li><a href="#">Home 7 </a></li>
+              <li><a href="#">Home 8 </a></li>
+              <li><a href="#">Home 9 </a></li>
+              <li><a href="#">RTL </a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li><a href="#">About Us</a></li>
+      <li class="has-dropdown"><a href="#">Pages</a>
+        <ul class="sub-menu">
+          <li><a href="#">Contact Us</a></li>
+          <li><a href="#">Features</a></li>
+          <li><a href="#">Testimonial</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">Download</a></li>
+          <li><a href="#">404</a></li>
+        </ul>
+      </li>
+
+      <li class="has-dropdown"><a href="#">Blog</a>
+        <ul class="sub-menu">
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Details Left</a></li>
+          <li><a href="#">Details Right</a>
+          </li>
+          <li><a href="#">Blog Details</a></li>
+        </ul>
+      </li>
+
+      <li class="has-dropdown"><a href="#">Account</a>
+        <ul class="sub-menu">
+          <li><a href="#">Create Account</a></li>
+          <li><a href="#">Login</a></li>
+          <li><a href="#">Forgot</a></li>
+          <li><a href="#">Reset</a></li>
+          <li><a href="#">Verify Email</a></li>
+          <li><a href="#">Success</a></li>
+        </ul>
+      </li>
+
+    </ul>
+
+    <a class="sidebar1-btn"
+       href="#"><span>Book a Consultation</span> <span
+      class="arrow"><i class="fa-regular fa-arrow-right"></i></span> </a>
+
+    <div class="contact-infos">
+      <h3>Contact Info</h3>
+      <div class="box">
+        <div class="icon">
+          <span><i class="fa-regular fa-phone"></i></span>
+        </div>
+        <div class="pera">
+          <a href="tel:921-888-0022">921-888-0022</a>
+        </div>
+      </div>
+      <div class="box">
+        <div class="icon">
+          <span><i class="fa-regular fa-envelope"></i></span>
+        </div>
+        <div class="pera">
+          <a href="mailto:example@visafast.com">example@visafast.com</a>
+        </div>
+      </div>
+    </div>
+    <div class="contact-infos">
+      <h3>Our Location</h3>
+      <div class="box">
+        <div class="icon">
+          <span><i class="fa-regular fa-location-dot"></i></span>
+        </div>
+        <div class="pera">
+          <a href="#">55 East Birchwood Ave.Brooklyn, <br>
+            New York 11201,United States</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-infos">
+      <h3>Our Location</h3>
+      <ul class="icon-list">
+        <li><a href="#"><i class="fa-brands fa-linkedin-in"></i></a></li>
+        <li><a href="#"><i class="fa-brands fa-x-twitter"></i></a></li>
+        <li><a href="#"><i class="fa-brands fa-youtube"></i></a></li>
+        <li><a href="#"><i class="fa-brands fa-instagram"></i></a></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!--=====Mobile header end=======-->
+
+<!--===== HERO AREA START =======-->
+<div class="hero-area9">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-5">
+        <div class="main-heading">
+          <span class="span" data-aos="zoom-in-left" data-aos-duration="700"><img
+            src="{% static 'website/img/logo/span9.svg' %}" alt=""> Keep track of your employee data</span>
+          <h1 class="text-anime-style-3">Effortless Employee Management For A Growing Businesses</h1>
+          <div class="space16"></div>
+          <p>Managing your people is easy with Quip HR’s user-friendly and mobile-ready HR software, discover key
+            features via.</p>
+          <div class="space30"></div>
+          <div class="buttons">
+            <a href="#" class="theme-btn15">Get quip free now
+              <span><i class="fa-solid fa-arrow-right"></i></span></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="main-images">
+          <div class="image1">
+            <img src="{% static 'website/img/hero/hero9-img1.png' %}" alt="">
+          </div>
+          <div class="image2 shape-animaiton3">
+            <img src="{% static 'website/img/hero/hero9-img2.png' %}" alt="">
+          </div>
+          <div class="image3 shape-animaiton2">
+            <img src="{% static 'website/img/hero/hero9-img3.png' %}" alt="">
+          </div>
+          <div class="image4 animate1">
+            <img src="{% static 'website/img/hero/hero9-img4.png' %}" alt="">
+          </div>
+          <div class="image5">
+            <img src="{% static 'website/img/hero/hero9-img5.png' %}" alt="">
+          </div>
+          <div class="main-img">
+            <img src="{% static 'website/img/hero/hero9-main.png' %}" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--===== HERO AREA END =======-->
+
+<div class="space100"></div>
+
+<!--===== WORK AREA START =======-->
+<div class="work2 _relative">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-6 m-auto text-center">
+        <div class="heading9">
+          <span class="span" data-aos="zoom-in-left" data-aos-duration="700"><img
+            src="{% static 'website/img/logo/span9.svg' %}" alt=""> Keep track of your employee data</span>
+          <h2 class="text-anime-style-3">HRMS Software Will Be Your Organization Data Warehouse</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-lg-9 m-auto text-center">
+        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab1-tab" data-bs-toggle="pill" data-bs-target="#tab1" type="button"
+                    role="tab" aria-controls="tab1" aria-selected="true">1
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab2-tab" data-bs-toggle="pill" data-bs-target="#tab2" type="button" role="tab"
+                    aria-controls="tab2" aria-selected="false">2
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab3-tab" data-bs-toggle="pill" data-bs-target="#tab3" type="button" role="tab"
+                    aria-controls="tab3" aria-selected="false">3
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="tab-content" id="pills-tabContent">
+          <div class="tab-pane fade show active" id="tab1" role="tabpanel" aria-labelledby="tab1-tab">
+            <div class="row">
+              <div class="col-lg-4">
+                <div class="tabs-box-item" data-aos="fade-up" data-aos-duration="800">
+                  <h3>Create Engaging Campaigns</h3>
+                  <img src="{% static 'website/img/work/work2-img1.png' %}" alt="">
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="tabs-box-item" data-aos="fade-up" data-aos-duration="1000">
+                  <h3>Automate Workflows</h3>
+                  <img src="{% static 'website/img/work/work2-img2.png' %}" alt="">
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="tabs-box-item" data-aos="fade-up" data-aos-duration="1100">
+                  <h3>Grow Your Reach</h3>
+                  <img src="{% static 'website/img/work/work2-img3.png' %}" alt="">
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
+            <div class="row">
+              <div class="col-lg-4">
+                <div class="tabs-box-item">
+                  <h3>Create Engaging Campaigns</h3>
+                  <img src="{% static 'website/img/work/work2-img1.png' %}" alt="">
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="tabs-box-item">
+                  <h3>Automate Workflows</h3>
+                  <img src="{% static 'website/img/work/work2-img2.png' %}" alt="">
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="tabs-box-item">
+                  <h3>Grow Your Reach</h3>
+                  <img src="{% static 'website/img/work/work2-img3.png' %}" alt="">
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <div class="tab-pane fade" id="tab3" role="tabpanel" aria-labelledby="tab3-tab">
+            <div class="row">
+              <div class="col-lg-4">
+                <div class="tabs-box-item">
+                  <h3>Create Engaging Campaigns</h3>
+                  <img src="{% static 'website/img/work/work2-img1.png' %}" alt="">
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="tabs-box-item">
+                  <h3>Automate Workflows</h3>
+                  <img src="{% static 'website/img/work/work2-img2.png' %}" alt="">
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="tabs-box-item">
+                  <h3>Grow Your Reach</h3>
+                  <img src="{% static 'website/img/work/work2-img3.png' %}" alt="">
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <img class="shape1" src="{% static 'website/img/shapes/home2-element1.png' %}" alt="">
+  <img class="shape2" src="{% static 'website/img/shapes/home2-element2.png' %}" alt="">
+</div>
+<!--===== WORK AREA END =======-->
+
+<div class="space40"></div>
+
+<!--===== COUNTERS AREA START =======-->
+<div class="counters6">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-3 col-6">
+        <div class="counter-box box1" data-aos="zoom-out" data-aos-duration="800">
+          <h2><span class="counter">16</span> M+</h2>
+          <p>Built With Elementor</p>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-6">
+        <div class="counter-box box2" data-aos="zoom-out" data-aos-duration="1000">
+          <h2><span class="counter">6.5</span> K+</h2>
+          <p>5 Star Reviews</p>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-6">
+        <div class="counter-box box3" data-aos="zoom-out" data-aos-duration="700">
+          <h2><span class="counter">100</span>+</h2>
+          <p>5 Star Reviews</p>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-6">
+        <div class="counter-box box4" data-aos="zoom-out" data-aos-duration="1200">
+          <h2><span class="counter">16</span>Sec.</h2>
+          <p>15 Second An Elementor</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!--===== COUNTERS AREA END =======-->
+
+<div class="space100"></div>
+
+<!--===== WORK PROSESS AREA START =======-->
+<div class="work-prosess9 sp _relative">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-7 m-auto text-center">
+        <div class="heading9">
+          <span class="span" data-aos="zoom-in-left" data-aos-duration="700"><img
+            src="{% static 'website/img/logo/span9.svg' %}" alt=""> eSoft Workforce</span>
+          <h2 class="text-anime-style-3"> Empower Of HR Workforce</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="space30"></div>
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="work-box-area left-top">
+          <div class="single-box" data-aos="zoom-in-up" data-aos-duration="800">
+            <div class="heading7">
+              <h4><a href="#">Al-Powered Productivity</a></h4>
+              <div class="space16"></div>
+              <p>With an intuitive interface and powerful features, our platform simplifies collaboration, allowing you
+                to effortlessly delegate.</p>
+            </div>
+            <div class="space40"></div>
+            <div class="image">
+              <img src="{% static 'website/img/work/work-prosses7-img1.png' %}" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="work-box-area right-top">
+          <div class="single-box" data-aos="zoom-in-up" data-aos-duration="1000">
+            <div class="heading7">
+              <h4><a href="#">View Work Your Way</a></h4>
+              <div class="space16"></div>
+              <p>Team's project management experience. Our robust suite & offers a unified hub an task allocation,
+                collaboration, project.</p>
+            </div>
+            <div class="space40"></div>
+            <div class="image">
+              <img src="{% static 'website/img/work/work-prosses7-img2.png' %}" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="work-box-area right-top">
+          <div class="single-box" data-aos="zoom-in-up" data-aos-duration="900">
+            <div class="heading7">
+              <h4><a href="#">Search Anythings</a></h4>
+              <div class="space16"></div>
+              <p>With integrated file sharing & version control, your team a access manage</p>
+            </div>
+            <div class="space40"></div>
+            <div class="image">
+              <img src="{% static 'website/img/work/work-prosses7-img3.png' %}" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="work-box-area left-bottom">
+          <div class="single-box" data-aos="zoom-in-up" data-aos-duration="1200">
+            <div class="heading7">
+              <h4><a href="#">Team Collaboration</a></h4>
+              <div class="space16"></div>
+              <p>Our platform brings together task an boards, share calendars, document.</p>
+            </div>
+            <div class="space40"></div>
+            <div class="image">
+              <img src="{% static 'website/img/work/work-prosses7-img4.png' %}" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="work-box-area right-bottom">
+          <div class="single-box" data-aos="zoom-in-up" data-aos-duration="1200">
+            <div class="heading7">
+              <h4><a href="#">Customized In Click</a></h4>
+              <div class="space16"></div>
+              <p>Empower your projects with a holistic workspace solution that a simplifies.</p>
+            </div>
+            <div class="space40"></div>
+            <div class="image">
+              <img src="{% static 'website/img/work/work-prosses7-img5.png' %}" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!--===== WORK PROSESS AREA END =======-->
+
+<div class="space100"></div>
+<!--===== SYSTEM AREA START =======-->
+<div class="buy-sell-bottom2">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-6 m-auto text-center">
+        <div class="heading9">
+          <span class="span" data-aos="zoom-in-left" data-aos-duration="700"><img
+            src="{% static 'website/img/logo/span9.svg' %}" alt=""> eSoft Benefits</span>
+          <h2 class="text-anime-style-3">eSoft HR Use Of Benefits</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="bg">
+      <div class="row align-items-center">
+        <div class="col-lg-3">
+          <div class="box-area-all" data-aos="flip-right" data-aos-duration="900">
+            <div class="icon">
+              <img src="{% static 'website/img/icons/system-icon1.svg' %}" alt="">
+            </div>
+            <div class="single-box heading7">
+              <h5><a href="#">Trade Local Currency</a></h5>
+              <div class="space10"></div>
+              <p>With our intuitive interface and robust features, you buy, sell.</p>
+            </div>
+          </div>
+
+          <div class="space50"></div>
+          <div class="box-area-all box-area-all2" data-aos="flip-right" data-aos-duration="900">
+            <div class="icon">
+              <img src="{% static 'website/img/icons/system-icon2.svg' %}" alt="">
+            </div>
+            <div class="single-box heading7">
+              <h5><a href="#">Largest Coin Offer</a></h5>
+              <div class="space10"></div>
+              <p>Plus, our commitment to the security means that PayCoin.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="col-lg-6">
+          <div class="service1-main-images" data-aos="zoom-out" data-aos-duration="900">
+            <div class="main-img1">
+              <img src="{% static 'website/img/others/system9-img1.png' %}" alt="">
+            </div>
+
+            <div class="main-img2 animate1">
+              <img src="{% static 'website/img/others/system9-img2.png' %}" alt="">
+            </div>
+
+            <div class="shape1">
+              <img src="{% static 'website/img/shapes/system-shape1.png' %}" alt="">
+            </div>
+
+            <div class="shape2">
+              <img src="{% static 'website/img/shapes/system-shape2.png' %}" alt="">
+            </div>
+
+            <div class="shape3">
+              <img src="{% static 'website/img/shapes/system-shape3.png' %}" alt="">
+            </div>
+
+            <div class="shape4">
+              <img src="{% static 'website/img/shapes/system-shape4.png' %}" alt="">
+            </div>
+
+          </div>
+        </div>
+
+        <div class="col-lg-3">
+          <div class="box-area-all box-area-all3" data-aos="flip-right" data-aos-duration="900">
+            <div class="icon">
+              <img src="{% static 'website/img/icons/system-icon3.svg' %}" alt="">
+            </div>
+            <div class="single-box heading7">
+              <h5><a href="#">Safe And Secure</a></h5>
+              <div class="space10"></div>
+              <p>Trusted partner in the world of crypto trading Join us today.</p>
+            </div>
+          </div>
+
+          <div class="space50"></div>
+          <div class="box-area-all box-area-all4" data-aos="flip-right" data-aos-duration="900">
+            <div class="icon">
+              <img src="{% static 'website/img/icons/system-icon4.svg' %}" alt="">
+            </div>
+            <div class="single-box heading7">
+              <h5><a href="#">Trade For Anywhere</a></h5>
+              <div class="space10"></div>
+              <p>Resources designed to help
+                navigate best the dynamic</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div class="space100"></div>
+<!--===== SYSTEM AREA END =======-->
+
+<!--===== HR SOLUTION AREA START =======-->
+<div class="hr-solutions">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-7">
+        <div class="image">
+          <img src="{% static 'website/img/others/hr-solution-img.png' %}" alt="">
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="heading9">
+          <span class="span" data-aos="zoom-in-left" data-aos-duration="700"><img
+            src="{% static 'website/img/logo/span9.svg' %}" alt=""> HR Solution</span>
+          <h2 class="text-anime-style-3">Powerful Features For Effective HR Solutions</h2>
+          <div class="space16"></div>
+          <p data-aos="fade-left" data-aos-duration="700">Experience a new level of efficiency with our all-in-one HR
+            software solution. Our intuitive platform is built to simplify your workflow, automating tedious tasks and
+            providing powerful tools for seamless HR management.</p>
+          <div class="space30"></div>
+          <div class="" data-aos="fade-left" data-aos-duration="1000">
+            <a href="#" class="theme-btn15">Get quip free now <span><i class="fa-solid fa-arrow-right"></i></span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--===== HR SOLUTION AREA END =======-->
+
+<!--===== TES AREA START =======-->
+<div class="tes9 sp">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6 text-center m-auto">
+        <div class="heading9">
+          <span class="span" data-aos="zoom-in-left" data-aos-duration="700"><img
+            src="{% static 'website/img/logo/span9.svg' %}" alt=""> Testimonials</span>
+          <h2 class="text-anime-style-3">Why Our Users Love Us</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="space60"></div>
+
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="tes2-slider-all" data-aos="fade-up" data-aos-duration="900">
+          <div class="single-slider">
+            <ul class="stars">
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+            </ul>
+
+            <div class="icon">
+              <img src="{% static 'website/img/icons/tes2-icon.png' %}" alt="">
+            </div>
+
+            <p>"I can't imagine managing our email campaigns a without eSoft. The simplicity of creating visually
+              stunning emails combined with powerful automation tools has been a game-changer for our marketing team.
+              Our engagement rates have soared.”</p>
+
+            <div class="single-slider-bottom">
+              <div class="headdding-area">
+                <div class="image">
+                  <img src="{% static 'website/img/testimonial/tes2-img1.png' %}" alt="">
+                </div>
+                <div class="headding">
+                  <h5><a href="#">Pat Cummins</a></h5>
+                  <p>Ceo Biosynthesis</p>
+                </div>
+              </div>
+              <div class="logo">
+                <img src="{% static 'website/img/logo/tes2-logo1.png' %}" alt="">
+              </div>
+            </div>
+          </div>
+
+
+          <div class="single-slider">
+            <ul class="stars">
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+            </ul>
+
+            <div class="icon">
+              <img src="{% static 'website/img/icons/tes2-icon.png' %}" alt="">
+            </div>
+
+            <p>"eSoft has exceeded our expectations in every way. The ease with which we can target specific audience
+              segments has an transformed our approach to email marketing. The automation features have saved us
+              countless hours, allowing us to focus”</p>
+
+            <div class="single-slider-bottom">
+              <div class="headdding-area">
+                <div class="image">
+                  <img src="{% static 'website/img/testimonial/tes2-img2.png' %}" alt="">
+                </div>
+                <div class="headding">
+                  <h5><a href="#">Pat Cummins</a></h5>
+                  <p>Ceo Biosynthesis</p>
+                </div>
+              </div>
+              <div class="logo">
+                <img src="{% static 'website/img/logo/tes2-logo2.png' %}" alt="">
+              </div>
+            </div>
+          </div>
+
+
+          <div class="single-slider">
+            <ul class="stars">
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+            </ul>
+
+            <div class="icon">
+              <img src="{% static 'website/img/icons/tes2-icon.png' %}" alt="">
+            </div>
+
+            <p>"I can't imagine managing our email campaigns a without eSoft. The simplicity of creating visually
+              stunning emails combined with powerful automation tools has been a game-changer for our marketing team.
+              Our engagement rates have soared.”</p>
+
+            <div class="single-slider-bottom">
+              <div class="headdding-area">
+                <div class="image">
+                  <img src="{% static 'website/img/testimonial/tes2-img1.png' %}" alt="">
+                </div>
+                <div class="headding">
+                  <h5><a href="#">Pat Cummins</a></h5>
+                  <p>Ceo Biosynthesis</p>
+                </div>
+              </div>
+              <div class="logo">
+                <img src="{% static 'website/img/logo/tes2-logo1.png' %}" alt="">
+              </div>
+            </div>
+          </div>
+
+
+          <div class="single-slider">
+            <ul class="stars">
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+              <li><i class="fa-solid fa-star"></i></li>
+            </ul>
+
+            <div class="icon">
+              <img src="{% static 'website/img/icons/tes2-icon.png' %}" alt="">
+            </div>
+
+            <p>"eSoft has exceeded our expectations in every way. The ease with which we can target specific audience
+              segments has an transformed our approach to email marketing. The automation features have saved us
+              countless hours, allowing us to focus”</p>
+
+            <div class="single-slider-bottom">
+              <div class="headdding-area">
+                <div class="image">
+                  <img src="{% static 'website/img/testimonial/tes2-img2.png' %}" alt="">
+                </div>
+                <div class="headding">
+                  <h5><a href="#">Pat Cummins</a></h5>
+                  <p>Ceo Biosynthesis</p>
+                </div>
+              </div>
+              <div class="logo">
+                <img src="{% static 'website/img/logo/tes2-logo2.png' %}" alt="">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+<!--===== TES AREA END =======-->
+
+
+{% include 'website/partials/back-to-top.html' %}
+{% endblock content %}
+
+

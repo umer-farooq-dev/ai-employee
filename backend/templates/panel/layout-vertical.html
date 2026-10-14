@@ -1,0 +1,37 @@
+{% extends 'panel/base.html' %}
+
+{% load static i18n %}
+
+{% block html_attribute %}data-bs-theme="light"{% endblock html_attribute %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_css %}{% endblock extra_css %}
+
+{% block body_attribute %}{% endblock body_attribute %}
+
+{% block content %}
+
+    <div class="page-wrapper">
+
+        {% include 'panel/partials/topbar.html' %}
+        {% include 'panel/partials/startbar.html' %}
+
+        <div class="page-content">
+
+            <div class="container-xxl">
+                {% block page_title %}{% endblock page_title %}
+
+                {% block page_content %}{% endblock page_content %}
+            </div>
+
+            {% include 'panel/partials/footer.html' %}
+        </div>
+    </div>
+
+    {% block modal %}{% endblock modal %}
+    {% include 'panel/partials/vendorjs.html' %}
+
+{% endblock content %}
+
+{% block extra_javascript %}{% endblock extra_javascript %}

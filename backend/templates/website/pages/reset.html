@@ -1,0 +1,68 @@
+{% extends 'website/base.html' %}
+
+{% load static i18n %}
+
+{% block title %}Login{% endblock title %}
+
+{% block icon %}
+<link rel="shortcut icon" href="{% static 'website/img/logo/titel1.png' %}" type="image/x-icon">
+{% endblock icon %}
+
+{% block body_attribute %}class="body2 body"{% endblock body_attribute %}
+
+{% block content %}
+
+<!--=====log in area start=======-->
+<div class="log-in-area reset-area _relative">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-6 m-auto text-center">
+        <div class="main-logo">
+          <a href="#"><img
+            src="{% static 'website/img/logo/header-logo2.png' %}" alt=""></a>
+        </div>
+      </div>
+    </div>
+    <div class="space80"></div>
+    <div class="row align-items-center">
+      <div class="col-lg-6 m-auto">
+        <div class="login-form">
+          <div class="headding">
+            <h2>Reset Password</h2>
+            <p>If you want to reset your password, please enter your new password below.</p>
+          </div>
+
+          <form action="#" class="inputs">
+            <div class="single-inputs">
+              <label>New Password</label>
+              <input type="password" placeholder="Enter your password">
+            </div>
+            <div class="single-inputs">
+              <label>Confirm Password</label>
+              <input type="password" placeholder="Confirm your password">
+            </div>
+            <div class="button">
+              <button class="theme-btn2">Send Recovery Link</button>
+            </div>
+          </form>
+
+          <div class="forgot-text">
+            <p>If you didn’t request a password <br> recovery link, please ignore this.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <img class="shape1" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
+  <img class="shape2" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
+</div>
+
+<div class="bg-area-all"
+     style="background-image: url(/static/img/bg/fotgot-bg.png); background-position: center; background-repeat:  no-repeat; background-size: cover; min-height: 390px;">
+</div>
+<!--=====log in area end=======-->
+
+{% endblock content %}
+
+

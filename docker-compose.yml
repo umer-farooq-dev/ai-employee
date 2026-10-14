@@ -1,0 +1,31 @@
+# Local development services. Start with: docker compose up -d
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: aiemployee
+      POSTGRES_USER: aiemployee
+      POSTGRES_PASSWORD: aiemployee
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+
+  mailpit:  # catches all outgoing email; UI at http://localhost:8025
+    image: axllent/mailpit:latest
+    ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
+
+  freellmapi:  # free LLM tiers behind one OpenAI-compatible /v1 endpoint; dashboard at http://localhost:3001
+    image: ghcr.io/tashfeenahmed/freellmapi:latest
+    environment:
+      PORT: 3001
+      ENCRYPTION_KEY: ${FREELLMAPI_ENCRYPTION_KEY}
+    ports: ["127.0.0.1:3001:3001"]
+    volumes: [freellmapi-data:/app/server/data]
+    profiles: ["ai"]  # start with: docker compose --profile ai up -d
+
+volumes:
+  pgdata:
+  freellmapi-data:

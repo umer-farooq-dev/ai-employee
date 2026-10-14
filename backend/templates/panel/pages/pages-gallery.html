@@ -1,0 +1,78 @@
+{% extends 'panel/layout-vertical.html' %}
+
+{% load static i18n %}
+
+{% block title %}Rizz{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'panel/vendor/tobii/css/tobii.min.css' %}" rel="stylesheet" type="text/css" />
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">Gallery</h4>
+                    </div><!--end col-->
+                </div> <!--end row-->
+            </div><!--end card-header-->
+            <div class="card-body pt-0">
+                <div id="grid" class="row g-0">
+                    <div class="col-md-4 col-lg-3 picture-item">
+                        <a href="{% static 'panel/images/extra/card/img-1.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-1.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item picture-item--overlay">
+                        <a href="{% static 'panel/images/extra/card/img-2.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-2.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item">
+                        <a href="{% static 'panel/images/extra/card/img-3.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-3.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item picture-item--h2">
+                        <a href="{% static 'panel/images/extra/card/img-4.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-4.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item">
+                        <a href="{% static 'panel/images/extra/card/img-5.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-5.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item picture-item--overlay">
+                        <a href="{% static 'panel/images/extra/card/img-6.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-6.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item picture-item--h2">
+                        <a href="{% static 'panel/images/extra/card/img-2.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-2.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-lg-3 picture-item picture-item--h2">
+                        <a href="{% static 'panel/images/extra/card/img-1.jpg' %}" class="lightbox">
+                            <img src="{% static 'panel/images/extra/card/img-1.jpg' %}" alt="" class="img-fluid" />
+                        </a>
+                    </div>
+                </div>
+            </div><!--end card-body-->
+        </div><!--end card-->
+    </div> <!--end col-->
+</div><!--end row-->
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'panel/vendor/tobii/js/tobii.min.js' %}"></script>
+<script>
+    const tobii = new Tobii()
+</script>
+{% endblock extra_javascript %}
