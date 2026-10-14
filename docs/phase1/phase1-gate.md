@@ -8,7 +8,7 @@ Scope from PRD-01 Phase 1. Status: **Done**, or **Done (base)**, which means the
 |---|---|---|---|
 | AUTH-03 | Login & sessions | Done | allauth login, remember-me, inactivity timeout (setting), active sessions list + sign-out (usersessions) |
 | AUTH-04 | Password recovery | Done | reset by email link, change from profile; staff can send a reset |
-| AUTH-05 | Two-factor authentication | Done | TOTP + recovery codes; mandatory for staff (setting), enforceable per company or platform-wide |
+| AUTH-05 | Two-factor authentication | Done | TOTP + recovery codes; staff enforcement is a setting, **off during development, switched on at launch (P8)**; enforceable per company or platform-wide |
 | AUTH-06 | Brute-force protection | Done | lockout per account and per IP, attempts/minutes from Security settings; unlock from Users |
 | AUTH-08 | User profile | Done | name, phone (+91), avatar, timezone, notification prefs, availability |
 | AUTH-11 | Role-based access control | Done | permission catalogue in code, roles as data, Roles & Permissions screen |

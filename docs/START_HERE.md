@@ -103,6 +103,9 @@ _AI Providers screen (SA-09) Phase 4 mein hai, Voice / channel providers (SA-10)
 - `.env` mein sirf infrastructure values (`SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `ENVIRONMENT`), kabhi git mein nahi
 - Migrations: backward-compatible, CI mein `makemigrations --check`
 
+## Launch se pehle (Phase 8)
+- Super Admin → Settings → Security → **"2FA mandatory for platform staff" on karna** (development mein owner ke kehne par off)
+
 ## Pending (client se)
 - AI Marketing Employee ki definition
 - Flutter app (future project)

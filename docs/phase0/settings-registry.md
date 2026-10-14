@@ -57,7 +57,7 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `security.password_min_length` | number | 10 | |
 | `security.lockout_attempts` / `security.lockout_minutes` | number | 5 / 15 | |
 | `security.session_timeout_minutes` | number | 120 | |
-| `security.staff_2fa_required` | boolean | true | cannot be switched off in production |
+| `security.staff_2fa_required` | boolean | false | off during development (owner decision); **switch on before launch** (P8) |
 | `security.company_2fa_enforced` | boolean | false | *company may override* (enable) |
 | `security.admin_ip_allowlist` | list[CIDR] | [] | empty = open in local / staging only |
 | `security.upload_max_mb` | number | 25 | per file |

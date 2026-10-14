@@ -30,6 +30,7 @@ def test_lockout_uses_super_admin_setting(client, owner_a, set_setting):
 
 @pytest.mark.django_db
 def test_staff_must_set_up_2fa(client, set_setting):
+    set_setting("security.staff_2fa_required", True)
     staff = make_user("new-staff@example.com", "super_admin", with_2fa=False)
     client.force_login(staff)
     response = client.get("/superadmin/")

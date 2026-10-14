@@ -140,7 +140,7 @@ SETTINGS = [
         min=5,
         max=43200,
     ),
-    Setting("security.staff_2fa_required", "boolean", True, "2FA mandatory for platform staff", "security"),
+    Setting("security.staff_2fa_required", "boolean", False, "2FA mandatory for platform staff", "security"),
     Setting(
         "security.company_2fa_enforced",
         "boolean",
