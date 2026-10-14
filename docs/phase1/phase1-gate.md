@@ -62,7 +62,7 @@ Signup is closed until Phase 2 (company registration, AUTH-01), and the login pa
 - [x] Lint and format: ruff, black, `makemigrations --check`
 - [x] Security scans: Bandit (0 issues), pip-audit (no known vulnerabilities), gitleaks
 - [x] No-hard-coding review: business values come from the settings registry or Super Admin data; `.env` holds only infrastructure
-- [ ] GitHub CI green on the pushed commit (push when the owner says)
+- [x] GitHub CI green on the pushed commit (run 38579579041)
 - [ ] Device testing: Super Admin on desktop, tablet and phone browsers
 - [ ] Client UAT on a demo server agreed with the client
 - [ ] Client sign-off
