@@ -11,7 +11,7 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 ## Step 0 — Development se pehle (aap ki taraf se)
 
 **Machine**
-- [ ] Docker Desktop + WSL2 install (Postgres + pgvector, Redis, Mailpit, MinIO, FreeLLMAPI isi mein chalenge)
+- [x] Docker Desktop + WSL2 install (Postgres + pgvector, Redis, Mailpit, MinIO, FreeLLMAPI isi mein chalenge)
 - [x] Python 3.12, Git, Node (sirf Rizz build ke liye) — installed
 
 **Accounts**
@@ -33,7 +33,7 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 
 **Project skeleton**
 - [x] `git init`, `.gitignore` (`.env`, media, `__pycache__`, `node_modules`)
-- [ ] GitHub remote connect + first commit
+- [x] GitHub remote connect + first commit (CI green)
 - [x] Django 5.2 LTS project: `backend/config/settings/{base,local,production}.py`
 - [x] **Custom User model PEHLI migration se pehle** (email login, +91 phone, UUID primary key)
 - [x] `django.contrib.admin` install **nahi** karna
