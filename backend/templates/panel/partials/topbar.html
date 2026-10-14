@@ -32,7 +32,7 @@
                 <li class="dropdown topbar-item">
                     <a class="nav-link dropdown-toggle arrow-none nav-icon" data-bs-toggle="dropdown" href="#" role="button"
                        aria-haspopup="false" aria-expanded="false">
-                        <img src="{% static 'panel/images/users/avatar-1.jpg' %}" alt="" class="thumb-lg rounded-circle">
+                        {% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" alt="" class="thumb-lg rounded-circle">{% else %}<span class="thumb-lg rounded-circle bg-primary-subtle d-inline-flex align-items-center justify-content-center fw-bold">{{ request.user.email|first|upper }}</span>{% endif %}
                     </a>
                     <div class="dropdown-menu dropdown-menu-end py-0">
                         <div class="dropdown-item py-2 bg-secondary-subtle text-truncate">
@@ -40,7 +40,8 @@
                             <small class="text-muted mb-0">{{ request.user.email }}</small>
                         </div>
                         <div class="dropdown-divider mt-0"></div>
-                        <a class="dropdown-item" href="#"><i class="las la-user fs-18 me-1 align-text-bottom"></i> Profile</a>
+                        <a class="dropdown-item" href="{% url 'panel:profile' %}"><i class="las la-user fs-18 me-1 align-text-bottom"></i> Profile</a>
+                        <a class="dropdown-item" href="{% url 'usersessions_list' %}"><i class="las la-desktop fs-18 me-1 align-text-bottom"></i> My sessions</a>
                         <a class="dropdown-item" href="{% url 'mfa_index' %}"><i class="las la-lock fs-18 me-1 align-text-bottom"></i> Two-factor authentication</a>
                         <div class="dropdown-divider mb-0"></div>
                         <form method="post" action="{% url 'account_logout' %}">

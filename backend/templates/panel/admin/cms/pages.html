@@ -1,0 +1,15 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Website Content{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header"><h4 class="card-title mb-0">Website Content</h4>
+        <p class="text-muted mb-0 small">Every section of the website is edited here. The website only displays what is published.</p></div>
+    <div class="card-body p-0"><table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Page</th><th>URL</th><th>Sections</th></tr></thead>
+        <tbody>{% for p in pages %}<tr>
+            <td><a href="{% url 'superadmin:cms_page' p.pk %}">{{ p.title }}</a></td>
+            <td>{% if p.key == 'site' %}<span class="text-muted">all pages</span>{% else %}/{{ p.slug }}{% endif %}</td><td>{{ p.section_count }}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% endblock %}

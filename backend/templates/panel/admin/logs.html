@@ -1,0 +1,44 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Logs{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header"><h4 class="card-title mb-2">Logs</h4>
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item"><a class="nav-link {% if kind == 'audit' %}active{% endif %}" href="{% url 'superadmin:logs' %}">Audit log</a></li>
+            <li class="nav-item"><a class="nav-link {% if kind == 'security' %}active{% endif %}" href="{% url 'superadmin:logs_kind' 'security' %}">Security events</a></li>
+            <li class="nav-item"><a class="nav-link {% if kind == 'api' %}active{% endif %}" href="{% url 'superadmin:logs_kind' 'api' %}">API log</a></li>
+            <li class="nav-item"><a class="nav-link {% if kind == 'errors' %}active{% endif %}" href="{% url 'superadmin:logs_kind' 'errors' %}">Errors</a></li>
+        </ul>
+    </div>
+    <div class="card-body border-bottom">
+        <form class="row g-2" method="get">
+            <div class="col-md-4"><input class="form-control form-control-sm" name="q" value="{{ params.q }}" placeholder="Search"></div>
+            {% if kind == 'audit' or kind == 'security' %}
+            <div class="col-auto"><input type="date" class="form-control form-control-sm" name="from" value="{{ params.from }}"></div>
+            <div class="col-auto"><input type="date" class="form-control form-control-sm" name="to" value="{{ params.to }}"></div>
+            {% elif kind == 'api' %}<div class="col-auto"><input class="form-control form-control-sm" name="status" value="{{ params.status }}" placeholder="Status code"></div>{% endif %}
+            <div class="col-auto"><button class="btn btn-sm btn-light">Filter</button></div>
+        </form>
+        <p class="text-muted small mb-0 mt-2">Webhook and call-event logs are added with WhatsApp and voice (Phases 5–6).</p>
+    </div>
+    <div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0 small">
+        {% if kind == 'api' %}
+        <thead class="table-light"><tr><th>Time</th><th>Method</th><th>Path</th><th>Status</th><th>ms</th><th>User</th><th>IP</th></tr></thead>
+        <tbody>{% for r in page %}<tr><td>{{ r.created_at }}</td><td>{{ r.method }}</td><td>{{ r.path }}</td><td>{{ r.status }}</td><td>{{ r.duration_ms }}</td><td>{{ r.user_email }}</td><td>{{ r.ip|default:"" }}</td></tr>
+        {% empty %}<tr><td colspan="7" class="text-center text-muted py-3">No entries.</td></tr>{% endfor %}</tbody>
+        {% elif kind == 'errors' %}
+        <thead class="table-light"><tr><th>Time</th><th>Level</th><th>Message</th><th>Path</th></tr></thead>
+        <tbody>{% for r in page %}<tr><td>{{ r.created_at }}</td><td>{{ r.level }}</td><td><details><summary>{{ r.message|truncatechars:120 }}</summary><pre class="small mb-0">{{ r.traceback }}</pre></details></td><td>{{ r.path }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">No errors.</td></tr>{% endfor %}</tbody>
+        {% else %}
+        <thead class="table-light"><tr><th>Time</th><th>Action</th><th>Actor</th><th>Entity</th><th>IP</th><th>Details</th></tr></thead>
+        <tbody>{% for r in page %}<tr><td>{{ r.created_at }}</td><td>{{ r.action }}</td>
+            <td>{{ r.actor_email }}{% if r.impersonator_email %}<div class="text-warning">via {{ r.impersonator_email }}</div>{% endif %}</td>
+            <td>{{ r.entity_type }} {{ r.entity_id|truncatechars:24 }}</td><td>{{ r.ip|default:"" }}</td>
+            <td>{% if r.changes %}<details><summary>view</summary><pre class="small mb-0">{{ r.changes|pprint }}</pre></details>{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">No entries.</td></tr>{% endfor %}</tbody>
+        {% endif %}
+    </table></div></div>
+    <div class="card-footer">{% include 'panel/partials/pagination.html' %}</div>
+</div>
+{% endblock %}

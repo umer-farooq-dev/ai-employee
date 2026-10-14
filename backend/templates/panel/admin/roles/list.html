@@ -1,0 +1,21 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Roles & Permissions{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="card-title mb-0">Roles &amp; Permissions</h4>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-primary" href="{% url 'superadmin:role_create' %}?scope=platform">New staff role</a>
+            <a class="btn btn-sm btn-primary" href="{% url 'superadmin:role_create' %}?scope=company">New company role</a>
+        </div>
+    </div>
+    <div class="card-body p-0"><table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Role</th><th>Scope</th><th>Permissions</th><th></th></tr></thead>
+        <tbody>{% for r in roles %}<tr>
+            <td><a href="{% url 'superadmin:role_edit' r.pk %}">{{ r.name }}</a>{% if r.is_system %} <span class="badge bg-light text-dark">seeded</span>{% endif %}<div class="text-muted small">{{ r.description }}</div></td>
+            <td>{{ r.get_scope_display }}</td><td>{{ r.permissions|length }}</td>
+            <td class="text-end">{% if not r.is_system %}<form method="post" action="{% url 'superadmin:role_delete' r.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Delete</button></form>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% endblock %}

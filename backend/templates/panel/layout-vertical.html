@@ -1,37 +1,25 @@
 {% extends 'panel/base.html' %}
-
-{% load static i18n %}
-
 {% block html_attribute %}data-bs-theme="light"{% endblock html_attribute %}
-
-{% block title %}{% endblock title %}
-
-{% block extra_css %}{% endblock extra_css %}
-
-{% block body_attribute %}{% endblock body_attribute %}
-
-{% block content %}
-
+{% block body %}
     <div class="page-wrapper">
-
         {% include 'panel/partials/topbar.html' %}
         {% block sidebar %}{% endblock sidebar %}
-
         <div class="page-content">
-
             <div class="container-xxl">
+                {% if request.impersonator %}
+                <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                    <span><strong>Support login:</strong> {{ request.impersonator.email }} is signed in as {{ request.user.email }}. Every action is audited.</span>
+                    <form method="post" action="{% url 'panel:stop_impersonation' %}">{% csrf_token %}
+                        <button class="btn btn-sm btn-dark">End support login</button></form>
+                </div>
+                {% endif %}
+                {% include 'panel/partials/messages.html' %}
                 {% block page_title %}{% endblock page_title %}
-
                 {% block page_content %}{% endblock page_content %}
             </div>
-
             {% include 'panel/partials/footer.html' %}
         </div>
     </div>
-
     {% block modal %}{% endblock modal %}
     {% include 'panel/partials/vendorjs.html' %}
-
-{% endblock content %}
-
-{% block extra_javascript %}{% endblock extra_javascript %}
+{% endblock body %}

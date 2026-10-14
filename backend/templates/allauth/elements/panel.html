@@ -1,0 +1,6 @@
+{% load allauth %}
+<div class="border rounded p-3 mb-3">
+    <h5 class="mb-2">{% slot title %}{% endslot %}</h5>
+    {% slot body %}{% endslot %}
+    {% if slots.actions %}<div class="d-flex flex-wrap gap-2 mt-2">{% for action in slots.actions %}{{ action }}{% endfor %}</div>{% endif %}
+</div>

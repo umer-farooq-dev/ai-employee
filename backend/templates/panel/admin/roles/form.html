@@ -1,0 +1,24 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Role{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="card-title mb-0">{% if role.name %}{{ role.name }}{% else %}New role{% endif %}</h4>
+        <a class="btn btn-sm btn-light" href="{% url 'superadmin:role_list' %}">Back</a>
+    </div>
+    <div class="card-body">
+        <form method="post">{% csrf_token %}
+            <div class="row">
+                <div class="col-md-3 mb-3"><label class="form-label">Scope</label>{{ form.scope }}</div>
+                <div class="col-md-3 mb-3"><label class="form-label">Key</label>{{ form.key }}{% for e in form.key.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                <div class="col-md-6 mb-3"><label class="form-label">Name</label>{{ form.name }}</div>
+                <div class="col-12 mb-3"><label class="form-label">Description</label>{{ form.description }}</div>
+            </div>
+            <h5 class="mt-2">Permissions</h5>
+            <div class="row">{% for cb in form.permissions %}<div class="col-md-6 col-xl-4"><div class="form-check mb-2">{{ cb.tag }} <label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div></div>{% endfor %}</div>
+            {% for e in form.permissions.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <button class="btn btn-primary mt-3">Save role</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

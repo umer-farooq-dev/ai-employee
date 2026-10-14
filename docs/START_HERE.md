@@ -64,17 +64,17 @@ Client approval mil chuki hai (architecture, scope, cost, milestones).
 
 ## Phase 1 — Core + Super Admin pehle (is order mein)
 
-1. [ ] Auth: allauth login, 2FA (staff ke liye mandatory), lockout, password reset, sessions (AUTH-03..06, 08, 11)
-2. [ ] Tenancy: `Company` model, `company_id` scoping manager, PostgreSQL RLS, isolation tests (TEN-01..03, 05, 06)
-3. [ ] Super Admin layout on Rizz + login + IP allowlist (SA-01, SA-18)
-4. [ ] **General Settings**: naam, logo, favicon, colours, contact, footer, SEO, localisation, email sender, maintenance mode (SA-21..27)
-5. [ ] **Website CMS**: `index5` ke har section ka editor — headings, text, images, buttons, order, show/hide (WEB-04, WEB-09)
-6. [ ] Companies + users screens, suspend, impersonation with audit (SA-03, SA-04)
-7. [ ] Roles & permissions (AUTH-11)
-8. [ ] Plans & pricing data (SUB-01, SUB-02, SA-12)
-9. [ ] Audit logs, system logs (SA-17, SEC-08)
-10. [ ] Email templates + account emails (NOTI-01)
-11. [ ] Har feature ki REST API + OpenAPI docs + API tests (API-01..04, 06, 07)
+1. [x] Auth: allauth login, 2FA (staff ke liye mandatory), lockout, password reset, sessions (AUTH-03..06, 08, 11)
+2. [x] Tenancy: `Company` model, `company_id` scoping manager, PostgreSQL RLS, isolation tests (TEN-01..03, 05, 06)
+3. [x] Super Admin layout on Rizz + login + IP allowlist (SA-01, SA-18)
+4. [x] **General Settings**: naam, logo, favicon, colours, contact, footer, SEO, localisation, email sender, maintenance mode (SA-21..27)
+5. [x] **Website CMS**: `index5` ke har section ka editor — headings, text, images, buttons, order, show/hide (WEB-04, WEB-09)
+6. [x] Companies + users screens, suspend, impersonation with audit (SA-03, SA-04)
+7. [x] Roles & permissions (AUTH-11)
+8. [x] Plans & pricing data (SUB-01, SUB-02, SA-12)
+9. [x] Audit logs, system logs (SA-17, SEC-08)
+10. [x] Email templates + account emails (NOTI-01)
+11. [x] Har feature ki REST API + OpenAPI docs + API tests (API-01..04, 06, 07)
 
 **Phase 1 gate:** tests → GitHub CI green → security check → no-hard-coding review → device testing → client UAT (demo server jo client ke saath tay ho) → client sign-off
 

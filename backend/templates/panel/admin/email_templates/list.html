@@ -1,0 +1,15 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Email Templates{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header"><h4 class="card-title mb-0">Email Templates</h4>
+        <p class="text-muted small mb-0">Sender name, address, header and footer come from General Settings → SEO &amp; email.</p></div>
+    <div class="card-body p-0"><table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Email</th><th>Subject</th><th>Active</th><th>Updated</th></tr></thead>
+        <tbody>{% for t in templates %}<tr>
+            <td><a href="{% url 'superadmin:email_template_edit' t.pk %}">{{ t.name }}</a><div class="text-muted small">{{ t.key }}</div></td>
+            <td>{{ t.subject }}</td><td>{{ t.is_active|yesno:"Yes,No" }}</td><td>{{ t.updated_at|date:"d M Y" }}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% endblock %}

@@ -62,6 +62,8 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `security.admin_ip_allowlist` | list[CIDR] | [] | empty = open in local / staging only |
 | `security.upload_max_mb` | number | 25 | per file |
 | `security.upload_allowed_types` | list[mime] | pdf, docx, xlsx, csv, png, jpg, webp, svg | |
+| `security.signed_url_seconds` | number | 300 | private file link validity |
+| `security.api_rate_user` / `security.api_rate_anon` / `security.api_rate_company` | text | 1000/hour / 100/hour / 5000/hour | REST API throttling (API-06) |
 
 ## D. Data retention & privacy — Phase 7/8 · screen: Settings → Data & Privacy
 

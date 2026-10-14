@@ -1,0 +1,20 @@
+{% extends 'panel/admin/layout.html' %}
+{% load admin_tags %}
+{% block title %}Plans & Pricing{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="card-title mb-0">Plans &amp; Pricing</h4>
+        {% if can_manage %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:plan_create' %}">New plan</a>{% endif %}
+    </div>
+    <div class="card-body p-0"><table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Plan</th><th>Monthly</th><th>Yearly</th><th>Public</th><th>Status</th><th>Companies</th></tr></thead>
+        <tbody>{% for p in plans %}<tr>
+            <td>{% if can_manage %}<a href="{% url 'superadmin:plan_edit' p.pk %}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}<div class="text-muted small">{{ p.key }}</div></td>
+            <td>{% if p.is_custom and p.price_monthly_paise is None %}Custom{% else %}{{ p.price_monthly_paise|inr }}{% endif %}</td>
+            <td>{{ p.price_yearly_paise|inr }}</td><td>{{ p.is_public|yesno:"Yes,No" }}</td><td>{{ p.get_status_display }}</td><td>{{ p.companies_count }}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="card-footer text-muted small">Prices and limits are only edited here. Payments (Razorpay) are added in Phase 7.</div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ tpl.name }}{% endblock %}
+{% block page_content %}
+<div class="row mt-3">
+    <div class="col-lg-8"><div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center"><h4 class="card-title mb-0">{{ tpl.name }}</h4>
+            <a class="btn btn-sm btn-light" href="{% url 'superadmin:email_template_list' %}">Back</a></div>
+        <div class="card-body"><form method="post">{% csrf_token %}{% include 'panel/partials/form_fields.html' %}<button class="btn btn-primary">Save</button></form></div>
+    </div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header"><h5 class="card-title mb-0">Available variables</h5></div><div class="card-body">
+        {% for v in tpl.variables %}<code class="d-block mb-1">{% templatetag openvariable %} {{ v }} {% templatetag closevariable %}</code>{% empty %}<span class="text-muted">None</span>{% endfor %}
+    </div></div></div>
+</div>
+{% endblock %}

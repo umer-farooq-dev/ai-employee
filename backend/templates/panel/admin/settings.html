@@ -1,0 +1,35 @@
+{% extends 'panel/admin/layout.html' %}
+{% load admin_tags %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header"><h4 class="card-title mb-2">{{ title }}</h4>
+        <ul class="nav nav-tabs card-header-tabs">
+            {% for key, label in groups %}<li class="nav-item"><a class="nav-link {% if key == active %}active{% endif %}" href="?tab={{ key }}">{{ label }}</a></li>{% endfor %}
+        </ul>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">{% csrf_token %}
+            <div class="row">
+            {% for field in form %}
+                <div class="col-md-6 mb-3">
+                    {% if field.widget_type == 'checkbox' %}
+                        <div class="form-check form-switch mt-4">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+                    {% else %}
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {% with current=images|get:field.name %}{% if field.name in images %}
+                            <div class="mb-2">{% if current %}<img src="{{ current }}" alt="" style="max-height:48px" class="border rounded p-1 bg-light">{% else %}<span class="text-muted small">Not set</span>{% endif %}</div>
+                        {% endif %}{% endwith %}
+                        {{ field }}
+                    {% endif %}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+            {% endfor %}
+            </div>
+            <button class="btn btn-primary">Save</button>
+            <span class="text-muted small ms-2">Changes apply everywhere immediately — no deployment needed.</span>
+        </form>
+    </div>
+</div>
+{% endblock %}

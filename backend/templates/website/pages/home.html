@@ -1,9 +1,9 @@
 {% extends 'website/landing-layout.html' %}
 {% load static %}
 
-{% block title %}Home{% endblock title %}
+{% block title %}{{ platform.platform_name }} — {{ platform.tagline }}{% endblock title %}
 
-{% block icon %}<link rel="shortcut icon" href="{% static 'website/img/logo/title5.png' %}" type="image/x-icon">{% endblock icon %}
+{% block icon %}<link rel="shortcut icon" href="{{ platform.favicon }}">{% endblock icon %}
 
 {% block body_attribute %}class="body"{% endblock body_attribute %}
 

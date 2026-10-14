@@ -1,11 +1,10 @@
-{% load static %}
-{# Phase 1: logos come from General Settings. #}
+{# Logos from General Settings (SA-22 / SA-23) #}
 <div class="brand">
     <a href="{{ home_url|default:'#' }}" class="logo">
-        <span><img src="{% static 'panel/images/logo-sm.png' %}" alt="logo" class="logo-sm"></span>
+        <span><img src="{{ platform.logo_small }}" alt="{{ platform.platform_name }}" class="logo-sm"></span>
         <span>
-            <img src="{% static 'panel/images/logo-light.png' %}" alt="logo" class="logo-lg logo-light">
-            <img src="{% static 'panel/images/logo-dark.png' %}" alt="logo" class="logo-lg logo-dark">
+            <img src="{{ platform.logo_light }}" alt="{{ platform.platform_name }}" class="logo-lg logo-light">
+            <img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}" class="logo-lg logo-dark">
         </span>
     </a>
 </div>

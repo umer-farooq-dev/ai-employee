@@ -1,0 +1,16 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Sessions{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header"><h4 class="card-title mb-0">Active sessions</h4></div>
+    <div class="card-body p-0"><div class="table-responsive"><table class="table mb-0 small">
+        <thead class="table-light"><tr><th>User</th><th>Last seen</th><th>Signed in</th><th>IP</th><th>Device</th><th></th></tr></thead>
+        <tbody>{% for s in page %}<tr>
+            <td><a href="{% url 'superadmin:user_detail' s.user.pk %}">{{ s.user.email }}</a></td><td>{{ s.last_seen_at }}</td><td>{{ s.created_at }}</td>
+            <td>{{ s.ip }}</td><td class="text-truncate" style="max-width:280px">{{ s.user_agent }}</td>
+            <td><form method="post">{% csrf_token %}<input type="hidden" name="session" value="{{ s.pk }}"><button class="btn btn-sm btn-outline-danger">End</button></form></td>
+        </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-3">No sessions.</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+    <div class="card-footer">{% include 'panel/partials/pagination.html' %}</div>
+</div>
+{% endblock %}

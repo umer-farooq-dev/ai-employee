@@ -12,12 +12,6 @@ def test_user_logs_in_with_email_and_uuid_key():
     assert len(str(user.pk)) == 36  # UUID primary key
 
 
-@pytest.mark.django_db
-def test_superuser_is_staff():
-    admin = User.objects.create_superuser("admin@example.com", "a-strong-password-123")
-    assert admin.is_staff and admin.is_superuser
-
-
 def test_phone_must_be_international_format():
     User(email="x@example.com", phone="+919876543210").clean_fields(exclude=["password"])
     with pytest.raises(ValidationError):
@@ -29,26 +23,21 @@ def test_django_admin_is_not_installed(settings):
 
 
 @pytest.mark.django_db
-def test_website_home_renders(client):
+def test_website_home_and_healthz(client):
     assert client.get("/").status_code == 200
+    assert client.get("/healthz/").json() == {"status": "ok"}
+
+
+@pytest.mark.django_db
+def test_landing_after_login(client, super_admin, owner_a):
+    client.force_login(owner_a)
+    assert client.get("/dashboard/").url == "/app/"
+    assert client.get("/superadmin/").status_code == 403  # company users never reach Super Admin
+    client.force_login(super_admin)
+    assert client.get("/dashboard/").url == "/superadmin/"
+    assert client.get("/superadmin/").status_code == 200
 
 
 @pytest.mark.django_db
 def test_company_panel_requires_login(client):
     assert client.get("/app/").status_code == 302
-
-
-@pytest.mark.django_db
-def test_super_admin_is_staff_only(client):
-    user = User.objects.create_user("owner@example.com", "a-strong-password-123")
-    client.force_login(user)
-    assert client.get("/superadmin/").status_code == 302
-    assert client.get("/app/").status_code == 200
-    assert client.get("/dashboard/").url == "/app/"
-
-
-@pytest.mark.django_db
-def test_staff_lands_on_super_admin(client):
-    client.force_login(User.objects.create_superuser("admin@example.com", "a-strong-password-123"))
-    assert client.get("/dashboard/").url == "/superadmin/"
-    assert client.get("/superadmin/").status_code == 200

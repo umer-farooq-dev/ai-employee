@@ -1,0 +1,15 @@
+{% load admin_tags %}
+{% if attrs.form.non_field_errors %}<div class="alert alert-danger">{{ attrs.form.non_field_errors|join:" " }}</div>{% endif %}
+{% for field in attrs.form %}
+    {% if field.is_hidden %}{{ field }}{% else %}
+    <div class="mb-3">
+        {% if field.widget_type == "checkbox" %}
+            <div class="form-check">{{ field|bs }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+        {% else %}
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field|bs }}
+        {% endif %}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+        {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {% endif %}
+{% endfor %}

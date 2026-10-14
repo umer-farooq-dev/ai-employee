@@ -1,21 +1,29 @@
-{# Super Admin menu. Items link to '#' until their Phase 1 screens exist. #}
+{% load admin_tags %}
+{# Super Admin menu: each item shows only when the staff role has the permission (AUTH-11). #}
 <div class="startbar d-print-none">
-    {% url 'panel:admin_home' as home_url %}
+    {% url 'superadmin:dashboard' as home_url %}
     {% include 'panel/partials/brand.html' with home_url=home_url %}
     <div class="startbar-menu">
         <div class="startbar-collapse" id="startbarCollapse" data-simplebar>
             <div class="d-flex align-items-start flex-column w-100">
                 <ul class="navbar-nav mb-auto w-100">
                     <li class="menu-label pt-0 mt-0"><span>Super Admin</span></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ home_url }}"><i class="iconoir-home-simple menu-icon"></i><span>Dashboard</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-building menu-icon"></i><span>Companies</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-group menu-icon"></i><span>Users</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-shield-check menu-icon"></i><span>Roles &amp; Permissions</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>
+                    {% with u=request.user %}
+                    {% if u|can:"dashboard.view" %}<li class="nav-item"><a class="nav-link" href="{{ home_url }}"><i class="iconoir-home-simple menu-icon"></i><span>Dashboard</span></a></li>{% endif %}
+                    {% if u|can:"companies.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:company_list' %}"><i class="iconoir-building menu-icon"></i><span>Companies</span></a></li>{% endif %}
+                    {% if u|can:"users.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:user_list' %}"><i class="iconoir-group menu-icon"></i><span>Users</span></a></li>{% endif %}
+                    {% if u|can:"roles.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:role_list' %}"><i class="iconoir-shield-check menu-icon"></i><span>Roles &amp; Permissions</span></a></li>{% endif %}
+                    {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-page-edit menu-icon"></i><span>Website Content</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="iconoir-journal menu-icon"></i><span>Audit Logs</span></a></li>
+                    {% if u|can:"settings.general" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:general_settings' %}"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>{% endif %}
+                    {% if u|can:"settings.system" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:system_settings' %}"><i class="iconoir-lock menu-icon"></i><span>System Settings</span></a></li>{% endif %}
+                    {% if u|can:"cms.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:cms_pages' %}"><i class="iconoir-page-edit menu-icon"></i><span>Website Content</span></a></li>{% endif %}
+                    {% if u|can:"email_templates.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:email_template_list' %}"><i class="iconoir-mail menu-icon"></i><span>Email Templates</span></a></li>{% endif %}
+                    <li class="menu-label mt-2"><span>Security</span></li>
+                    {% if u|can:"logs.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:logs' %}"><i class="iconoir-journal menu-icon"></i><span>Logs</span></a></li>{% endif %}
+                    {% if u|can:"security.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:sessions' %}"><i class="iconoir-key-alt menu-icon"></i><span>Sessions</span></a></li>{% endif %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'panel:profile' %}"><i class="iconoir-user menu-icon"></i><span>My Profile</span></a></li>
+                    {% endwith %}
                 </ul>
             </div>
         </div>

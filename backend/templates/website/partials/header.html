@@ -7,7 +7,7 @@
         <div class="col-12">
           <div class="header-elements">
             <div class="site-logo home1-site-logo">
-              <a href="{% url 'website:home' %}"><img src="{% static 'website/img/logo/header-logo2.png' %}" alt="Logo"></a>
+              <a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a>
             </div>
             <div class="main-menu-ex main-menu-ex1">
               <ul>
@@ -35,7 +35,7 @@
     <div class="col-12">
       <div class="mobile-header-elements">
         <div class="mobile-logo">
-          <a href="{% url 'website:home' %}"><img src="{% static 'website/img/logo/header-logo2.png' %}" alt="Logo"></a>
+          <a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a>
         </div>
         <div class="mobile-nav-icon">
           <i class="fa-duotone fa-bars-staggered"></i>
@@ -47,7 +47,7 @@
 
 <div class="mobile-sidebar mobile-sidebar4 d-block d-lg-none">
   <div class="logo-m">
-    <a href="{% url 'website:home' %}"><img src="{% static 'website/img/logo/header-logo1.png' %}" alt="Logo"></a>
+    <a href="{% url 'website:home' %}"><img src="{{ platform.logo_light }}" alt="{{ platform.platform_name }}"></a>
   </div>
   <div class="menu-close">
     <i class="fa-solid fa-xmark"></i>

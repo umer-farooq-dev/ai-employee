@@ -1,0 +1,32 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">{{ page.title }}</h4><a class="btn btn-sm btn-light" href="{% url 'superadmin:cms_pages' %}">Back</a>
+</div>
+<div class="row">
+    <div class="col-lg-8"><div class="card"><div class="card-header"><h5 class="card-title mb-0">Sections</h5></div>
+        <div class="card-body p-0"><table class="table mb-0 align-middle">
+            <thead class="table-light"><tr><th>#</th><th>Section</th><th>Status</th><th></th></tr></thead><tbody>
+            {% for s in sections %}<tr class="{% if not s.is_visible %}opacity-50{% endif %}">
+                <td>{{ forloop.counter }}</td>
+                <td><a href="{% url 'superadmin:cms_section' s.pk %}">{{ s.section_type.name }}</a>{% if s.anchor_id %} <span class="text-muted small">#{{ s.anchor_id }}</span>{% endif %}</td>
+                <td>{% if s.version %}<span class="badge bg-success">v{{ s.version }}</span>{% else %}<span class="badge bg-secondary">Not published</span>{% endif %}
+                    {% if s.has_draft %}<span class="badge bg-warning text-dark">Draft</span>{% endif %}
+                    {% if not s.is_visible %}<span class="badge bg-light text-dark">Hidden</span>{% endif %}</td>
+                <td class="text-end">{% if can_manage %}<form method="post" class="d-inline-flex gap-1">{% csrf_token %}<input type="hidden" name="section" value="{{ s.pk }}">
+                    <button name="op" value="up" class="btn btn-sm btn-light" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
+                    <button name="op" value="down" class="btn btn-sm btn-light" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
+                    <button name="op" value="visibility" class="btn btn-sm btn-light">{{ s.is_visible|yesno:"Hide,Show" }}</button></form>{% endif %}</td>
+            </tr>{% endfor %}</tbody></table></div></div></div>
+    {% if page.key != 'site' %}
+    <div class="col-lg-4"><div class="card"><div class="card-header"><h5 class="card-title mb-0">SEO</h5></div><div class="card-body">
+        <form method="post">{% csrf_token %}<input type="hidden" name="op" value="seo">
+            <div class="mb-3"><label class="form-label">Meta title</label><input class="form-control" name="meta_title" value="{{ page.seo.meta_title }}"></div>
+            <div class="mb-3"><label class="form-label">Meta description</label><textarea class="form-control" name="meta_description" rows="3">{{ page.seo.meta_description }}</textarea></div>
+            <div class="mb-3"><label class="form-label">Share image URL</label><input class="form-control" name="og_image" value="{{ page.seo.og_image }}"><div class="form-text">Empty = default from General Settings.</div></div>
+            {% if can_manage %}<button class="btn btn-primary">Save SEO</button>{% endif %}
+        </form></div></div></div>
+    {% endif %}
+</div>
+{% endblock %}

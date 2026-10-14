@@ -18,6 +18,16 @@ python backend/manage.py runserver
 - Emails: http://localhost:8025 (Mailpit)
 - Free LLM gateway (testing only, after the system is built): `docker compose --profile ai up -d`; it is connected as a provider in Super Admin (Phase 4)
 
+## Database role and backups (any server)
+
+- Migrations run as the database owner. The application itself connects with a least-privilege role (no superuser, cannot
+  bypass row-level security): create it once with
+  `python backend/manage.py setup_app_db_role --role aiemployee_app --password <secret>` (owner `DATABASE_URL`), then
+  point the running app's `DATABASE_URL` at `aiemployee_app`.
+- Daily compressed backups: `docker compose --profile backup up -d` writes `./backups/db-*.dump` and keeps
+  `BACKUP_KEEP_DAYS` (default 14). Copy them off the server. Point-in-time recovery is set up on the client's hosting (Phase 8).
+- Restore: `pg_restore --clean -d <database> backups/db-<date>.dump`
+
 ## Code conventions
 
 - **Service layer:** business logic lives in `apps/<app>/services.py` (plain functions). Page views, REST API views,

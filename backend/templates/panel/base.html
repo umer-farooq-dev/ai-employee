@@ -1,41 +1,29 @@
 {% load static i18n %}
-<!DOCTYPE html >
+<!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}" {% block html_attribute %}{% endblock html_attribute %}>
 <head>
     <meta charset="utf-8"/>
     <meta http-equiv="x-ua-compatible" content="ie=edge"/>
-    <title>
-        {% block title %}{% endblock title %}
-    </title>
+    <title>{% block title %}{% endblock title %} | {{ platform.platform_name }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="description" content=""/>
-    <meta name="author" content=""/>
-    <link rel="icon" href="{% static 'panel/images/favicon.ico' %}"/>
-
+    <link rel="icon" href="{{ platform.favicon }}"/>
     {% block css %}
-        {% block extra_css %} {% endblock extra_css %}
-
-        <link href="{% static 'panel/css/bootstrap.min.css' %}" rel="stylesheet" type="text/css" />
-        <link href="{% static 'panel/css/icons.min.css' %}" rel="stylesheet" type="text/css" />
-        <link href="{% static 'panel/css/app.min.css' %}" rel="stylesheet" type="text/css" />
-
-
+        {% block extra_css %}{% endblock extra_css %}
+        <link href="{% static 'panel/css/bootstrap.min.css' %}" rel="stylesheet" type="text/css"/>
+        <link href="{% static 'panel/css/icons.min.css' %}" rel="stylesheet" type="text/css"/>
+        <link href="{% static 'panel/css/app.min.css' %}" rel="stylesheet" type="text/css"/>
+        {# Brand colours from General Settings (SA-22) #}
+        <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }}}
+        .btn-primary{background-color:var(--brand-primary);border-color:var(--brand-primary)}
+        .text-brand{color:var(--brand-primary)!important}</style>
     {% endblock css %}
-
 </head>
 <body {% block body_attribute %}{% endblock body_attribute %}>
-
-{% block preloader %}{% endblock %}
-
-{% block content %}{% endblock content %}
-
+{% block body %}{% endblock body %}
 {% block javascript %}
     <script defer src="{% static 'panel/js/app.min.js' %}"></script>
-    <script defer src="{% static 'panel/js/vendors.min.js' %}"></script>
-
-    {% block extra_javascript %} {% endblock extra_javascript %}
+    {% block extra_javascript %}{% endblock extra_javascript %}
 {% endblock javascript %}
-
 </body>
 </html>

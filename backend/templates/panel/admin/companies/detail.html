@@ -1,0 +1,70 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ company.name }}{% endblock %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">{{ company.name }}</h4><span class="text-muted">{{ company.slug }} · {{ company.get_status_display }}</span></div>
+    <div class="d-flex gap-2">
+        {% if can.manage %}<a class="btn btn-sm btn-light" href="{% url 'superadmin:company_edit' company.pk %}">Edit</a>{% endif %}
+        {% if can.export %}<a class="btn btn-sm btn-light" href="{% url 'superadmin:company_export' company.pk %}">Export data</a>{% endif %}
+        <a class="btn btn-sm btn-light" href="{% url 'superadmin:company_list' %}">Back</a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Details</h5></div>
+            <div class="card-body"><dl class="row mb-0">
+                <dt class="col-5">Plan</dt><dd class="col-7">{{ company.plan.name|default:"—" }}</dd>
+                <dt class="col-5">Email</dt><dd class="col-7">{{ company.email|default:"—" }}</dd>
+                <dt class="col-5">Phone</dt><dd class="col-7">{{ company.phone|default:"—" }}</dd>
+                <dt class="col-5">GSTIN</dt><dd class="col-7">{{ company.gstin|default:"—" }}</dd>
+                <dt class="col-5">City / State</dt><dd class="col-7">{{ company.city }} {{ company.state }}</dd>
+                <dt class="col-5">Requires 2FA</dt><dd class="col-7">{{ company.require_2fa|yesno:"Yes,No" }}</dd>
+                <dt class="col-5">Created</dt><dd class="col-7">{{ company.created_at }}</dd>
+                {% if company.suspended_at %}<dt class="col-5">Suspended</dt><dd class="col-7">{{ company.suspended_at }} — {{ company.suspended_reason }}</dd>{% endif %}
+            </dl>
+            <p class="text-muted small mt-3 mb-0">Usage figures appear here when usage metering is built (Phase 7).</p></div>
+        </div>
+        {% if can.suspend %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Status</h5></div><div class="card-body">
+            {% if company.status == 'suspended' %}
+            <form method="post" action="{% url 'superadmin:company_status' company.pk %}">{% csrf_token %}
+                <input type="hidden" name="status" value="active"><button class="btn btn-success">Reactivate company</button></form>
+            {% else %}
+            <form method="post" action="{% url 'superadmin:company_status' company.pk %}" class="d-flex gap-2">{% csrf_token %}
+                <input type="hidden" name="status" value="suspended">
+                <input class="form-control" name="reason" placeholder="Reason (shown in the audit log)" required>
+                <button class="btn btn-warning">Suspend</button></form>
+            {% endif %}
+        </div></div>
+        {% endif %}
+        {% if can.delete %}
+        <div class="card border-danger"><div class="card-header"><h5 class="card-title mb-0 text-danger">Delete company</h5></div><div class="card-body">
+            <form method="post" action="{% url 'superadmin:company_delete' company.pk %}" class="d-flex gap-2">{% csrf_token %}
+                <input class="form-control" name="confirm" placeholder="Type {{ company.slug }} to confirm" required>
+                <button class="btn btn-danger">Delete</button></form>
+        </div></div>
+        {% endif %}
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Members</h5></div>
+            <div class="card-body p-0"><table class="table mb-0"><thead class="table-light"><tr><th>User</th><th>Role</th><th>Status</th></tr></thead><tbody>
+                {% for m in members %}<tr><td><a href="{% url 'superadmin:user_detail' m.user.pk %}">{{ m.user.email }}</a></td><td>{{ m.role.name }}</td><td>{{ m.get_status_display }}</td></tr>
+                {% empty %}<tr><td colspan="3" class="text-muted text-center">No members.</td></tr>{% endfor %}</tbody></table></div>
+            {% if can.manage %}<div class="card-footer"><form method="post" action="{% url 'superadmin:company_add_member' company.pk %}" class="row g-2">{% csrf_token %}
+                <div class="col">{{ member_form.email }}</div><div class="col">{{ member_form.role }}</div>
+                <div class="col-auto"><button class="btn btn-primary">Add</button></div></form></div>{% endif %}
+        </div>
+        {% if can.impersonate and members %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Support login</h5></div><div class="card-body">
+            <form method="post" action="{% url 'superadmin:company_impersonate' company.pk %}">{% csrf_token %}
+                <div class="mb-2">{{ impersonate_form.user }}</div><div class="mb-2">{{ impersonate_form.reason }}</div>
+                <button class="btn btn-outline-primary">Sign in as this user</button>
+                <div class="form-text">Audited; a banner is shown during the session.</div></form>
+        </div></div>
+        {% endif %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Recent activity</h5></div><div class="card-body p-0"><table class="table mb-0 small"><tbody>
+            {% for e in audit %}<tr><td>{{ e.created_at|date:"d M H:i" }}</td><td>{{ e.action }}</td><td>{{ e.actor_email }}</td></tr>
+            {% empty %}<tr><td class="text-muted text-center">No activity.</td></tr>{% endfor %}</tbody></table></div></div>
+    </div>
+</div>
+{% endblock %}

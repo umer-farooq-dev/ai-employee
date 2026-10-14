@@ -1,0 +1,21 @@
+{% extends layout %}
+{% block title %}My Profile{% endblock %}
+{% block page_content %}
+<div class="row mt-3">
+    <div class="col-lg-7"><div class="card">
+        <div class="card-header"><h4 class="card-title mb-0">My Profile</h4></div>
+        <div class="card-body">
+            <p class="mb-3"><strong>Email:</strong> {{ request.user.email }} <a class="small ms-2" href="{% url 'account_email' %}">Change email</a></p>
+            <form method="post" enctype="multipart/form-data">{% csrf_token %}{% include 'panel/partials/form_fields.html' %}<button class="btn btn-primary">Save</button></form>
+        </div>
+    </div></div>
+    <div class="col-lg-5"><div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Security</h5></div>
+        <div class="list-group list-group-flush">
+            <a class="list-group-item list-group-item-action" href="{% url 'account_change_password' %}">Change password</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'mfa_index' %}">Two-factor authentication</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'usersessions_list' %}">Active sessions</a>
+        </div>
+    </div></div>
+</div>
+{% endblock %}

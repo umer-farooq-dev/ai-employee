@@ -1,0 +1,10 @@
+{# One CMS input. Expects `f` with type, name, upload, value, label. #}
+{% if f.type == 'textarea' %}<textarea class="form-control" name="{{ f.name }}" rows="3">{{ f.value|default:"" }}</textarea>
+{% elif f.type == 'rich' %}<textarea class="form-control" name="{{ f.name }}" rows="5">{{ f.value|default:"" }}</textarea><div class="form-text">HTML allowed.</div>
+{% elif f.type == 'number' %}<input type="number" step="any" class="form-control" name="{{ f.name }}" value="{{ f.value|default_if_none:'' }}">
+{% elif f.type == 'link' %}<div class="input-group"><input class="form-control" name="{{ f.name }}.label" placeholder="Text" value="{{ f.value.label|default:'' }}"><input class="form-control" name="{{ f.name }}.url" placeholder="Link, e.g. /pricing or https://…" value="{{ f.value.url|default:'' }}"></div>
+{% elif f.type == 'image' %}<input type="hidden" name="{{ f.name }}" value="{{ f.value|default:'' }}">
+    <div class="d-flex align-items-center gap-2">{% if f.value %}<img src="{{ f.value }}" alt="" style="max-height:44px" class="border rounded bg-light p-1">
+        <label class="small text-muted"><input type="checkbox" name="{{ f.name }}.clear" class="form-check-input"> remove</label>{% endif %}
+        <input type="file" accept="image/*" class="form-control form-control-sm" name="{{ f.upload }}"></div>
+{% else %}<input class="form-control" name="{{ f.name }}" value="{{ f.value|default:'' }}">{% endif %}

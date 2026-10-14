@@ -26,6 +26,19 @@ services:
     volumes: [freellmapi-data:/app/server/data]
     profiles: ["ai"]  # start with: docker compose --profile ai up -d
 
+  db-backup:  # SEC-10: daily compressed pg_dump; copy ./backups off-site. PITR is configured on the client's hosting (Phase 8)
+    image: pgvector/pgvector:pg16
+    environment:
+      PGHOST: db
+      PGUSER: aiemployee
+      PGPASSWORD: aiemployee
+      PGDATABASE: aiemployee
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes: ["./backups:/backups"]
+    entrypoint: ["sh", "-c", "while true; do pg_dump -Fc > /backups/db-$$(date +%Y%m%d-%H%M).dump && find /backups -name 'db-*.dump' -mtime +$$KEEP_DAYS -delete; sleep 86400; done"]
+    depends_on: [db]
+    profiles: ["backup"]  # start with: docker compose --profile backup up -d
+
 volumes:
   pgdata:
   freellmapi-data:

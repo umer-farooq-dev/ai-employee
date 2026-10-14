@@ -1,0 +1,63 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ section.section_type.name }}{% endblock %}
+{% block page_content %}
+<form method="post" enctype="multipart/form-data" id="section-form">{% csrf_token %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">{{ section.page.title }} · {{ section.section_type.name }}</h4>
+        <span class="text-muted small">{% if section.version %}Live version {{ section.version }}{% else %}Not published yet{% endif %}{% if section.has_draft %} · unpublished draft{% endif %}</span></div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-light" href="{% url 'superadmin:cms_page' section.page.pk %}">Back</a>
+        {% if can_manage %}<button class="btn btn-sm btn-outline-primary" name="op" value="draft">Save draft</button>
+        <button class="btn btn-sm btn-primary" name="op" value="publish">Publish</button>{% endif %}
+    </div>
+</div>
+{% if section.section_type.description %}<div class="alert alert-info py-2">{{ section.section_type.description }}</div>{% endif %}
+<div class="row">
+<div class="col-lg-9">
+{% for field in fields %}
+<div class="card"><div class="card-body">
+    <label class="form-label fw-semibold">{{ field.label }}</label>
+    {% if field.type == 'list' %}
+        <div class="cms-list" data-max="{{ field.max|default:'' }}">
+            <div class="cms-rows">
+            {% for row in field.rows %}
+                <div class="cms-row border rounded p-2 mb-2"><div class="row g-2">
+                    {% for f in row %}<div class="col-md-6"><label class="form-label small text-muted mb-1">{{ f.label }}</label>{% include 'panel/admin/cms/_input.html' %}</div>{% endfor %}
+                </div><button type="button" class="btn btn-sm btn-link text-danger px-0 cms-remove">Remove</button></div>
+            {% endfor %}
+            </div>
+            <template><div class="cms-row border rounded p-2 mb-2"><div class="row g-2">
+                {% for f in field.template_row %}<div class="col-md-6"><label class="form-label small text-muted mb-1">{{ f.label }}</label>{% include 'panel/admin/cms/_input.html' %}</div>{% endfor %}
+            </div><button type="button" class="btn btn-sm btn-link text-danger px-0 cms-remove">Remove</button></div></template>
+            <button type="button" class="btn btn-sm btn-light cms-add">+ Add {{ field.label|lower }}</button>
+            {% if field.max %}<span class="text-muted small ms-2">Max {{ field.max }}</span>{% endif %}
+        </div>
+    {% else %}
+        {% with f=field %}{% include 'panel/admin/cms/_input.html' %}{% endwith %}
+    {% endif %}
+</div></div>
+{% endfor %}
+</div>
+<div class="col-lg-3"><div class="card"><div class="card-header"><h5 class="card-title mb-0">Versions</h5></div><div class="card-body p-0">
+    <table class="table mb-0 small"><tbody>
+    {% for v in versions %}<tr><td>v{{ v.version }}</td><td>{{ v.created_at|date:"d M H:i" }}<div class="text-muted">{{ v.published_by.email|default:"" }}</div></td>
+        <td>{% if can_manage and v.version != section.version %}<button class="btn btn-sm btn-link p-0" name="restore" value="{{ v.version }}">Restore</button>{% endif %}</td></tr>
+    {% empty %}<tr><td class="text-muted text-center">No versions yet.</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+</div>
+</form>
+{% endblock %}
+{% block extra_javascript %}
+<script>
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("cms-add")) {
+    var list = e.target.closest(".cms-list"), rows = list.querySelector(".cms-rows");
+    var max = parseInt(list.dataset.max || "0", 10);
+    if (max && rows.children.length >= max) { return; }
+    var html = list.querySelector("template").innerHTML.replace(/__INDEX__/g, Date.now());
+    rows.insertAdjacentHTML("beforeend", html);
+  }
+  if (e.target.classList.contains("cms-remove")) { e.target.closest(".cms-row").remove(); }
+});
+</script>
+{% endblock %}
