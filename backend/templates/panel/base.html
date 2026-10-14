@@ -23,6 +23,23 @@
 {% block body %}{% endblock body %}
 {% block javascript %}
     <script defer src="{% static 'panel/js/app.min.js' %}"></script>
+    {# Rizz collapses the sidebar on every load below 1440px; keep the user's own open / closed choice on desktop. #}
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var KEY = "sidebar-size", DESKTOP = 1024;
+        var load = function () { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+        var apply = function () {
+            var saved = load();
+            if (saved && window.innerWidth >= DESKTOP) document.body.setAttribute("data-sidebar-size", saved);
+        };
+        document.querySelector(".mobile-menu-btn")?.addEventListener("click", function () {
+            if (window.innerWidth < DESKTOP) return;
+            try { localStorage.setItem(KEY, document.body.getAttribute("data-sidebar-size")); } catch (e) {}
+        });
+        window.addEventListener("resize", apply);
+        apply();
+    });
+    </script>
     {% block extra_javascript %}{% endblock extra_javascript %}
 {% endblock javascript %}
 </body>
