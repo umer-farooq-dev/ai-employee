@@ -6,7 +6,7 @@ from apps.billing.models import ENTITLEMENTS, Plan
 from apps.core.uploads import save_public
 from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
-from apps.platform_config.registry import SETTINGS
+from apps.platform_config.registry import LANGUAGES, SETTINGS
 from apps.rbac.catalog import PERMISSIONS
 from apps.rbac.models import Role
 from apps.tenancy.models import Company
@@ -290,6 +290,19 @@ def settings_form(group_keys, initial, data=None, files=None):
         elif s.type == "image":
             field = forms.FileField(required=False)
             help_text = "Upload to replace."
+        elif s.type == "translations":
+            # one textarea per language: <key>__<lang>
+            for code, name in LANGUAGES:
+                sub = forms.CharField(
+                    required=False,
+                    initial=(value or {}).get(code, ""),
+                    label=f"{s.label} — {name}",
+                    help_text=help_text if code == LANGUAGES[0][0] else "",
+                    widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
+                )
+                form.fields[f"{s.key}__{code}"] = sub
+            form.registry.append(s)
+            continue
         elif s.type == "color":
             field = forms.CharField(required=False, initial=value, widget=forms.TextInput(attrs={"type": "color"}))
         else:
@@ -310,6 +323,9 @@ def settings_values(form):
         if s.type == "image":
             if value:
                 values[s.key] = save_public(value, "branding")
+            continue
+        if s.type == "translations":
+            values[s.key] = {code: form.cleaned_data.get(f"{s.key}__{code}", "") for code, _ in LANGUAGES}
             continue
         if s.type == "links":
             rows = []

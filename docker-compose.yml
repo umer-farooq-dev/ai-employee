@@ -26,6 +26,11 @@ services:
     volumes: [freellmapi-data:/app/server/data]
     profiles: ["ai"]  # start with: docker compose --profile ai up -d
 
+  clamav:  # SEC-11 upload virus scan; set CLAMAV_ADDRESS=127.0.0.1:3310
+    image: clamav/clamav:stable
+    ports: ["127.0.0.1:3310:3310"]
+    profiles: ["scan"]  # start with: docker compose --profile scan up -d
+
   db-backup:  # SEC-10: daily compressed pg_dump; copy ./backups off-site. PITR is configured on the client's hosting (Phase 8)
     image: pgvector/pgvector:pg16
     environment:

@@ -4,6 +4,8 @@ import json
 import logging
 import traceback
 
+from apps.core.india import mask_pii
+
 
 class DatabaseErrorHandler(logging.Handler):
     def emit(self, record):
@@ -16,7 +18,7 @@ class DatabaseErrorHandler(logging.Handler):
             ErrorLog.objects.create(
                 level=record.levelname,
                 logger=record.name[:200],
-                message=record.getMessage()[:10000],
+                message=mask_pii(record.getMessage())[:10000],
                 traceback="".join(traceback.format_exception(*record.exc_info)) if record.exc_info else "",
                 path=(request.path[:500] if request else ""),
                 request_id=getattr(request, "request_id", "") if request else "",
@@ -34,7 +36,7 @@ class JsonFormatter(logging.Formatter):
             "time": self.formatTime(record),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": mask_pii(record.getMessage()),  # ENG-10: no phone numbers / e-mails in logs
             "request_id": getattr(request, "request_id", None),
         }
         if record.exc_info:

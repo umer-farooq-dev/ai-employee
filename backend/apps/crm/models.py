@@ -39,6 +39,10 @@ class Lead(TenantModel):
     score_label = models.CharField(max_length=10, choices=SCORE_LABELS, blank=True)
     score_value = models.PositiveSmallIntegerField(default=0)
     score_reason = models.CharField(max_length=500, blank=True)
+    ai_intent_score = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="SCORE-03: last AI-assessed intent 0-100, blended with the rules"
+    )
+    ai_intent_reason = models.CharField(max_length=300, blank=True)
     assigned_ai_employee_id = models.UUIDField(null=True, blank=True, help_text="AI Employee (Phase 4)")
     assigned_user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="assigned_leads"

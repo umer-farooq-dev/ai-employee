@@ -60,6 +60,10 @@ def clean(key, value):
                 except ValueError:
                     raise ValidationError(f"{s.label}: {item!r} is not a valid IP or CIDR range.") from None
         return items
+    if s.type == "translations":
+        if not isinstance(value, dict):
+            raise ValidationError(f"{s.label}: give a text per language.")
+        return {str(k): str(v or "").strip() for k, v in value.items() if str(v or "").strip()}
     if s.type == "links":
         return [
             {"platform": str(i.get("platform", "")).strip(), "url": str(i.get("url", "")).strip()}

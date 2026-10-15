@@ -38,12 +38,15 @@ def render(key, context):
     return subject, html, strip_tags(html)
 
 
-def send(key, to, context) -> bool:
+def send(key, to, context, attachments=()) -> bool:
+    """attachments: [(file name, bytes)]."""
     rendered = render(key, context)
     if not rendered:
         return False
     subject, html, text = rendered
     msg = EmailMultiAlternatives(subject, text, from_email(), [to])
     msg.attach_alternative(html, "text/html")
+    for name, content in attachments:
+        msg.attach(name, content)
     msg.send()
     return True

@@ -14,6 +14,7 @@ env = environ.Env()
 environ.Env.read_env(BASE_DIR.parent / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
+CLAMAV_ADDRESS = env("CLAMAV_ADDRESS", default="")  # host:port of clamd for upload scans (SEC-11)
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default=SECRET_KEY)  # master key for encrypted DB fields
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     "apps.catalog",
     "apps.scheduling",
     "apps.providers",
+    "apps.agents",
+    "apps.knowledge",
     "apps.cms",
     "apps.notifications",
     "apps.superadmin",

@@ -5,3 +5,4 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}  # isolated per test run
 ADMIN_HOST = ""  # single host in tests; test_super_admin_on_its_own_host switches it on
+KNOWLEDGE_INLINE = True  # knowledge processing runs in the request (no background thread) in tests

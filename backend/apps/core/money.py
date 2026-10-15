@@ -15,6 +15,18 @@ UNITS = {
     "lakhs": 100_000,
     "k": 1_000,
     "thousand": 1_000,
+    "hazar": 1_000,
+    "hazaar": 1_000,
+    # Hindi / Bengali words (ENG-06)
+    "लाख": 100_000,
+    "करोड़": 10_000_000,
+    "करोड": 10_000_000,
+    "हज़ार": 1_000,
+    "हजार": 1_000,
+    "লাখ": 100_000,
+    "লক্ষ": 100_000,
+    "কোটি": 10_000_000,
+    "হাজার": 1_000,
 }
 
 
@@ -57,7 +69,7 @@ def parse_inr(value) -> int | None:
     if isinstance(value, (int, float, Decimal)):
         return int(Decimal(str(value)) * 100)
     text = str(value).lower().replace("₹", "").replace("rs.", "").replace("rs", "").replace(",", "").strip()
-    m = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*([a-z]*)", text)
+    m = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*([^\d\s.]*)", text)
     if not m or (m.group(2) and m.group(2) not in UNITS):
         raise ValidationError(f"Enter an amount like 70,00,000 or 70 lakh or 1.2 Cr (got {value!r}).")
     try:

@@ -298,10 +298,15 @@ def compute_score(lead, company, ctx=None):
     defs = ctx["defs"]
     hits = [r for r in ctx["rules"] if matches(lead, r.condition, defs)]
     value = max(0, min(100, sum(r.points for r in hits)))
+    reason = ", ".join(r.name for r in hits)
+    if lead.ai_intent_score is not None:  # SCORE-03: AI intent blended with the rules (weight in AI settings)
+        weight = config.get("ai.intent_weight_percent") / 100
+        value = round(value * (1 - weight) + lead.ai_intent_score * weight)
+        reason = "; ".join(x for x in (reason, f"AI: {lead.ai_intent_reason}" if lead.ai_intent_reason else "") if x)
     forced = next((r.force_label for r in hits if r.force_label), "")
     limits = ctx["limits"]
     label = forced or (Lead.HOT if value >= limits["hot"] else Lead.WARM if value >= limits["warm"] else Lead.COLD)
-    return value, label, ", ".join(r.name for r in hits), [r.key for r in hits]
+    return value, label, reason, [r.key for r in hits]
 
 
 def rescore(lead, user=None, source="rules"):

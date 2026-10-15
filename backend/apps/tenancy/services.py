@@ -159,6 +159,9 @@ def approve_company(company, request=None):
     )
     for to in owners(company):
         mail.send("company/approved", to, {"company": company, "login_url": _absolute(request, "account_login")})
+    from apps.agents.services import create_from_template
+
+    create_from_template(company, request=request)  # EMP-14: ready-made AI Employee in draft
     return company
 
 

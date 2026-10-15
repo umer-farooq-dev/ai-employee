@@ -22,6 +22,9 @@ PERMISSIONS = {
     "employee_roles.manage": (PLATFORM, "Manage AI Employee role templates"),
     "holidays.manage": (PLATFORM, "Manage platform holidays"),
     "ai_providers.manage": (PLATFORM, "Manage AI providers, keys and model per task"),
+    "tools.manage": (PLATFORM, "Manage the AI tool registry"),
+    "ai_oversight.view": (PLATFORM, "View AI Employees of all companies, conversations and tool logs"),
+    "ai_oversight.manage": (PLATFORM, "Pause AI Employees, create the ready-made employee for a company"),
     "enquiries.view": (PLATFORM, "View website enquiries"),
     "enquiries.manage": (PLATFORM, "Update website enquiries"),
     "users.view": (PLATFORM, "View users"),
@@ -55,6 +58,12 @@ PERMISSIONS = {
     "calendar.view": (COMPANY, "View calendar"),
     "calendar.manage": (COMPANY, "Book and manage appointments"),
     "calendar.configure": (COMPANY, "Configure calendar resources and availability"),
+    "ai_employees.view": (COMPANY, "View AI Employees"),
+    "ai_employees.manage": (COMPANY, "Create, edit, test, activate and pause AI Employees"),
+    "knowledge.view": (COMPANY, "View the knowledge base"),
+    "knowledge.manage": (COMPANY, "Add, edit and delete knowledge sources and FAQs"),
+    "knowledge.approve": (COMPANY, "Approve knowledge for the AI"),
+    "conversations.view": (COMPANY, "View AI conversations, transcripts and tool logs"),
     "billing.view": (COMPANY, "View subscription and billing"),
     "billing.manage": (COMPANY, "Change subscription and billing"),
 }
@@ -75,6 +84,15 @@ MANAGER_P3 = [
     "calendar.manage",
     "calendar.configure",
 ]
+MANAGER_P4 = [
+    "ai_employees.view",
+    "ai_employees.manage",
+    "knowledge.view",
+    "knowledge.manage",
+    "knowledge.approve",
+    "conversations.view",
+]
+AGENT_P4 = ["ai_employees.view", "knowledge.view", "conversations.view"]
 AGENT_P3 = ["leads.view", "leads.manage", "catalog.view", "calendar.view", "calendar.manage"]
 
 SEED_ROLES = [
@@ -97,6 +115,6 @@ SEED_ROLES = [
         ],
     ),
     (COMPANY, "owner", "Owner / Admin", COMPANY_KEYS),
-    (COMPANY, "manager", "Manager", ["company.view", "team.view", *MANAGER_P3]),
-    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3]),
+    (COMPANY, "manager", "Manager", ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4]),
+    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3, *AGENT_P4]),
 ]

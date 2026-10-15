@@ -29,3 +29,30 @@ def save_public(upload, folder, images_only=True) -> str:
     ext = validate_upload(upload, images_only=images_only)
     path = default_storage.save(f"{folder}/{uuid.uuid4().hex}.{ext}", upload)
     return default_storage.url(path)
+
+
+def scan(data: bytes):
+    """SEC-11 malware scan through ClamAV (clamd INSTREAM). CLAMAV_ADDRESS (host:port) is infrastructure (.env);
+    when it is empty the scan is skipped — the launch checklist (Phase 8) requires it on staging / production."""
+    import socket
+    import struct
+
+    from django.conf import settings
+
+    address = getattr(settings, "CLAMAV_ADDRESS", "")
+    if not address:
+        return "not_scanned"
+    host, _, port = address.rpartition(":")
+    try:
+        with socket.create_connection((host, int(port)), timeout=30) as sock:
+            sock.sendall(b"zINSTREAM\0")
+            for i in range(0, len(data), 64 * 1024):
+                part = data[i : i + 64 * 1024]
+                sock.sendall(struct.pack("!L", len(part)) + part)
+            sock.sendall(struct.pack("!L", 0))
+            reply = sock.recv(4096).decode(errors="replace").strip("\0 \n")
+    except OSError as exc:
+        raise ValidationError(f"The virus scanner is not reachable ({exc}). Try again later.") from None
+    if not reply.endswith("OK"):
+        raise ValidationError("This file failed the virus scan and was rejected.")
+    return "clean"

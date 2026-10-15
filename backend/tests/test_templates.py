@@ -121,7 +121,7 @@ def test_mvp_templates_are_seeded_and_published():
         "manual",
         "import",
     }
-    assert EmployeeRole.objects.count() == 4
+    assert EmployeeRole.objects.count() == 5  # Phase 4 adds the Follow-up Employee (ROLE-05)
 
 
 # ---------------------------------------------------------------- field engine + INR

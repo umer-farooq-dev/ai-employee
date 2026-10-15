@@ -11,6 +11,7 @@ ENTITLEMENTS = [
     ("whatsapp_conversations", "WhatsApp conversations / month"),
     ("ai_credits", "AI credits / month"),
     ("kb_storage_mb", "Knowledge storage (MB)"),
+    ("kb_sources", "Knowledge sources"),
     ("concurrent_calls", "Concurrent calls"),
     ("campaigns", "Active campaigns"),
     ("custom_fields", "Company custom CRM fields"),
