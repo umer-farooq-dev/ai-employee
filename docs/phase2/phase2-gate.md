@@ -46,7 +46,7 @@ Also fixed: API lists are now cursor-paginated (page size 25, `?page_size=` up t
 - [x] No template demo text left (automated check over every page and website template)
 - [x] Cross-company tests for the new team endpoints
 - [x] Lint, migrations check, Bandit (0 issues), pip-audit (no known vulnerabilities), 104 tests green locally
-- [ ] GitHub CI green on the pushed commit
+- [x] GitHub CI green on the pushed commit (run 38730894406)
 - [ ] Lighthouse ≥ 90 on mobile and desktop (measure on the demo server)
 - [ ] Device testing: desktop, laptop, tablet, Android, iPhone
 - [ ] Client sign-off
