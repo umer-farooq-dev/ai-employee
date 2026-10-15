@@ -508,6 +508,10 @@ def test_grounding_check_compares_amounts_in_any_format():
     facts = "Price: ₹85,00,000. Booking amount 10%."
     assert runtime.ungrounded("It is ₹85 lakh, booking 10%.", facts) == []
     assert len(runtime.ungrounded("It is 90 lakh with 5% off.", facts)) == 2
+    # Hindi / Bengali units are read as amounts too (a real answer "₹85 लाख" must not be blocked)
+    assert runtime.ungrounded("ग्रीन वैली ₹85 लाख का है।", facts) == []
+    assert runtime.ungrounded("দাম ৮৫ লাখ, মানে ₹85 লাখ", facts) == []
+    assert runtime.ungrounded("सिर्फ ₹50 लाख में!", facts) == [5000000 * 100]
 
 
 @pytest.mark.django_db

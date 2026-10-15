@@ -30,8 +30,9 @@ from .models import ToolInvocation
 
 GOLDEN = Path(__file__).parent / "eval" / "golden.json"
 DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
-ALL_DAY = {d: {"open": "08:00", "close": "21:00", "closed": False} for d in DAYS}  # company business hours
-RESOURCE_HOURS = {d: "08:00-21:00" for d in DAYS}
+# open around the clock, so the result never depends on the time the evaluation runs
+ALL_DAY = {d: {"open": "00:00", "close": "23:59", "closed": False} for d in DAYS}
+RESOURCE_HOURS = {d: "00:00-23:59" for d in DAYS}
 
 
 def load(path=GOLDEN):

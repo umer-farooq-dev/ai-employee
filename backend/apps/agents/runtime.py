@@ -190,6 +190,13 @@ def system_prompt(conv, chunks, now=None):
             )
     # 3 role
     layers.append(f"## Your role: {employee.role.name}\n{employee.role.instructions}")
+    layers.append(
+        "## Using your tools\n"
+        "- When the customer asks what is available, search or match the catalogue right away with what you know; "
+        "ask for more details afterwards.\n"
+        "- Save details the customer gives with create_lead / update_lead as you go.\n"
+        "- Appointments: check availability, offer a slot, and book it as soon as the customer agrees."
+    )
     # 4 company profile
     profile = [f"Company: {company.name}", f"Today: {now:%A %d %B %Y}, time {now:%H:%M} (India time)"]
     if company.industry_id:
@@ -236,9 +243,11 @@ def _history(conv):
 
 
 # ------------------------------------------------------------------ grounding check (ENG-04, SEC-14)
+# Units in Latin, Hindi and Bengali script. The lookahead (instead of \b) also ends correctly after the
+# combining marks of Devanagari / Bengali words such as करोड़.
+UNITS = r"lakhs?|lacs?|crores?|cr|लाख|करोड़|करोड|हज़ार|हजार|লাখ|লক্ষ|কোটি|হাজার"
 AMOUNT = re.compile(
-    r"(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(lakhs?|lacs?|crores?|cr|k)?\b"
-    r"|([\d,]+(?:\.\d+)?)\s*(lakhs?|lacs?|crores?|cr)\b",
+    rf"(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*({UNITS}|k)?(?![^\W\d_])" rf"|([\d,]+(?:\.\d+)?)\s*({UNITS})(?![^\W\d_])",
     re.I,
 )
 PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|percent|प्रतिशत)", re.I)
