@@ -122,6 +122,19 @@ _Client se confirm: travel package aur course catalogue ke fields (CAT-05, CAT-0
 
 ---
 
+## Phase 4 — AI Engine (text), Knowledge, Tools, AI Employees
+
+1. [x] **AI Settings** (SA-09, ENG-09): vendor cards (on/off toggle, key popup — bina page reload), keys encrypted, models + prices, connection test, model per task + fallback order, test-only providers production mein blocked
+2. [ ] Tool registry + tools (TOOL-01..07, 13..15, CAT-03 matching, CAL-06 booking tools)
+3. [ ] Knowledge base: website, documents, FAQs, approved text, catalogue, approval, test, unanswered report (KB-01..11, TEN-04)
+4. [ ] AI engine: layered prompt, tool calling, no invented facts, disclosure, extraction, mixed language, returning customer, guardrails, usage metering (ENG-01..11, SEC-14, COMP-01)
+5. [ ] AI Employees: list, 10-step wizard, versions, pause; approval par template se khud banna (EMP-01..14, ROLE-02..05)
+6. [ ] AI scoring + reason + history (SCORE-01, 03, 04, 06)
+7. [ ] Super Admin: saari companies ke AI Employees (SA-08)
+8. [ ] Har feature ki REST API + tests
+
+---
+
 ## Har phase ke rules (kabhi miss nahi karne)
 
 - **No hard-coding** — har business value Super Admin / database se

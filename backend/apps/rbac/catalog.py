@@ -21,6 +21,7 @@ PERMISSIONS = {
     "crm_config.manage": (PLATFORM, "Configure CRM: statuses, sources, import limits"),
     "employee_roles.manage": (PLATFORM, "Manage AI Employee role templates"),
     "holidays.manage": (PLATFORM, "Manage platform holidays"),
+    "ai_providers.manage": (PLATFORM, "Manage AI providers, keys and model per task"),
     "enquiries.view": (PLATFORM, "View website enquiries"),
     "enquiries.manage": (PLATFORM, "Update website enquiries"),
     "users.view": (PLATFORM, "View users"),

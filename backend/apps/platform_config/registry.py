@@ -32,6 +32,7 @@ GROUPS = {
     "sms": ("system", "SMS (mobile OTP)"),
     "crm": ("system", "CRM"),
     "calendar": ("system", "Calendar"),
+    "ai": ("system", "AI"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
@@ -245,6 +246,17 @@ SETTINGS = [
     Setting("crm.task_reminder_minutes", "number", 30, "Task reminder (minutes before due)", "crm", min=0, max=10080),
     # Calendar (CAL-*)
     Setting("calendar.appointment_prefix", "text", "APT-", "Appointment number prefix", "calendar"),
+    # F. AI (Phase 4)
+    Setting(
+        "ai.request_timeout_seconds",
+        "number",
+        60,
+        "AI provider request timeout (seconds)",
+        "ai",
+        help="After this the next provider in the fallback order is tried",
+        min=5,
+        max=600,
+    ),
     # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
     Setting(
         "sms.provider",

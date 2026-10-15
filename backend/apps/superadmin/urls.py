@@ -31,6 +31,7 @@ urlpatterns = [
     path("employee-roles/", tv.employee_roles, name="employee_roles"),
     path("platform/<slug:kind>/new/", tv.platform_item, name="platform_item_create"),
     path("platform/<slug:kind>/<uuid:pk>/", tv.platform_item, name="platform_item_edit"),
+    path("ai-settings/", views.ai_settings, name="ai_settings"),
     path("enquiries/", views.enquiry_list, name="enquiry_list"),
     path("enquiries/<uuid:pk>/", views.enquiry_detail, name="enquiry_detail"),
     path("users/", views.user_list, name="user_list"),

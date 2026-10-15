@@ -4,6 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
+from . import views_ai as aiapi
 from . import views_calendar as calapi
 from . import views_catalog as catapi
 from . import views_company as company
@@ -27,6 +28,7 @@ admin.register("lead-statuses", tpl.DefaultStatusViewSet, basename="admin-lead-s
 admin.register("lead-sources", tpl.LeadSourceViewSet, basename="admin-lead-sources")
 admin.register("holidays", tpl.HolidayViewSet, basename="admin-holidays")
 admin.register("employee-roles", tpl.EmployeeRoleViewSet, basename="admin-employee-roles")
+admin.register("ai-providers", aiapi.ProviderViewSet, basename="admin-ai-providers")
 admin.register("cms/pages", views.PageViewSet, basename="admin-cms-pages")
 admin.register("cms/sections", views.SectionViewSet, basename="admin-cms-sections")
 admin.register("email-templates", views.EmailTemplateViewSet, basename="admin-email-templates")
@@ -76,6 +78,8 @@ api_v1 = [
     path("calendar/config/", calapi.CalendarConfigView.as_view(), name="calendar-config"),
     path("calendar/", include(calendar_router.urls)),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),
+    path("admin/ai-routes/", aiapi.RoutesView.as_view(), name="admin-ai-routes"),
+    path("admin/ai-routes/<slug:task>/", aiapi.RoutesView.as_view(), name="admin-ai-route"),
     path("admin/uploads/", views.UploadView.as_view(), name="admin-uploads"),
     path("admin/sessions/", views.SessionsView.as_view(), name="admin-sessions"),
     path("admin/", include(admin.urls)),

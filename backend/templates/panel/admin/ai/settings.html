@@ -1,0 +1,509 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}AI Settings{% endblock %}
+{% block extra_css %}
+<style>
+    .vendor-card{border:1px solid var(--bs-border-color);border-radius:16px;padding:20px;cursor:pointer;height:100%;background:#fff;transition:border-color .15s,box-shadow .15s}
+    .vendor-card:hover,.vendor-card:focus-visible{border-color:var(--brand-primary);box-shadow:0 4px 18px rgba(16,21,55,.07);outline:0}
+    .vendor-logo{width:56px;height:56px;border-radius:14px;background:#161616;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;flex-shrink:0;overflow:hidden}
+    .vendor-logo.has-img{background:#fff;border:1px solid var(--bs-border-color)}
+    .vendor-logo img{width:100%;height:100%;object-fit:contain;padding:8px}
+    .vendor-status{font-size:12px;font-weight:600;white-space:nowrap}
+    .ai-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:#eef0ff;color:#4f46e5}
+    .ai-chip.embedding{background:#e9f9f1;color:#0f9f61}
+    .ai-chip.test{background:#fff6e5;color:#b26b00}
+    .vendor-switch .form-check-input{width:2.8em;height:1.5em;cursor:pointer;margin:0}
+    .ai-section{border:1px solid var(--bs-border-color);border-radius:14px;padding:18px;margin-bottom:16px}
+    .ai-section h6{font-size:14px;margin-bottom:12px}
+    .route-chain .badge{font-weight:500}
+    #provider-modal .modal-header,#route-modal .modal-header{background:#fff}
+    #provider-modal .modal-title,#route-modal .modal-title{color:var(--bs-heading-color,#101537)}
+</style>
+{% endblock %}
+{% block page_content %}
+<div class="mt-3 mb-3">
+    <h4 class="mb-1">AI Settings</h4>
+    <p class="text-muted mb-0">AI providers, their keys and the model the AI Employees use for each task.</p>
+</div>
+
+<div class="card">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h5 class="mb-1"><i class="iconoir-shop me-1"></i>Vendors</h5>
+                <div class="text-muted small">Click a vendor to configure its key &amp; models</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-provider"><i class="iconoir-plus me-1"></i>Add provider</button>
+        </div>
+        {% if data.production %}<div class="alert alert-warning py-2 small">Production server: test-only providers (free gateways) are blocked.</div>{% endif %}
+        <div class="row g-3" id="vendor-grid"></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-4">
+        <h5 class="mb-1"><i class="iconoir-git-fork me-1"></i>Model per task</h5>
+        <div class="text-muted small mb-3">The AI uses the first provider in the list; if it fails, the next one is used automatically (fallback).</div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Task</th><th>Provider / model (in fallback order)</th><th class="text-end"></th></tr></thead>
+                <tbody id="route-rows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts" aria-live="polite"></div>
+{{ data|json_script:"ai-data" }}
+{% endblock page_content %}
+
+{% block modal %}
+<div class="modal fade" id="provider-modal" tabindex="-1" aria-labelledby="pm-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form class="modal-content" id="provider-form" novalidate autocomplete="off">
+            <div class="modal-header border-0 pb-0 align-items-start">
+                <div class="d-flex gap-3 align-items-center">
+                    <div class="vendor-logo" id="pm-logo"></div>
+                    <div>
+                        <h5 class="modal-title mb-1" id="pm-title"></h5>
+                        <div class="text-muted small">Configure the API key and models for this vendor.</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-4">
+                <div class="alert py-2 small d-none" id="pm-alert" role="alert"></div>
+
+                <div class="ai-section">
+                    <label class="form-label fw-semibold" for="pm-key">API Key</label>
+                    <input type="password" class="form-control" id="pm-key" autocomplete="new-password" spellcheck="false">
+                    <div class="small text-success mt-2 d-none" id="pm-key-note"><i class="iconoir-check-circle me-1"></i>A key is currently stored. Leave blank to keep it.</div>
+                    <button type="button" class="btn btn-link text-dark px-0 mt-1 d-none" id="pm-remove-key"><i class="iconoir-trash me-1"></i>Remove key</button>
+                </div>
+
+                <div class="ai-section">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <h6 class="mb-0">Models</h6>
+                        <button type="button" class="btn btn-sm btn-light" id="pm-load"><i class="iconoir-refresh-double me-1"></i>Save &amp; load models from provider</button>
+                    </div>
+                    <div class="small text-muted mb-2">Only models added here can be chosen for a task. Prices are per 1 million tokens (<span class="ai-currency"></span>), used for cost reports.</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-2">
+                            <thead><tr><th>Model</th><th style="width:140px">Input price</th><th style="width:140px">Output price</th><th style="width:40px"></th></tr></thead>
+                            <tbody id="pm-models"></tbody>
+                        </table>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" id="pm-model-new" list="pm-model-options" placeholder="Model name, e.g. pick from the loaded list" aria-label="Model to add">
+                        <button type="button" class="btn btn-outline-primary" id="pm-model-add">Add model</button>
+                    </div>
+                    <datalist id="pm-model-options"></datalist>
+                    <div class="small text-muted mt-1" id="pm-model-count"></div>
+                </div>
+
+                <div class="ai-section mb-0">
+                    <h6>Connection</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label" for="pm-name">Name</label><input class="form-control" id="pm-name" required maxlength="120"></div>
+                        <div class="col-md-6" id="pm-key-wrap"><label class="form-label" for="pm-slug">Key</label><input class="form-control" id="pm-slug" pattern="[a-z0-9-]+" maxlength="60" placeholder="e.g. my-gateway"><div class="form-text">Lower-case letters, numbers and dashes. Cannot be changed later.</div></div>
+                        <div class="col-12"><label class="form-label" for="pm-url">Base URL</label><input class="form-control" id="pm-url" required placeholder="https://…/v1"></div>
+                        <div class="col-md-6"><label class="form-label" for="pm-adapter">API type</label><select class="form-select" id="pm-adapter"></select></div>
+                        <div class="col-md-6"><span class="form-label d-block">Offers</span><div id="pm-caps" class="d-flex gap-3 pt-1"></div></div>
+                        <div class="col-12"><label class="form-label" for="pm-desc">Description</label><input class="form-control" id="pm-desc" maxlength="255"></div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="pm-logo-url">Logo</label>
+                            <div class="input-group"><input class="form-control" id="pm-logo-url" placeholder="Image URL or upload"><label class="btn btn-outline-secondary mb-0" for="pm-logo-file">Upload</label></div>
+                            <input type="file" id="pm-logo-file" accept="image/*" class="d-none">
+                        </div>
+                        <div class="col-md-4"><label class="form-label" for="pm-order">Order</label><input type="number" min="0" class="form-control" id="pm-order"></div>
+                        <div class="col-12">
+                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pm-test-only"><label class="form-check-label" for="pm-test-only">Test only (free / test gateway — blocked on the production server)</label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-link text-danger px-0" id="pm-delete">Delete provider</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="pm-save">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="route-modal" tabindex="-1" aria-labelledby="rm-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form class="modal-content" id="route-form" novalidate>
+            <div class="modal-header">
+                <div><h5 class="modal-title mb-1" id="rm-title"></h5><div class="text-muted small">First row is used; the rows below are fallbacks in order.</div></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 small d-none" id="rm-alert" role="alert"></div>
+                <div id="rm-rows"></div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="rm-add"><i class="iconoir-plus me-1"></i>Add fallback</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="rm-save">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock modal %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+    "use strict";
+    var D = JSON.parse(document.getElementById("ai-data").textContent);
+    var API = {
+        providers: "{% url 'api:admin-ai-providers-list' %}",
+        routes: "{% url 'api:admin-ai-routes' %}",
+        upload: "{% url 'api:admin-uploads' %}"
+    };
+    var TOKEN = "{{ csrf_token }}";
+    var grid = document.getElementById("vendor-grid");
+    var pmEl = document.getElementById("provider-modal"), rmEl = document.getElementById("route-modal");
+    var pm = new bootstrap.Modal(pmEl), rm = new bootstrap.Modal(rmEl);
+    var current = null, currentModels = [], currentTask = null;
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function byId(id) { return D.providers.find(function (p) { return p.id === id; }); }
+    function initials(name) { return (name.trim()[0] || "?").toUpperCase(); }
+    function logoHtml(p) { return p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : esc(initials(p.name || "?")); }
+    function setLogo(el, p) { el.innerHTML = logoHtml(p); el.classList.toggle("has-img", !!p.logo); }
+
+    function errorText(j) {
+        var e = (j && j.error) || {}, d = e.details;
+        if (Array.isArray(d) && d.length) return d.join(" ");
+        if (d && typeof d === "object" && Object.keys(d).length) {
+            return Object.keys(d).map(function (k) { return k + ": " + [].concat(d[k]).join(" "); }).join(" ");
+        }
+        return e.message || "Something went wrong.";
+    }
+    function api(method, url, body, isForm) {
+        var opts = {method: method, headers: {"X-CSRFToken": TOKEN, "Accept": "application/json"}, credentials: "same-origin"};
+        if (body !== undefined) {
+            if (isForm) { opts.body = body; } else { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+        }
+        return fetch(url, opts).then(function (r) {
+            if (r.status === 204) return null;
+            return r.json().catch(function () { return {}; }).then(function (j) {
+                if (!r.ok) throw new Error(errorText(j));
+                return j;
+            });
+        });
+    }
+    function toast(text, ok) {
+        var el = document.createElement("div");
+        el.className = "toast align-items-center border-0 text-white " + (ok === false ? "bg-danger" : "bg-success");
+        el.setAttribute("role", ok === false ? "alert" : "status");
+        el.innerHTML = '<div class="d-flex"><div class="toast-body">' + esc(text) + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+        $("toasts").appendChild(el);
+        var t = new bootstrap.Toast(el, {delay: ok === false ? 6000 : 2500});
+        el.addEventListener("hidden.bs.toast", function () { el.remove(); });
+        t.show();
+    }
+    function busy(btn, on) { btn.disabled = on; btn.classList.toggle("opacity-75", on); }
+
+    // ---------------------------------------------------------------- vendor cards
+    function status(p) {
+        if (p.health && p.health.ok === true) return '<span class="vendor-status text-success"><i class="iconoir-check-circle"></i> Connected</span>';
+        if (p.health && p.health.ok === false) return '<span class="vendor-status text-danger"><i class="iconoir-warning-circle"></i> Connection failed</span>';
+        if (p.has_key) return '<span class="vendor-status text-primary">Key saved · not tested</span>';
+        return '<span class="vendor-status text-muted">Not connected</span>';
+    }
+    function chips(p) {
+        var out = [];
+        p.capabilities.forEach(function (cap) {
+            var n = D.tasks.filter(function (t) { return t.capability === cap; })
+                .reduce(function (sum, t) { return sum + (p.usage[t.task] || 0); }, 0);
+            var icon = cap === "embedding" ? "iconoir-database" : "iconoir-chat-lines";
+            out.push('<span class="ai-chip ' + cap + '"><i class="' + icon + '"></i>' + esc(D.capabilities[cap]) + (n ? " " + n : "") + "</span>");
+        });
+        if (p.test_only) out.push('<span class="ai-chip test"><i class="iconoir-flask"></i>Test only</span>');
+        return out.join("");
+    }
+    function card(p) {
+        return '<div class="col-md-6"><div class="vendor-card d-flex align-items-center gap-3" tabindex="0" role="button" data-id="' + p.id + '" aria-label="Configure ' + esc(p.name) + '">' +
+            '<div class="vendor-logo' + (p.logo ? " has-img" : "") + '">' + logoHtml(p) + "</div>" +
+            '<div class="flex-grow-1" style="min-width:0">' +
+            '<div class="d-flex flex-wrap align-items-center gap-2"><span class="fw-semibold fs-16">' + esc(p.name) + "</span>" + status(p) + "</div>" +
+            '<div class="d-flex flex-wrap gap-1 mt-2">' + chips(p) + "</div></div>" +
+            '<div class="form-check form-switch vendor-switch" title="On / off">' +
+            '<input class="form-check-input" type="checkbox" role="switch" data-toggle="' + p.id + '"' + (p.is_active ? " checked" : "") + ' aria-label="' + esc(p.name) + ' on or off"></div>' +
+            "</div></div>";
+    }
+    function renderGrid() { grid.innerHTML = D.providers.map(card).join(""); }
+    function replaceProvider(p) {
+        var i = D.providers.findIndex(function (x) { return x.id === p.id; });
+        if (i < 0) D.providers.push(p); else D.providers[i] = p;
+        D.providers.sort(function (a, b) { return a.sort_order - b.sort_order || a.name.localeCompare(b.name); });
+        renderGrid(); renderRoutes();
+    }
+
+    grid.addEventListener("click", function (e) {
+        if (e.target.closest(".vendor-switch")) return;
+        var c = e.target.closest(".vendor-card");
+        if (c) openProvider(byId(c.dataset.id));
+    });
+    grid.addEventListener("keydown", function (e) {
+        var c = e.target.closest(".vendor-card");
+        if (c && e.target === c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openProvider(byId(c.dataset.id)); }
+    });
+    grid.addEventListener("change", function (e) {
+        var input = e.target.closest("[data-toggle]");
+        if (!input) return;
+        var p = byId(input.dataset.toggle), on = input.checked;
+        input.disabled = true;
+        api("POST", API.providers + p.id + "/active/", {is_active: on})
+            .then(function (np) { replaceProvider(np); toast(np.name + (on ? " switched on" : " switched off")); })
+            .catch(function (err) { input.checked = !on; input.disabled = false; toast(err.message, false); });
+    });
+
+    // ---------------------------------------------------------------- provider popup
+    function showAlert(text, kind) {
+        var a = $("pm-alert");
+        a.className = "alert py-2 small alert-" + kind;
+        a.textContent = text;
+    }
+    function hideAlert() { $("pm-alert").className = "alert py-2 small d-none"; }
+    function healthAlert(p) {
+        if (!p || !p.health || p.health.ok == null) return hideAlert();
+        showAlert(p.health.message, p.health.ok ? "success" : "danger");
+    }
+    function renderModels() {
+        $("pm-models").innerHTML = currentModels.length ? currentModels.map(function (m, i) {
+            return "<tr><td class=\"text-break\"><code>" + esc(m.id) + "</code></td>" +
+                '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="input_cost" data-i="' + i + '" value="' + (m.input_cost || 0) + '" aria-label="Input price for ' + esc(m.id) + '"></td>' +
+                '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="output_cost" data-i="' + i + '" value="' + (m.output_cost || 0) + '" aria-label="Output price for ' + esc(m.id) + '"></td>' +
+                '<td><button type="button" class="btn btn-sm btn-link text-danger p-0" data-remove="' + i + '" aria-label="Remove ' + esc(m.id) + '"><i class="iconoir-xmark"></i></button></td></tr>';
+        }).join("") : '<tr><td colspan="4" class="text-muted small">No models yet. Save the key, then load the list from the provider, or type a model name.</td></tr>';
+    }
+    $("pm-models").addEventListener("input", function (e) {
+        var el = e.target.closest("[data-cost]");
+        if (el) currentModels[+el.dataset.i][el.dataset.cost] = parseFloat(el.value) || 0;
+    });
+    $("pm-models").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-remove]");
+        if (b) { currentModels.splice(+b.dataset.remove, 1); renderModels(); }
+    });
+    function addModel() {
+        var id = $("pm-model-new").value.trim();
+        if (!id) return;
+        if (!currentModels.some(function (m) { return m.id === id; })) currentModels.push({id: id, input_cost: 0, output_cost: 0});
+        $("pm-model-new").value = "";
+        renderModels();
+    }
+    $("pm-model-add").addEventListener("click", addModel);
+    $("pm-model-new").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addModel(); } });
+
+    function openProvider(p) {
+        current = p || null;
+        var isNew = !p;
+        p = p || {name: "", key: "", base_url: "", adapter: "openai", capabilities: ["chat"], available_models: [], test_only: false, description: "", logo: "", sort_order: (D.providers.length + 1) * 10, has_key: false};
+        $("pm-title").textContent = isNew ? "Add provider" : p.name;
+        setLogo($("pm-logo"), p);
+        $("pm-key").value = "";
+        $("pm-key").placeholder = p.has_key ? "•••••••••••• (saved — type to replace)" : "Paste the API key";
+        $("pm-key-note").classList.toggle("d-none", !p.has_key);
+        $("pm-remove-key").classList.toggle("d-none", !p.has_key);
+        $("pm-name").value = p.name;
+        $("pm-slug").value = p.key; $("pm-key-wrap").classList.toggle("d-none", !isNew);
+        $("pm-url").value = p.base_url;
+        $("pm-adapter").innerHTML = Object.keys(D.adapters).map(function (k) { return '<option value="' + k + '"' + (k === p.adapter ? " selected" : "") + ">" + esc(D.adapters[k]) + "</option>"; }).join("");
+        $("pm-caps").innerHTML = Object.keys(D.capabilities).map(function (k) {
+            return '<div class="form-check"><input class="form-check-input" type="checkbox" id="cap-' + k + '" value="' + k + '"' + (p.capabilities.indexOf(k) >= 0 ? " checked" : "") + '><label class="form-check-label" for="cap-' + k + '">' + esc(D.capabilities[k]) + "</label></div>";
+        }).join("");
+        $("pm-desc").value = p.description;
+        $("pm-logo-url").value = p.logo;
+        $("pm-order").value = p.sort_order;
+        $("pm-test-only").checked = p.test_only;
+        $("pm-delete").classList.toggle("d-none", isNew);
+        currentModels = p.available_models.map(function (m) { return Object.assign({}, m); });
+        $("pm-model-options").innerHTML = ""; $("pm-model-count").textContent = "";
+        renderModels();
+        healthAlert(current);
+        pm.show();
+    }
+    $("add-provider").addEventListener("click", function () { openProvider(null); });
+
+    function formPayload() {
+        var body = {
+            name: $("pm-name").value.trim(),
+            base_url: $("pm-url").value.trim(),
+            adapter: $("pm-adapter").value,
+            capabilities: [].slice.call($("pm-caps").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
+            description: $("pm-desc").value.trim(),
+            logo: $("pm-logo-url").value.trim(),
+            sort_order: parseInt($("pm-order").value, 10) || 0,
+            test_only: $("pm-test-only").checked,
+            available_models: currentModels
+        };
+        if ($("pm-key").value.trim()) body.api_key = $("pm-key").value.trim();
+        if (!current) body.key = $("pm-slug").value.trim();
+        return body;
+    }
+    function saveProvider() {
+        var body = formPayload();
+        var req = current ? api("PATCH", API.providers + current.id + "/", body) : api("POST", API.providers, body);
+        return req.then(function (p) { current = p; replaceProvider(p); $("pm-key").value = ""; return p; });
+    }
+    $("provider-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var btn = $("pm-save"); busy(btn, true);
+        saveProvider()
+            .then(function (p) { pm.hide(); toast(p.name + " saved"); })
+            .catch(function (err) { showAlert(err.message, "danger"); })
+            .finally(function () { busy(btn, false); });
+    });
+    $("pm-load").addEventListener("click", function () {
+        var btn = this; busy(btn, true); showAlert("Checking the connection…", "info");
+        saveProvider()
+            .then(function (p) {
+                $("pm-title").textContent = p.name; $("pm-key-wrap").classList.add("d-none");
+                $("pm-delete").classList.remove("d-none");
+                $("pm-key-note").classList.toggle("d-none", !p.has_key); $("pm-remove-key").classList.toggle("d-none", !p.has_key);
+                $("pm-key").placeholder = p.has_key ? "•••••••••••• (saved — type to replace)" : "Paste the API key";
+                return api("POST", API.providers + p.id + "/test/", {});
+            })
+            .then(function (res) {
+                showAlert(res.health.message, res.health.ok ? "success" : "danger");
+                current.health = res.health; replaceProvider(current);
+                $("pm-model-options").innerHTML = res.models.map(function (m) { return '<option value="' + esc(m) + '">'; }).join("");
+                $("pm-model-count").textContent = res.models.length ? res.models.length + " models available — start typing above to pick one." : "";
+                api("GET", API.providers + current.id + "/").then(function (p) { current = p; replaceProvider(p); });
+            })
+            .catch(function (err) { showAlert(err.message, "danger"); })
+            .finally(function () { busy(btn, false); });
+    });
+    $("pm-remove-key").addEventListener("click", function () {
+        if (!current || !window.confirm("Remove the stored key for " + current.name + "? The provider will be switched off.")) return;
+        api("PATCH", API.providers + current.id + "/", {remove_key: true})
+            .then(function (p) { replaceProvider(p); openProvider(p); toast("Key removed"); })
+            .catch(function (err) { showAlert(err.message, "danger"); });
+    });
+    $("pm-delete").addEventListener("click", function () {
+        if (!current || !window.confirm("Delete " + current.name + "? Its task routes are removed too.")) return;
+        api("DELETE", API.providers + current.id + "/")
+            .then(function () {
+                var id = current.id;
+                D.providers = D.providers.filter(function (p) { return p.id !== id; });
+                D.tasks.forEach(function (t) { t.routes = t.routes.filter(function (r) { return r.provider !== id; }); });
+                renderGrid(); renderRoutes(); pm.hide(); toast("Provider deleted");
+            })
+            .catch(function (err) { showAlert(err.message, "danger"); });
+    });
+    $("pm-logo-file").addEventListener("change", function () {
+        if (!this.files.length) return;
+        var fd = new FormData(); fd.append("file", this.files[0]);
+        api("POST", API.upload, fd, true)
+            .then(function (j) { $("pm-logo-url").value = j.url; setLogo($("pm-logo"), {logo: j.url, name: $("pm-name").value}); })
+            .catch(function (err) { showAlert(err.message, "danger"); });
+        this.value = "";
+    });
+
+    // ---------------------------------------------------------------- model per task
+    function renderRoutes() {
+        $("route-rows").innerHTML = D.tasks.map(function (t) {
+            var chain = t.routes.map(function (r, i) {
+                var p = byId(r.provider) || {name: "?", is_active: false};
+                return '<span class="badge ' + (p.is_active ? "bg-primary-subtle text-primary" : "bg-light text-muted") + ' me-1 mb-1">' + (i + 1) + ". " + esc(p.name) + " / " + esc(r.model) + (p.is_active ? "" : " (off)") + "</span>";
+            }).join('<i class="iconoir-arrow-right text-muted me-1"></i>');
+            return "<tr><td><div class=\"fw-medium\">" + esc(t.label) + '</div><div class="small text-muted">' + esc(D.capabilities[t.capability]) + "</div></td>" +
+                '<td class="route-chain">' + (chain || '<span class="text-warning small">Not set</span>') + "</td>" +
+                '<td class="text-end"><button type="button" class="btn btn-sm btn-light" data-task="' + t.task + '">Edit</button></td></tr>';
+        }).join("");
+    }
+    $("route-rows").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-task]");
+        if (b) openRoute(D.tasks.find(function (t) { return t.task === b.dataset.task; }));
+    });
+
+    var draft = [];
+    function providerOptions(cap, selected) {
+        return '<option value="">Choose provider…</option>' + D.providers.filter(function (p) { return p.capabilities.indexOf(cap) >= 0; }).map(function (p) {
+            return '<option value="' + p.id + '"' + (p.id === selected ? " selected" : "") + ">" + esc(p.name) + (p.is_active ? "" : " (off)") + "</option>";
+        }).join("");
+    }
+    function modelOptions(providerId, selected) {
+        var p = byId(providerId);
+        if (!p) return '<option value="">—</option>';
+        if (!p.available_models.length) return '<option value="">Add models to ' + esc(p.name) + " first</option>";
+        return p.available_models.map(function (m) { return '<option value="' + esc(m.id) + '"' + (m.id === selected ? " selected" : "") + ">" + esc(m.id) + "</option>"; }).join("");
+    }
+    function renderDraft() {
+        $("rm-rows").innerHTML = draft.map(function (r, i) {
+            return '<div class="row g-2 align-items-end mb-3 pb-3 border-bottom" data-row="' + i + '">' +
+                '<div class="col-12 small fw-semibold">' + (i === 0 ? "1. Primary" : (i + 1) + ". Fallback") + "</div>" +
+                '<div class="col-md-4"><label class="form-label small" for="rp-' + i + '">Provider</label><select class="form-select form-select-sm" id="rp-' + i + '" data-f="provider">' + providerOptions(currentTask.capability, r.provider) + "</select></div>" +
+                '<div class="col-md-4"><label class="form-label small" for="rmod-' + i + '">Model</label><select class="form-select form-select-sm" id="rmod-' + i + '" data-f="model">' + modelOptions(r.provider, r.model) + "</select></div>" +
+                '<div class="col-md-3"><label class="form-label small" for="rpar-' + i + '">Parameters (JSON)</label><input class="form-control form-control-sm" id="rpar-' + i + '" data-f="params" placeholder=\'{"temperature": 0.3}\' value="' + esc(Object.keys(r.params || {}).length ? JSON.stringify(r.params) : "") + '"></div>' +
+                '<div class="col-md-1 d-flex gap-1 justify-content-end">' +
+                '<button type="button" class="btn btn-sm btn-light" data-move="-1" aria-label="Move up"' + (i === 0 ? " disabled" : "") + '><i class="iconoir-arrow-up"></i></button>' +
+                '<button type="button" class="btn btn-sm btn-light text-danger" data-del aria-label="Remove"><i class="iconoir-trash"></i></button></div></div>';
+        }).join("") || '<p class="text-muted small">No provider set for this task yet.</p>';
+    }
+    function openRoute(t) {
+        currentTask = t;
+        draft = t.routes.map(function (r) { return Object.assign({}, r); });
+        if (!draft.length) draft.push({provider: "", model: "", params: {}});
+        $("rm-title").textContent = t.label;
+        $("rm-alert").classList.add("d-none");
+        renderDraft();
+        rm.show();
+    }
+    $("rm-rows").addEventListener("change", function (e) {
+        var row = e.target.closest("[data-row]"); if (!row) return;
+        var r = draft[+row.dataset.row], f = e.target.dataset.f;
+        if (f === "provider") {
+            r.provider = e.target.value;
+            var p = byId(r.provider);
+            r.model = p && p.available_models.length ? p.available_models[0].id : "";
+            renderDraft();
+        } else if (f === "model") { r.model = e.target.value; }
+    });
+    $("rm-rows").addEventListener("input", function (e) {
+        var row = e.target.closest("[data-row]");
+        if (row && e.target.dataset.f === "params") draft[+row.dataset.row].paramsText = e.target.value;
+    });
+    $("rm-rows").addEventListener("click", function (e) {
+        var row = e.target.closest("[data-row]"); if (!row) return;
+        var i = +row.dataset.row;
+        if (e.target.closest("[data-del]")) { draft.splice(i, 1); renderDraft(); }
+        var mv = e.target.closest("[data-move]");
+        if (mv && i > 0) { var tmp = draft[i - 1]; draft[i - 1] = draft[i]; draft[i] = tmp; renderDraft(); }
+    });
+    $("rm-add").addEventListener("click", function () { draft.push({provider: "", model: "", params: {}}); renderDraft(); });
+    $("route-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var rows;
+        try {
+            rows = draft.filter(function (r) { return r.provider; }).map(function (r) {
+                var text = r.paramsText != null ? r.paramsText.trim() : null;
+                return {provider: r.provider, model: r.model, params: text == null ? (r.params || {}) : (text ? JSON.parse(text) : {})};
+            });
+        } catch (err) {
+            $("rm-alert").textContent = "Parameters must be valid JSON, e.g. {\"temperature\": 0.3}";
+            $("rm-alert").classList.remove("d-none");
+            return;
+        }
+        var btn = $("rm-save"); busy(btn, true);
+        api("PUT", API.routes + currentTask.task + "/", {routes: rows})
+            .then(function (saved) {
+                currentTask.routes = saved.map(function (r) { return {provider: r.provider, model: r.model, params: r.params}; });
+                D.providers.forEach(function (p) { p.usage[currentTask.task] = saved.filter(function (r) { return r.provider === p.id; }).length; });
+                renderGrid(); renderRoutes(); rm.hide(); toast(currentTask.label + " saved");
+            })
+            .catch(function (err) { $("rm-alert").textContent = err.message; $("rm-alert").classList.remove("d-none"); })
+            .finally(function () { busy(btn, false); });
+    });
+
+    document.querySelectorAll(".ai-currency").forEach(function (el) { el.textContent = D.currency; });
+    renderGrid();
+    renderRoutes();
+})();
+</script>
+{% endblock %}

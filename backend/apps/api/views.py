@@ -300,7 +300,10 @@ class UploadView(TenantContextMixin, APIView):
     """Image upload for settings and website content; returns the public URL to store in a setting / field."""
 
     parser_classes = [MultiPartParser]
-    permission_classes = [permissions.IsAuthenticated, any_perm("settings.general", "cms.manage")]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        any_perm("settings.general", "cms.manage", "ai_providers.manage"),
+    ]
 
     def post(self, request):
         upload = request.FILES.get("file")

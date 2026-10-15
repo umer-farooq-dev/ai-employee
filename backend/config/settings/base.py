@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "apps.crm",
     "apps.catalog",
     "apps.scheduling",
+    "apps.providers",
     "apps.cms",
     "apps.notifications",
     "apps.superadmin",

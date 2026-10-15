@@ -603,3 +603,31 @@ def enquiry_detail(request, pk):
             messages.success(request, "Enquiry updated.")
             return redirect("superadmin:enquiry_detail", pk=pk)
     return render(request, "panel/admin/enquiries/detail.html", {"enquiry": enquiry, "form": form})
+
+
+# ------------------------------------------------------------------ AI settings (SA-09)
+@staff_perm("ai_providers.manage")
+def ai_settings(request):
+    """Vendor cards, key popup, on/off toggles and model per task. The page talks to /api/v1/admin/ai-* (no reloads)."""
+    from apps.api.views_ai import ProviderSerializer
+    from apps.providers.models import CAPABILITIES, TASKS, Provider
+    from apps.providers.services import production, routes
+
+    chains = routes()
+    data = {
+        "providers": ProviderSerializer(Provider.objects.prefetch_related("routes"), many=True).data,
+        "tasks": [
+            {
+                "task": key,
+                "label": label,
+                "capability": cap,
+                "routes": [{"provider": str(r.provider_id), "model": r.model, "params": r.params} for r in chains[key]],
+            }
+            for key, label, cap in TASKS
+        ],
+        "capabilities": dict(CAPABILITIES),
+        "adapters": dict(Provider.ADAPTERS),
+        "currency": config.get("locale.currency"),
+        "production": production(),
+    }
+    return render(request, "panel/admin/ai/settings.html", {"data": data})

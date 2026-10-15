@@ -49,7 +49,6 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 |---|---|---|
 | `registration.enabled` | boolean | true |
 | `registration.approval_required` | boolean | true (new companies wait for Super Admin approval, AUTH-12) |
-| `registration.approval_required` | boolean | true (AUTH-12) |
 | `registration.email_verification` | choice (mandatory / optional) | optional during development → mandatory at launch |
 | `registration.mobile_otp_required` | boolean | false |
 | `registration.otp_length` / `otp_valid_minutes` / `otp_max_attempts` | number | 6 / 10 / 5 |
@@ -121,10 +120,11 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
+| `ai.request_timeout_seconds` | number | 60 | after this the next provider in the fallback order is tried |
 | `ai.fallback_message` | text per language | — | when facts are missing |
 | `ai.sentiment_min_confidence` | number 0–1 | 0.7 | below → not stored |
 | `ai.kb_top_k` | number | 5 | retrieved chunks per turn |
-| `ai.block_test_only_in_production` | boolean | true | **locked** — FreeLLMAPI never in production |
+| `ai.block_test_only_in_production` | — | always on | **locked** — enforced in code from `ENVIRONMENT=production` (not a setting): test-only providers (FreeLLMAPI, OmniRoute) are skipped and cannot be switched on |
 
 ## G. Billing — Phase 7 · screen: Settings → Billing
 
@@ -146,7 +146,7 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | Plans, prices, limits, overage prices | Plans & Pricing | P1 (payments P7) |
 | Roles and permissions | Roles & Permissions | P1 |
 | Email and notification templates | Settings → Templates | P1 |
-| AI providers, models per task, fallback order, Test-only flag | AI Providers | P4 |
+| AI providers (vendors seeded: OpenAI, Gemini, Anthropic, xAI, Groq, Mistral, DeepSeek, OpenRouter, Together, Cerebras, FreeLLMAPI, OmniRoute), keys, models + prices, model per task, fallback order, Test-only flag | AI Settings | P4 |
 | Industries and industry template versions | Industries | P3 |
 | Lead fields, statuses, sources, scoring rules | CRM Configuration | P3 |
 | Catalogue types and fields, appointment types, holidays | Industries / Calendar | P3 |
