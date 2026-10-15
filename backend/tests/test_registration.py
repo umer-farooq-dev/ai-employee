@@ -195,3 +195,13 @@ def test_phone_field_country_from_settings(client, set_setting):
     assert "data-phone" in html and 'initialCountry: "in"' in html
     set_setting("locale.default_phone_country", "ae")
     assert 'initialCountry: "ae"' in client.get("/contact/").content.decode()
+
+
+@pytest.mark.django_db
+def test_signed_in_user_is_told_instead_of_redirected(admin_client):
+    response = admin_client.get("/accounts/signup/")
+    assert response.status_code == 200 and b"already signed in" in response.content
+    assert b"admin@example.com" in response.content
+    out = admin_client.post("/accounts/logout/", {"next": "/accounts/signup/"})
+    assert out.url == "/accounts/signup/"
+    assert b"Create Account" in admin_client.get("/accounts/signup/").content
