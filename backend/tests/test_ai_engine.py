@@ -517,3 +517,103 @@ def test_messages_and_usage_are_per_company(ctx_a, sara, company_b, monkeypatch)
     runtime.reply(conv, "hello")
     with company_context(company_b.id):
         assert not Conversation.objects.exists() and not Message.objects.exists() and not UsageEvent.objects.exists()
+
+
+# ---------------------------------------------------------------- remaining tools (TOOL-03, 05, 06, 07, 15)
+@pytest.mark.django_db
+def test_email_callback_assignment_reschedule_and_cancel_tools(ctx_a, sara, mailoutbox):
+    from django.core.files.uploadedfile import SimpleUploadedFile as Upload
+
+    ctype = catalog.get_type(ctx_a, "property")
+    item = catalog.create_item(
+        ctx_a, ctype, {"project_name": "Green <b>Valley</b>", "location": "Baner", "price": "72 lakh", "bhk": "2 BHK"}
+    )
+    catalog.add_media(item, Upload("brochure.pdf", b"%PDF-1.4 brochure", content_type="application/pdf"), "brochure")
+    with company_context(ctx_a.id):
+        calendar.save_resource(
+            ctx_a,
+            {
+                "name": "Site",
+                "kind": "site",
+                "slot_minutes": 60,
+                "min_notice_minutes": 0,
+                "working_hours": {d: "10:00-17:00" for d in ("mon", "tue", "wed", "thu", "fri", "sat", "sun")},
+            },
+        )
+    conv = runtime.start(sara)
+    conv.is_test = False
+    conv.save()
+    ctx = toolkit.ToolContext(company=ctx_a, employee=sara, conversation=conv, turn=1)
+    tools = toolkit.enabled(sara)
+    assert "No lead yet" in toolkit.run(ctx, tools, "send_email", {"template": "ai/details"})["error"]
+    toolkit.run(ctx, tools, "create_lead", {"name": "Ravi", "phone": "+919876500020", "email": "ravi@example.com"})
+    found = toolkit.run(ctx, tools, "search_customer", {"query": "+919876500020"})
+    assert found["customers"][0]["name"] == "Ravi"
+
+    sent = toolkit.run(ctx, tools, "send_email", {"template": "ai/details", "item_id": str(item.pk)})
+    assert sent == {"sent": True, "to": "ravi@example.com"}
+    mail = mailoutbox[-1]
+    html = mail.alternatives[0][0]
+    assert "Green &lt;b&gt;Valley&lt;/b&gt;" in html and "₹72,00,000" in html  # values escaped
+    assert mail.attachments[0][0] == "brochure.pdf"
+    assert "is not one of" in toolkit.run(ctx, tools, "send_email", {"template": "account/x"})["error"]
+
+    day = next_monday()
+    slots = toolkit.run(ctx, tools, "check_availability", {"date": day.isoformat(), "appointment_type": "site_visit"})
+    booked = toolkit.run(
+        ctx,
+        tools,
+        "book_site_visit",
+        {"resource_id": slots["free_slots"][0]["resource_id"], "start": slots["free_slots"][0]["start"]},
+    )
+    ctx.turn = 2
+    moved = toolkit.run(ctx, tools, "reschedule_appointment", {"start": slots["free_slots"][2]["start"]})
+    assert moved["rescheduled"] and moved["appointment_number"] == booked["appointment_number"]
+    confirm = toolkit.run(ctx, tools, "send_email", {"template": "ai/appointment_confirmation"})
+    assert confirm["sent"] and booked["appointment_number"] in mailoutbox[-1].subject + mailoutbox[-1].body
+    assert toolkit.run(ctx, tools, "cancel_appointment", {"reason": "Travelling"})["cancelled"]
+    assert Appointment.objects.get(company=ctx_a).status == "cancelled"
+
+    callback = toolkit.run(ctx, tools, "schedule_callback", {"when": "kal", "message": "Wants loan details"})
+    assert callback["scheduled"] and Task.objects.filter(company=ctx_a, type="callback").exists()
+    escalated = toolkit.run(ctx, tools, "assign_salesperson", {"reason": "Hot lead"})
+    assert escalated["assigned"] is False and "task" in escalated["message"]  # no team rule → team gets a task
+
+
+@pytest.mark.django_db
+def test_travel_enquiry_and_course_eligibility_tools(company_b):
+    travel = Industry.objects.get(key="travel")
+    company_b.industry, company_b.template_version = travel, travel.published_version
+    company_b.save()
+    with company_context(company_b.id):
+        emp = employees.create_employee(company_b, {"role": "sales_executive"})
+        conv = runtime.start(emp)
+        ctx = toolkit.ToolContext(company=company_b, employee=emp, conversation=conv, turn=1)
+        tools = toolkit.enabled(emp)
+        assert {"search_packages", "create_booking_enquiry"} <= {t.key for t in tools}
+        toolkit.run(ctx, tools, "create_lead", {"name": "Priya", "phone": "+919876500030"})
+        out = toolkit.run(
+            ctx,
+            tools,
+            "create_booking_enquiry",
+            {"details": "Goa, 2 people, 20 Dec", "fields": {"passengers": 2, "destination": "Goa"}},
+        )
+        assert out["recorded"]
+        lead = Lead.objects.get(company=company_b)
+        assert lead.custom["passengers"] == 2 and lead.notes.exists() and lead.status.key == "qualified"
+
+    education = Industry.objects.get(key="education")
+    company_b.industry, company_b.template_version = education, education.published_version
+    company_b.save()
+    with company_context(company_b.id):
+        ctype = catalog.get_type(company_b, "course")
+        course = catalog.create_item(
+            company_b,
+            ctype,
+            {"course_name": "MBA", "institution": "Sunrise", "fees": "6 lakh", "eligibility": "Graduation with 50%"},
+        )
+        emp2 = employees.create_employee(company_b, {"role": "sales_executive", "industry": "education"})
+        conv2 = runtime.start(emp2)
+        ctx2 = toolkit.ToolContext(company=company_b, employee=emp2, conversation=conv2, turn=1)
+        out = toolkit.run(ctx2, toolkit.enabled(emp2), "check_eligibility", {"item_id": str(course.pk)})
+        assert out["Eligibility"] == "Graduation with 50%" and out["price"] == "₹6,00,000"

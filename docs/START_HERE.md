@@ -122,16 +122,21 @@ _Client se confirm: travel package aur course catalogue ke fields (CAT-05, CAT-0
 
 ---
 
-## Phase 4 — AI Engine (text), Knowledge, Tools, AI Employees
+## Phase 4 — AI Employee Engine, Knowledge Base & Tools
 
 1. [x] **AI Settings** (SA-09, ENG-09): vendor cards (on/off toggle, key popup — bina page reload), keys encrypted, models + prices, connection test, model per task + fallback order, test-only providers production mein blocked
-2. [ ] Tool registry + tools (TOOL-01..07, 13..15, CAT-03 matching, CAL-06 booking tools)
-3. [ ] Knowledge base: website, documents, FAQs, approved text, catalogue, approval, test, unanswered report (KB-01..11, TEN-04)
-4. [ ] AI engine: layered prompt, tool calling, no invented facts, disclosure, extraction, mixed language, returning customer, guardrails, usage metering (ENG-01..11, SEC-14, COMP-01)
-5. [ ] AI Employees: list, 10-step wizard, versions, pause; approval par template se khud banna (EMP-01..14, ROLE-02..05)
-6. [ ] AI scoring + reason + history (SCORE-01, 03, 04, 06)
-7. [ ] Super Admin: saari companies ke AI Employees (SA-08)
-8. [ ] Har feature ki REST API + tests
+2. [x] Tool registry + tools: create / update lead, search customer, catalogue search, availability / book / reschedule / cancel, assign salesperson, callback, e-mail; industry tools as configuration (TOOL-01..07, 13..15, SA-06); property matching (CAT-03); AI booking (CAL-06)
+3. [x] Knowledge base: website (crawl, re-sync), PDF / DOCX, FAQs (per language, bulk import), approved text, Excel / CSV records, approval, processing status, scope per AI Employee, test, unanswered report, citations (KB-01..11, TEN-04, SEC-11)
+4. [x] AI engine: 9-layer prompt, tool calling, grounding check (no invented prices / discounts), AI disclosure by the runtime, extraction (lakh / crore / Indian dates), Hinglish / Bengali-English, returning customer, guardrails, PII masking in logs, usage metering (ENG-01..11, SEC-14, COMP-01, USE-01)
+5. [x] AI Employees: list, 10-step wizard with text test console, readiness checklist, activate / pause / archive, settings versions + restore; approval par template se ready-made employee (EMP-01..12, EMP-14, ROLE-02..05)
+6. [x] AI scoring: AI intent + rules (weight in settings), reason, history on the timeline (SCORE-01, 03, 04, 06)
+7. [x] Super Admin: AI Employees of all companies (pause for abuse, role change, history, conversations + tool logs) (SA-08)
+8. [x] Quality evaluation suite: golden conversations Real Estate / Travel / Education × English / Hinglish / Hindi / Bengali (ENG-12)
+9. [x] Har feature ki REST API + tests
+
+**Phase 4 gate:** AI evaluation (3 industries × hi / en / bn) asli production model par · zero invented prices / discounts · extraction ≥ threshold · sahi tool aur arguments · prompt-injection aur cross-tenant knowledge tests · CI green · client sign-off
+
+_Voices (EMP-05) aur phone test (EMP-10 voice) Phase 5 mein; WhatsApp / website chat channels Phase 6 mein._
 
 ---
 
@@ -163,6 +168,10 @@ _Client se confirm: travel package aur course catalogue ke fields (CAT-05, CAT-0
 - Super Admin → System Settings → Registration → **Email verification = Mandatory** (development mein Optional)
 - **SMS provider** chun kar Super Admin mein lagana (client ka faisla) agar mobile OTP on karna hai
 - Demo / staging server par **"Allow search engines" off**, live par on
+- Cron mein har 5 minute: `process_knowledge` aur `end_idle_conversations` (README dekhein)
+- `.env` mein `CLAMAV_ADDRESS` (upload virus scan, SEC-11) — ClamAV hosting par chalana
+- Hosting par PostgreSQL **vector** extension (pgvector) on karna
+- Super Admin → AI Settings mein **production model** ki key; `run_ai_eval` gate pass (ENG-12)
 
 ## Pending (client se)
 - AI Marketing Employee ki definition

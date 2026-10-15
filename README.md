@@ -17,7 +17,9 @@ python backend/manage.py runserver
 - Website: http://127.0.0.1:8000/ · Company panel: http://127.0.0.1:8000/app/ · API docs: http://127.0.0.1:8000/api/v1/docs/
 - Super Admin: http://admin.localhost:8000/superadmin/ — its own host (`ADMIN_HOST`), so staff and company / website logins never mix in one browser
 - Emails: http://localhost:8025 (Mailpit)
-- Free LLM gateway (testing only, after the system is built): `docker compose --profile ai up -d`; it is connected as a provider in Super Admin (Phase 4)
+- Free LLM gateway (testing only): `docker compose --profile ai up -d`, then Super Admin → AI Settings → FreeLLMAPI (test only, blocked in production)
+- AI Employees need an AI provider: Super Admin → AI Settings → add a key, load models, switch it on, choose the model per task
+- Upload virus scan (optional locally): `docker compose --profile scan up -d` and `CLAMAV_ADDRESS=127.0.0.1:3310` in `.env`
 
 ## Database role and backups (any server)
 
@@ -28,8 +30,14 @@ python backend/manage.py runserver
 - Daily compressed backups: `docker compose --profile backup up -d` writes `./backups/db-*.dump` and keeps
   `BACKUP_KEEP_DAYS` (default 14). Copy them off the server. Point-in-time recovery is set up on the client's hosting (Phase 8).
 - Restore: `pg_restore --clean -d <database> backups/db-<date>.dump`
-- Scheduled job (cron, every 5 minutes): `python backend/manage.py send_task_reminders --base-url https://<domain>` emails
-  follow-up reminders (CRM-16).
+- The knowledge base needs the PostgreSQL `vector` extension (pgvector). The migration creates it as the database owner;
+  on managed hosting enable "vector" first.
+- Scheduled jobs (cron, every 5 minutes):
+  - `python backend/manage.py send_task_reminders --base-url https://<domain>` — follow-up reminder emails (CRM-16)
+  - `python backend/manage.py process_knowledge` — queued knowledge, website re-syncs, re-embedding (KB-01, KB-07)
+  - `python backend/manage.py end_idle_conversations` — closes idle AI conversations so summary, CRM and score update
+- AI quality gate (ENG-12): `python backend/manage.py run_ai_eval [--only real-estate] [--output report.json]` on the
+  production model (keys in Super Admin); exit code 1 when the thresholds in AI settings are not met.
 
 ## Code conventions
 

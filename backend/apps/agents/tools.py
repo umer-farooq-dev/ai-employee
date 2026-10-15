@@ -8,6 +8,7 @@ every call (ToolInvocation). Write tools are idempotent per conversation turn, s
 import datetime as dt
 import hashlib
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 
@@ -15,8 +16,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html, format_html_join
 from jsonschema import Draft7Validator
 
 from apps.catalog import services as catalog
@@ -35,6 +35,7 @@ from apps.scheduling.models import Appointment, Resource
 
 from .models import ToolInvocation
 
+log = logging.getLogger(__name__)
 MAX_RESULTS = 10
 CHANNEL_SOURCE = {"voice": "inbound_call", "whatsapp": "whatsapp", "web_chat": "website_chat", "test": "website_chat"}
 
@@ -528,8 +529,8 @@ def send_email(ctx, tool, args):
         rows = [("Price", format_inr(item.price_paise))] if item.price_paise is not None else []
         rows += [(d.label, field_engine.display(d, item.attributes.get(d.key))) for d in defs]
         context["item_title"] = item.title
-        context["item_details"] = mark_safe(  # noqa: S308 — every value is escaped here
-            "<ul>" + "".join(f"<li><strong>{escape(k)}:</strong> {escape(v)}</li>" for k, v in rows if v) + "</ul>"
+        context["item_details"] = format_html(
+            "<ul>{}</ul>", format_html_join("", "<li><strong>{}:</strong> {}</li>", ((k, v) for k, v in rows if v))
         )
         from apps.core.storage import private_storage
 
@@ -726,12 +727,19 @@ def definitions(ctx, tools):
     """What the model sees (layer 8 of the prompt)."""
     out = []
     for tool in tools:
-        try:
-            schema = HANDLERS[tool.handler][1](ctx, tool)
-        except Exception:  # noqa: BLE001 — a tool that cannot build its schema (e.g. no catalogue) is left out
-            continue
-        out.append({"name": tool.key, "description": tool.description, "parameters": schema})
+        schema = _schema_or_none(ctx, tool)
+        if schema is not None:
+            out.append({"name": tool.key, "description": tool.description, "parameters": schema})
     return out + [CANNOT_ANSWER]
+
+
+def _schema_or_none(ctx, tool):
+    """A tool that cannot build its schema (e.g. its catalogue type is missing) is left out, not fatal."""
+    try:
+        return HANDLERS[tool.handler][1](ctx, tool)
+    except Exception:  # noqa: BLE001
+        log.warning("tool %s skipped: schema could not be built", tool.key, exc_info=True)
+        return None
 
 
 # ------------------------------------------------------------------ execution (ENG-03, TOOL-14, SEC-14)

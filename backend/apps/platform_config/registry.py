@@ -334,6 +334,13 @@ SETTINGS = [
         max=100,
     ),
     Setting("ai.tokens_per_credit", "number", 1000, "Tokens per AI credit", "ai", min=1, max=1000000),
+    Setting(
+        "ai.eval_min_extraction_percent", "number", 85, "Evaluation gate: extraction accuracy (%)", "ai", min=0, max=100
+    ),
+    Setting("ai.eval_min_tool_percent", "number", 90, "Evaluation gate: correct tool use (%)", "ai", min=0, max=100),
+    Setting(
+        "ai.eval_min_language_percent", "number", 90, "Evaluation gate: reply language match (%)", "ai", min=0, max=100
+    ),
     Setting("ai.default_employee_name", "text", "Sara", "Name of the ready-made AI Employee (EMP-14)", "ai"),
     # Knowledge base (M08)
     Setting(

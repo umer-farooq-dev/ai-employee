@@ -116,15 +116,34 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `voice.latency_alert_p95_ms` | number | 2000 | quality alerts |
 | `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | |
 
-## F. AI — Phase 4 · screen: Super Admin → AI Providers
+## F. AI — Phase 4 · screen: Super Admin → System Settings → AI / Knowledge base (providers: AI Settings)
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `ai.request_timeout_seconds` | number | 60 | after this the next provider in the fallback order is tried |
-| `ai.fallback_message` | text per language | — | when facts are missing |
-| `ai.sentiment_min_confidence` | number 0–1 | 0.7 | below → not stored |
-| `ai.kb_top_k` | number | 5 | retrieved chunks per turn |
-| `ai.block_test_only_in_production` | — | always on | **locked** — enforced in code from `ENVIRONMENT=production` (not a setting): test-only providers (FreeLLMAPI, OmniRoute) are skipped and cannot be switched on |
+| `ai.guardrails` | textarea | platform rules (no invented facts, injection, language, confirmation, citations) | prompt layer 1 |
+| `ai.fallback_message` | text per language | en / hi / bn texts | when facts are missing; an AI Employee may set its own |
+| `ai.kb_top_k` | number | 5 | retrieved chunks per answer |
+| `ai.history_turns` / `ai.memory_conversations` | number | 12 / 3 | recent messages · earlier conversations remembered (ENG-08) |
+| `ai.max_tool_calls_per_turn` / `ai.max_tool_calls_per_conversation` | number | 5 / 40 | tool misuse limits |
+| `ai.max_turns_per_conversation` / `ai.max_message_chars` | number | 80 / 2000 | abuse limits |
+| `ai.conversation_idle_minutes` | number | 30 | idle conversations are closed (summary, CRM, score) |
+| `ai.min_confidence_percent` | number | 70 | below → sentiment / intent not stored |
+| `ai.intent_weight_percent` | number | 40 | AI intent share of the lead score (SCORE-03) |
+| `ai.tokens_per_credit` | number | 1000 | AI credits from tokens (USE-01) |
+| `ai.default_employee_name` | text | Sara | ready-made AI Employee on approval (EMP-14) |
+| `ai.eval_min_extraction_percent` / `ai.eval_min_tool_percent` / `ai.eval_min_language_percent` | number | 85 / 90 / 90 | ENG-12 gate; grounding and disclosure allow no failures |
+| test-only providers in production | — | always blocked | **locked** — enforced in code from `ENVIRONMENT=production` (not a setting): test-only providers (FreeLLMAPI, OmniRoute) are skipped and cannot be switched on |
+
+### F2. Knowledge base — Phase 4
+
+| Key | Type | Default |
+|---|---|---|
+| `knowledge.crawl_max_pages` / `knowledge.crawl_max_depth` | number | 50 / 2 (a source may set lower) |
+| `knowledge.chunk_chars` / `knowledge.chunk_overlap` | number | 1200 / 150 |
+| `knowledge.user_agent` | text | AIEmployeeBot/1.0 |
+
+Plan limits (Plans & Pricing): `ai_employees`, `kb_sources`, `kb_storage_mb`.
 
 ## G. Billing — Phase 7 · screen: Settings → Billing
 
@@ -150,6 +169,6 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | Industries and industry template versions | Industries | P3 |
 | Lead fields, statuses, sources, scoring rules | CRM Configuration | P3 |
 | Catalogue types and fields, appointment types, holidays | Industries / Calendar | P3 |
-| Employee roles and tool registry | Roles & Tools | P3/P4 |
+| Employee roles and tool registry (tool = handler + configuration, e.g. search_property = catalogue search on "property") | AI Employee Roles · AI Tools | P3/P4 |
 | Languages, voices, STT / TTS routes, telephony and WhatsApp providers | Languages & Voices / Providers | P5/P6 |
 | Feature flags | Feature Flags | P7 |
