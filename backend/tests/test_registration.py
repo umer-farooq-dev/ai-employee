@@ -187,3 +187,11 @@ def test_staff_user_never_gated(client, set_setting):
     staff = make_user("ops@example.com", "super_admin")
     client.force_login(staff)
     assert client.get("/superadmin/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_phone_field_country_from_settings(client, set_setting):
+    html = client.get("/accounts/signup/").content.decode()
+    assert "data-phone" in html and 'initialCountry: "in"' in html
+    set_setting("locale.default_phone_country", "ae")
+    assert 'initialCountry: "ae"' in client.get("/contact/").content.decode()

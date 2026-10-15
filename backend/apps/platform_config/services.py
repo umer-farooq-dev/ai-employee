@@ -75,6 +75,8 @@ def clean(key, value):
         phone_validator(value)
     if s.type == "color" and value and not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
         raise ValidationError(f"{s.label}: use a hex colour like #6534F4.")
+    if key == "locale.default_phone_country" and not re.fullmatch(r"[a-zA-Z]{2}", value):
+        raise ValidationError(f"{s.label}: use a two-letter country code, e.g. in.")
     if key.startswith("security.api_rate") and not RATE_RE.match(value):
         raise ValidationError(f"{s.label}: use the format 100/hour.")
     return value

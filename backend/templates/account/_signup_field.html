@@ -3,8 +3,7 @@
   <div class="single-inputs">
     <label for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %}*{% endif %}</label>
     {{ f }}
-    {% if f.help_text %}<div class="small text-muted mt-1">{{ f.help_text|safe }}</div>{% endif %}
-    {% for e in f.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+    {% for e in f.errors %}<div class="text-danger small field-error">{{ e }}</div>{% endfor %}
   </div>
 </div>
 {% endif %}

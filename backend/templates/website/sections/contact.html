@@ -33,7 +33,7 @@
                 <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.business_name.id_for_label }}">{{ f.business_name.label }}</label>
                   <input type="text" name="business_name" id="{{ f.business_name.id_for_label }}" placeholder="{{ f.business_name.label }}*" required maxlength="200" autocomplete="organization"></div></div>
                 <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.phone.id_for_label }}">{{ f.phone.label }}</label>
-                  <input type="tel" name="phone" id="{{ f.phone.id_for_label }}" placeholder="{{ f.phone.label }}*" required maxlength="16" autocomplete="tel"></div></div>
+                  <input type="tel" name="phone" id="{{ f.phone.id_for_label }}" required maxlength="20" autocomplete="tel" data-phone></div></div>
                 <div class="col-lg-6"><div class="input"><label class="visually-hidden" for="{{ f.email.id_for_label }}">{{ f.email.label }}</label>
                   <input type="email" name="email" id="{{ f.email.id_for_label }}" placeholder="{{ f.email.label }}*" required autocomplete="email"></div></div>
                 <div class="col-lg-12"><div class="input"><label class="visually-hidden" for="{{ f.industry.id_for_label }}">{{ f.industry.label }}</label>{{ f.industry }}</div></div>
@@ -78,3 +78,4 @@
   <img class="shape2" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
   <img class="shape3" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
 </div>
+{% include 'website/partials/phone-input.html' %}

@@ -1,0 +1,24 @@
+{% comment %}Professional phone field: flag + country list, default country from General Settings → Localisation.
+Every input with data-phone is enhanced; on submit its value becomes the full international number.{% endcomment %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/css/intlTelInput.min.css">
+<style>
+  .iti { width: 100%; display: block; }
+  .iti input[data-phone] { width: 100%; }
+  .iti__country-list, .iti__dropdown-content { z-index: 1050; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/intlTelInputWithUtils.min.js"></script>
+<script>
+  document.querySelectorAll("input[data-phone]").forEach(function (input) {
+    var iti = window.intlTelInput(input, {
+      initialCountry: "{{ platform.default_phone_country|default:'in'|lower|escapejs }}",
+      countryOrder: ["{{ platform.default_phone_country|default:'in'|lower|escapejs }}"],
+      separateDialCode: true,
+      strictMode: true,
+      nationalMode: true,
+    });
+    input.form && input.form.addEventListener("submit", function () {
+      var full = iti.getNumber();
+      if (full) input.value = full;
+    });
+  });
+</script>

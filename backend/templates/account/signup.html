@@ -1,30 +1,35 @@
 {% extends 'website/base.html' %}
-{# AUTH-01: company registration on the website design (eSoft account page). Fields come from apps/accounts/forms.py. #}
+{% load static %}
+{% comment %}AUTH-01: company registration on the eSoft "Create Account" layout, form card left, image right.
+Image: General Settings → Login page image. Fields come from apps/accounts/forms.py.{% endcomment %}
 {% block title %}Register your business | {{ platform.platform_name }}{% endblock title %}
+{% block body_class %}body2 body{% endblock %}
 {% block content %}
-<main id="main" class="log-in-area sp _relative">
+<main id="main" class="log-in-area sp _relative signup-area">
   <div class="container">
-    <div class="row"><div class="col-lg-6 m-auto text-center">
-      <div class="main-logo"><a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a></div>
-    </div></div>
-    <div class="space60"></div>
-    <div class="row justify-content-center">
-      <div class="col-lg-9">
+    <div class="row">
+      <div class="col-lg-6 m-auto text-center">
+        <div class="main-logo"><a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}"></a></div>
+      </div>
+    </div>
+    <div class="space80"></div>
+    <div class="row align-items-start">
+      <div class="col-lg-6">
         <div class="login-form">
           <div class="headding">
-            <h1 class="h2">Register your business</h1>
-            <p>Already registered? <a href="{% url 'account_login' %}">Sign in</a></p>
+            <h1 class="h2">Create Account</h1>
+            <p>Already have an account with us? <a href="{% url 'account_login' %}">Log in</a></p>
           </div>
-          {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+          {% if form.non_field_errors %}<div class="alert alert-danger mt-3" role="alert">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
           <form method="post" action="{% url 'account_signup' %}" class="inputs" novalidate>
             {% csrf_token %}
             {{ redirect_field }}
             <input type="hidden" name="plan" value="{% firstof form.plan.value request.GET.plan '' %}">
             <div class="row">
-              {% include 'account/_signup_field.html' with f=form.business_name col=6 %}
+              {% include 'account/_signup_field.html' with f=form.business_name %}
               {% include 'account/_signup_field.html' with f=form.full_name col=6 %}
               {% include 'account/_signup_field.html' with f=form.email col=6 %}
-              {% include 'account/_signup_field.html' with f=form.phone col=6 %}
+              {% include 'account/_signup_field.html' with f=form.phone %}
               {% include 'account/_signup_field.html' with f=form.industry col=6 %}
               {% include 'account/_signup_field.html' with f=form.business_size col=6 %}
               {% include 'account/_signup_field.html' with f=form.city col=6 %}
@@ -33,20 +38,39 @@
               {% include 'account/_signup_field.html' with f=form.gstin col=6 %}
               {% include 'account/_signup_field.html' with f=form.password1 col=6 %}
               {% include 'account/_signup_field.html' with f=form.password2 col=6 %}
+              {% if form.password1.help_text %}<div class="col-12 small text-muted mb-3 signup-help">{{ form.password1.help_text|safe }}</div>{% endif %}
               <div class="col-12">
-                <div class="form-check my-3">
-                  <input class="form-check-input" type="checkbox" name="accept_terms" id="id_accept_terms" required {% if form.accept_terms.value %}checked{% endif %}>
-                  <label class="form-check-label" for="id_accept_terms">I accept the <a href="{% url 'website:page' 'terms' %}" target="_blank">Terms of Service</a>
-                    and <a href="{% url 'website:page' 'privacy' %}" target="_blank">Privacy Policy</a></label>
+                <div class="text-start mb-3">
+                  <p class="d-flex align-items-start gap-2 mb-0"><input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="accept_terms" id="id_accept_terms" required {% if form.accept_terms.value %}checked{% endif %}>
+                    <label for="id_accept_terms">I accept the <a class="singup" href="{% url 'website:page' 'terms' %}" target="_blank">Terms of Service</a>
+                      and <a class="singup" href="{% url 'website:page' 'privacy' %}" target="_blank">Privacy Policy</a></label></p>
                   {% for e in form.accept_terms.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                 </div>
               </div>
-              <div class="button"><button type="submit" class="theme-btn2">Create account</button></div>
+              <div class="button"><button type="submit" class="theme-btn2">Create Account</button></div>
             </div>
           </form>
         </div>
       </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        <div class="login-img signup-img">
+          <img src="{% firstof platform.login_image '/static/website/img/others/login-page-img.png' %}" alt="">
+        </div>
+      </div>
     </div>
   </div>
+  <img class="shape1" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
+  <img class="shape2" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
 </main>
+<style>
+  .signup-area .login-form .single-inputs select {
+    width: 100%; padding: 15px; border: none; border-radius: 74px; background-color: #F5F8FF; margin-bottom: 20px;
+    color: #3d3d3d; height: auto; }
+  .signup-area .login-form .inputs .single-inputs label { font-size: 16px; padding-bottom: 10px; }
+  .signup-area .login-form .single-inputs .field-error { margin: -12px 0 14px 12px; }
+  .signup-area .signup-img { position: sticky; top: 40px; }
+  .signup-area .signup-help ul { padding-left: 18px; margin: 0; }
+  @media (max-width: 991px) { .signup-area .login-form { margin-right: 0; padding: 28px; } }
+</style>
 {% endblock content %}
+{% block extra_javascript %}{% include 'website/partials/phone-input.html' %}{% endblock %}

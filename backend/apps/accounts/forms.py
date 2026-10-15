@@ -16,13 +16,17 @@ from .models import phone_validator
 class CompanySignupForm(forms.Form):
     business_name = forms.CharField(max_length=200, label="Business name")
     full_name = forms.CharField(max_length=150, label="Your full name")
-    phone = forms.CharField(max_length=20, label="Mobile number", help_text="+91 is added if you leave it out")
+    phone = forms.CharField(
+        max_length=20,
+        label="Mobile number",
+        widget=forms.TextInput(attrs={"type": "tel", "data-phone": "", "autocomplete": "tel"}),
+    )
     industry = forms.ModelChoiceField(
         queryset=Industry.objects.none(), to_field_name="key", empty_label="Select your industry"
     )
     city = forms.CharField(max_length=100)
     state = forms.ChoiceField(choices=[("", "Select state")] + STATE_CHOICES)
-    business_size = forms.ChoiceField(required=False, label="Business size (employees)")
+    business_size = forms.ChoiceField(required=False, label="Business size")
     website = forms.URLField(required=False)
     gstin = forms.CharField(max_length=15, required=False, label="GSTIN", validators=[validate_gstin])
     accept_terms = forms.BooleanField(label="I accept the Terms of Service and Privacy Policy")
@@ -33,6 +37,15 @@ class CompanySignupForm(forms.Form):
         self.fields["industry"].queryset = Industry.objects.filter(is_active=True)
         sizes = config.get("registration.business_sizes")
         self.fields["business_size"].choices = [("", "Select")] + [(s, s) for s in sizes]
+        placeholders = {
+            "business_name": "e.g. Sunrise Realty",
+            "full_name": "Full name",
+            "city": "City",
+            "website": "https://",
+            "gstin": "Optional",
+        }
+        for name, text in placeholders.items():
+            self.fields[name].widget.attrs.setdefault("placeholder", text)
 
     def clean_phone(self):
         phone = normalise_phone(self.cleaned_data["phone"])
