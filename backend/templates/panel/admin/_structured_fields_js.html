@@ -1,0 +1,12 @@
+<script>
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("cms-add")) {
+    var list = e.target.closest(".cms-list"), rows = list.querySelector(".cms-rows");
+    var max = parseInt(list.dataset.max || "0", 10);
+    if (max && rows.children.length >= max) { return; }
+    var html = list.querySelector("template").innerHTML.replace(/__INDEX__/g, Date.now());
+    rows.insertAdjacentHTML("beforeend", html);
+  }
+  if (e.target.classList.contains("cms-remove")) { e.target.closest(".cms-row").remove(); }
+});
+</script>

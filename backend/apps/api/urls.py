@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from . import views_company as company
+from . import views_templates as tpl
 
 admin = DefaultRouter(trailing_slash=True)
 admin.register("companies", views.CompanyViewSet, basename="admin-companies")
@@ -13,6 +14,16 @@ admin.register("roles", views.RoleViewSet, basename="admin-roles")
 admin.register("plans", views.PlanViewSet, basename="admin-plans")
 admin.register("industries", views.IndustryViewSet, basename="admin-industries")
 admin.register("enquiries", views.EnquiryViewSet, basename="admin-enquiries")
+admin.register("templates", tpl.TemplateVersionViewSet, basename="admin-templates")
+admin.register("template-fields", tpl.TemplateFieldViewSet, basename="admin-template-fields")
+admin.register("template-catalog-types", tpl.TemplateCatalogTypeViewSet, basename="admin-template-catalog-types")
+admin.register("template-appointment-types", tpl.TemplateAppointmentTypeViewSet, basename="admin-template-appt-types")
+admin.register("template-statuses", tpl.TemplateStatusViewSet, basename="admin-template-statuses")
+admin.register("template-scoring-rules", tpl.TemplateScoringViewSet, basename="admin-template-scoring")
+admin.register("lead-statuses", tpl.DefaultStatusViewSet, basename="admin-lead-statuses")
+admin.register("lead-sources", tpl.LeadSourceViewSet, basename="admin-lead-sources")
+admin.register("holidays", tpl.HolidayViewSet, basename="admin-holidays")
+admin.register("employee-roles", tpl.EmployeeRoleViewSet, basename="admin-employee-roles")
 admin.register("cms/pages", views.PageViewSet, basename="admin-cms-pages")
 admin.register("cms/sections", views.SectionViewSet, basename="admin-cms-sections")
 admin.register("email-templates", views.EmailTemplateViewSet, basename="admin-email-templates")
@@ -33,6 +44,7 @@ api_v1 = [
     path("company/", company.OwnCompanyView.as_view(), name="own-company"),
     path("company/hours/", company.CompanyHoursView.as_view(), name="company-hours"),
     path("company/onboarding/", company.OnboardingView.as_view(), name="company-onboarding"),
+    path("company/template/", tpl.CompanyTemplateView.as_view(), name="company-template"),
     path("company/team/transfer-ownership/", company.TransferOwnershipView.as_view(), name="team-transfer"),
     path("company/team/", include(team.urls)),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),

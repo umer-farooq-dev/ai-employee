@@ -1,0 +1,58 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ industry.name }} templates{% endblock %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">{{ industry.name }} · Templates</h4>
+        <span class="text-muted">{% if industry.is_active %}Active{% else %}Inactive (hidden from registration and the AI Employee wizard){% endif %}
+        · published: {{ industry.published_version.version|default:"none" }}</span></div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-light" href="{% url 'superadmin:industry_edit' industry.pk %}">Edit industry</a>
+        <a class="btn btn-sm btn-light" href="{% url 'superadmin:industry_list' %}">Back</a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Versions</h5>
+                <form method="post">{% csrf_token %}<input type="hidden" name="op" value="draft">
+                    <button class="btn btn-sm btn-primary">New draft from published</button></form>
+            </div>
+            <div class="card-body p-0"><div class="table-responsive"><table class="table mb-0 align-middle">
+                <thead class="table-light"><tr><th>Version</th><th>Status</th><th>Published</th><th>Companies</th><th></th></tr></thead>
+                <tbody>
+                {% for v in versions %}
+                <tr>
+                    <td><a href="{% url 'superadmin:template_version' v.pk %}">v{{ v.version }}</a><div class="text-muted small">{{ v.notes|truncatechars:60 }}</div></td>
+                    <td><span class="badge {% if v.status == 'published' %}bg-success{% elif v.status == 'draft' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ v.get_status_display }}</span></td>
+                    <td>{{ v.published_at|date:"d M Y"|default:"—" }}</td>
+                    <td>{{ v.company_count }}</td>
+                    <td class="text-end">
+                        {% if v.status != 'published' %}
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="op" value="publish"><input type="hidden" name="version" value="{{ v.pk }}">
+                            <button class="btn btn-sm {% if v.status == 'draft' %}btn-success{% else %}btn-outline-secondary{% endif %}">{% if v.status == 'draft' %}Publish{% else %}Roll back to this{% endif %}</button></form>
+                        {% endif %}
+                        {% if v.status != 'draft' %}
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="op" value="draft"><input type="hidden" name="from" value="{{ v.pk }}">
+                            <button class="btn btn-sm btn-light">Draft from this</button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No template yet. Create a draft.</td></tr>{% endfor %}
+                </tbody>
+            </table></div></div>
+            <div class="card-footer small text-muted">Companies stay on their version until they accept an update in their panel. You can also move a company from its page.</div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0">Clone as a new industry</h5></div>
+            <div class="card-body">
+                <form method="post">{% csrf_token %}<input type="hidden" name="op" value="clone">
+                    {% include 'panel/partials/form_fields.html' with form=clone_form %}
+                    <button class="btn btn-outline-primary w-100">Clone</button></form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

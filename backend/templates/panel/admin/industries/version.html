@@ -1,0 +1,64 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ version }}{% endblock %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">{{ version.industry.name }} · v{{ version.version }}</h4>
+        <span class="badge {% if version.status == 'published' %}bg-success{% elif version.status == 'draft' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ version.get_status_display }}</span>
+        {% if not version.editable %}<span class="text-muted small ms-2">Read-only. Create a draft to change it.</span>{% endif %}</div>
+    <a class="btn btn-sm btn-light" href="{% url 'superadmin:industry_templates' version.industry.pk %}">Back to versions</a>
+</div>
+<ul class="nav nav-tabs mb-3">
+    {% for key, label in tabs %}<li class="nav-item"><a class="nav-link {% if key == tab %}active{% endif %}" href="?tab={{ key }}">{{ label }}</a></li>{% endfor %}
+</ul>
+
+{% if tab == 'general' %}
+<form method="post">{% csrf_token %}
+<fieldset {% if not version.editable %}disabled{% endif %}>
+<div class="card"><div class="card-body"><label class="form-label fw-semibold">Version notes</label>
+    <input class="form-control" name="notes" value="{{ version.notes }}"></div></div>
+{% include 'panel/admin/_structured_fields.html' %}
+{% if version.editable %}<button class="btn btn-primary">Save template</button>{% endif %}
+</fieldset>
+</form>
+{% else %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">{% for key, label in tabs %}{% if key == tab %}{{ label }}{% endif %}{% endfor %}</h5>
+        {% if version.editable %}
+            {% if tab == 'fields' %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:template_child_create' version.pk 'fields' %}">Add field</a>
+            {% elif tab == 'catalogue' %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:template_child_create' version.pk 'catalog-types' %}">Add catalogue type</a>
+            {% elif tab == 'appointments' %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:template_child_create' version.pk 'appointment-types' %}">Add appointment type</a>
+            {% elif tab == 'statuses' %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:template_child_create' version.pk 'statuses' %}">Add status</a>
+            {% elif tab == 'scoring' %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:template_child_create' version.pk 'scoring' %}">Add rule</a>{% endif %}
+        {% endif %}
+    </div>
+    <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+    {% if tab == 'fields' %}
+        <thead class="table-light"><tr><th>Belongs to</th><th>Label</th><th>Key</th><th>Type</th><th>Flags</th></tr></thead><tbody>
+        {% for r in rows.fields %}<tr><td>{{ r.entity }}</td><td><a href="{% url 'superadmin:template_child_edit' version.pk 'fields' r.pk %}">{{ r.label }}</a></td><td><code>{{ r.key }}</code></td><td>{{ r.get_type_display }}</td>
+            <td class="small">{% if r.required %}<span class="badge bg-light text-dark">required</span>{% endif %}{% if r.ai_extractable %}<span class="badge bg-light text-dark">AI</span>{% endif %}{% if r.filterable %}<span class="badge bg-light text-dark">filter</span>{% endif %}{% if r.show_in_list %}<span class="badge bg-light text-dark">list</span>{% endif %}{% if not r.is_active %}<span class="badge bg-secondary">inactive</span>{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No fields.</td></tr>{% endfor %}</tbody>
+    {% elif tab == 'catalogue' %}
+        <thead class="table-light"><tr><th>Name</th><th>Key</th><th>Fields</th></tr></thead><tbody>
+        {% for r in rows.catalogue %}<tr><td><a href="{% url 'superadmin:template_child_edit' version.pk 'catalog-types' r.pk %}">{{ r.name }}</a></td><td><code>{{ r.key }}</code></td>
+            <td><a href="?tab=fields">Edit fields under “Catalogue: {{ r.name }}”</a></td></tr>
+        {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">No catalogue types.</td></tr>{% endfor %}</tbody>
+    {% elif tab == 'appointments' %}
+        <thead class="table-light"><tr><th>Name</th><th>Duration</th><th>Buffer</th><th>Where</th><th>Reminders (min before)</th></tr></thead><tbody>
+        {% for r in rows.appointments %}<tr><td><a href="{% url 'superadmin:template_child_edit' version.pk 'appointment-types' r.pk %}">{{ r.name }}</a></td><td>{{ r.duration_min }} min</td><td>{{ r.buffer_min }} min</td><td>{{ r.get_location_mode_display }}</td><td>{{ r.reminder_offsets|join:", " }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No appointment types.</td></tr>{% endfor %}</tbody>
+    {% elif tab == 'statuses' %}
+        {% if uses_platform_statuses %}<caption class="px-3">This template uses the platform default statuses (Super Admin → Lead statuses). Add statuses here only to override them for this industry.</caption>{% endif %}
+        <thead class="table-light"><tr><th>Label</th><th>Key</th><th>Category</th></tr></thead><tbody>
+        {% for r in rows.statuses %}<tr><td><span class="badge" style="background:{{ r.color }}">&nbsp;</span> <a href="{% url 'superadmin:template_child_edit' version.pk 'statuses' r.pk %}">{{ r.label }}</a></td><td><code>{{ r.key }}</code></td><td>{{ r.get_category_display }}</td></tr>
+        {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">No template-specific statuses.</td></tr>{% endfor %}</tbody>
+    {% elif tab == 'scoring' %}
+        <thead class="table-light"><tr><th>Rule</th><th>Condition</th><th>Points</th><th>Forces</th><th>Active</th></tr></thead><tbody>
+        {% for r in rows.scoring %}<tr><td><a href="{% url 'superadmin:template_child_edit' version.pk 'scoring' r.pk %}">{{ r.name }}</a></td><td><code class="small">{{ r.condition }}</code></td><td>{{ r.points }}</td><td>{{ r.force_label|default:"—" }}</td><td>{{ r.is_active|yesno:"Yes,No" }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No rules.</td></tr>{% endfor %}</tbody>
+    {% endif %}
+    </table></div></div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_javascript %}{% include 'panel/admin/_structured_fields_js.html' %}{% endblock %}

@@ -33,6 +33,8 @@ def unique_slug(name, exclude_id=None):
 @transaction.atomic
 def create_company(data: dict, owner_email: str | None = None, request=None) -> Company:
     """Create a company (Super Admin). If an owner email is given, that user becomes the company Owner."""
+    if data.get("industry") and not data.get("template_version"):
+        data = {**data, "template_version": data["industry"].published_version}
     company = Company.objects.create(slug=unique_slug(data["name"]), **data)
     if owner_email:
         add_member(company, owner_email, Role.objects.get(scope="company", key="owner"), request=request)
@@ -93,6 +95,7 @@ def register_company(owner, data: dict, request=None) -> Company:
         slug=unique_slug(data["business_name"]),
         name=data["business_name"],
         industry=data.get("industry"),
+        template_version=data["industry"].published_version if data.get("industry") else None,
         city=data.get("city", ""),
         state=data.get("state", ""),
         business_size=data.get("business_size", ""),

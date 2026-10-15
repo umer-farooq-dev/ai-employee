@@ -49,6 +49,16 @@
             </dl>
             <p class="text-muted small mt-3 mb-0">Usage figures appear here when usage metering is built (Phase 7).</p></div>
         </div>
+        {% if company.industry %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Industry template</h5></div><div class="card-body">
+            <p class="mb-2">{{ company.industry.name }} · {% if company.template_version %}v{{ company.template_version.version }}{% else %}no version{% endif %}
+                {% if company.industry.published_version and company.template_version != company.industry.published_version %}<span class="badge bg-warning text-dark ms-1">v{{ company.industry.published_version.version }} available</span>{% endif %}</p>
+            {% if can.manage %}<form method="post" action="{% url 'superadmin:company_template' company.pk %}" class="d-flex gap-2">{% csrf_token %}
+                <select name="version" class="form-select" aria-label="Template version">{% for v in company.industry.versions.all %}{% if v.status != 'draft' %}<option value="{{ v.pk }}" {% if v == company.template_version %}selected{% endif %}>v{{ v.version }} ({{ v.get_status_display|lower }})</option>{% endif %}{% endfor %}</select>
+                <button class="btn btn-light">Move</button></form>
+            <div class="form-text">Upgrade or roll back this company. Companies can also accept updates themselves.</div>{% endif %}
+        </div></div>
+        {% endif %}
         {% if can.suspend %}
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Status</h5></div><div class="card-body">
             {% if company.status == 'suspended' %}

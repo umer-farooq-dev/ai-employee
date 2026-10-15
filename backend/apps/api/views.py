@@ -109,6 +109,17 @@ class CompanyViewSet(AdminViewSet):
         )
         return Response(s.CompanySerializer(company).data)
 
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, perm("companies.manage")])
+    def template(self, request, pk=None):
+        """IND-03: move the company to another published / archived version of its industry (upgrade or rollback)."""
+        from apps.industries import services as templates
+        from apps.industries.models import TemplateVersion
+
+        company = self.get_object()
+        version = get_object_or_404(TemplateVersion, pk=request.data.get("version"))
+        _django_errors(templates.assign_version, company, version, request=request._request)
+        return Response(s.CompanySerializer(company).data)
+
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated, perm("companies.export")])
     def export(self, request, pk=None):
         return Response(tenancy.export_company(self.get_object(), request=request), content_type="application/json")

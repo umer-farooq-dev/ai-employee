@@ -12,8 +12,10 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.accounts import services as accounts
+from apps.industries import services as templates
 from apps.rbac.models import Role
 from apps.rbac.services import has_perm
 from apps.tenancy import profile, team
@@ -54,8 +56,25 @@ def dashboard(request):
     return render(
         request,
         "panel/company/dashboard.html",
-        {"company": company, "onboarding": profile.onboarding(company), "trial_days_left": days_left},
+        {
+            "company": company,
+            "onboarding": profile.onboarding(company),
+            "trial_days_left": days_left,
+            "template_update": templates.update_available(company),
+            "can_manage": has_perm(request.user, "company.manage", company),
+        },
     )
+
+
+@require_POST
+@company_perm("company.manage")
+def accept_template_update(request):
+    """IND-03: the company moves to the industry's newly published template version."""
+    version = templates.update_available(request.company)
+    if version:
+        templates.assign_version(request.company, version, request=request)
+        messages.success(request, f"Your workspace now uses {version}.")
+    return redirect("panel:company_home")
 
 
 @login_required

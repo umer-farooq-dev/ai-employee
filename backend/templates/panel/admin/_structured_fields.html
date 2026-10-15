@@ -1,0 +1,24 @@
+{# Editor for a schema of fields incl. repeatable lists (CMS sections, industry templates). Expects `fields`. #}
+{% for field in fields %}
+<div class="card"><div class="card-body">
+    <label class="form-label fw-semibold">{{ field.label }}</label>
+    {% if field.type == 'list' %}
+        <div class="cms-list" data-max="{{ field.max|default:'' }}">
+            <div class="cms-rows">
+            {% for row in field.rows %}
+                <div class="cms-row border rounded p-2 mb-2"><div class="row g-2">
+                    {% for f in row %}<div class="col-md-6"><label class="form-label small text-muted mb-1">{{ f.label }}</label>{% include 'panel/admin/cms/_input.html' %}</div>{% endfor %}
+                </div><button type="button" class="btn btn-sm btn-link text-danger px-0 cms-remove">Remove</button></div>
+            {% endfor %}
+            </div>
+            <template><div class="cms-row border rounded p-2 mb-2"><div class="row g-2">
+                {% for f in field.template_row %}<div class="col-md-6"><label class="form-label small text-muted mb-1">{{ f.label }}</label>{% include 'panel/admin/cms/_input.html' %}</div>{% endfor %}
+            </div><button type="button" class="btn btn-sm btn-link text-danger px-0 cms-remove">Remove</button></div></template>
+            <button type="button" class="btn btn-sm btn-light cms-add">+ Add {{ field.label|lower }}</button>
+            {% if field.max %}<span class="text-muted small ms-2">Max {{ field.max }}</span>{% endif %}
+        </div>
+    {% else %}
+        {% with f=field %}{% include 'panel/admin/cms/_input.html' %}{% endwith %}
+    {% endif %}
+</div></div>
+{% endfor %}

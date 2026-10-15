@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import template_views as tv
 from . import views
 
 app_name = "superadmin"
@@ -19,6 +20,17 @@ urlpatterns = [
     path("industries/", views.industry_list, name="industry_list"),
     path("industries/new/", views.industry_form, name="industry_create"),
     path("industries/<uuid:pk>/", views.industry_form, name="industry_edit"),
+    path("industries/<uuid:pk>/templates/", tv.industry_templates, name="industry_templates"),
+    path("templates/<uuid:pk>/", tv.template_version, name="template_version"),
+    path("templates/<uuid:vid>/<slug:kind>/new/", tv.template_child, name="template_child_create"),
+    path("templates/<uuid:vid>/<slug:kind>/<uuid:pk>/", tv.template_child, name="template_child_edit"),
+    path("companies/<uuid:pk>/template/", tv.company_template, name="company_template"),
+    path("crm/statuses/", tv.crm_statuses, name="statuses"),
+    path("crm/sources/", tv.crm_sources, name="sources"),
+    path("holidays/", tv.holidays, name="holidays"),
+    path("employee-roles/", tv.employee_roles, name="employee_roles"),
+    path("platform/<slug:kind>/new/", tv.platform_item, name="platform_item_create"),
+    path("platform/<slug:kind>/<uuid:pk>/", tv.platform_item, name="platform_item_edit"),
     path("enquiries/", views.enquiry_list, name="enquiry_list"),
     path("enquiries/<uuid:pk>/", views.enquiry_detail, name="enquiry_detail"),
     path("users/", views.user_list, name="user_list"),

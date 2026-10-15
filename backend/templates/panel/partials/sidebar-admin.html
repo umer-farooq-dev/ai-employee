@@ -14,10 +14,14 @@
                     {% if u|can:"users.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:user_list' %}"><i class="iconoir-group menu-icon"></i><span>Users</span></a></li>{% endif %}
                     {% if u|can:"roles.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:role_list' %}"><i class="iconoir-shield-check menu-icon"></i><span>Roles &amp; Permissions</span></a></li>{% endif %}
                     {% if u|can:"industries.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:industry_list' %}"><i class="iconoir-industry menu-icon"></i><span>Industries</span></a></li>{% endif %}
+                    {% if u|can:"employee_roles.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:employee_roles' %}"><i class="iconoir-user-star menu-icon"></i><span>AI Employee Roles</span></a></li>{% endif %}
                     {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>
                     {% if u|can:"settings.general" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:general_settings' %}"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>{% endif %}
                     {% if u|can:"settings.system" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:system_settings' %}"><i class="iconoir-lock menu-icon"></i><span>System Settings</span></a></li>{% endif %}
+                    {% if u|can:"crm_config.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:statuses' %}"><i class="iconoir-git-fork menu-icon"></i><span>Lead Statuses</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'superadmin:sources' %}"><i class="iconoir-input-field menu-icon"></i><span>Lead Sources</span></a></li>{% endif %}
+                    {% if u|can:"holidays.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:holidays' %}"><i class="iconoir-calendar menu-icon"></i><span>Holidays</span></a></li>{% endif %}
                     {% if u|can:"cms.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:cms_pages' %}"><i class="iconoir-page-edit menu-icon"></i><span>Website Content</span></a></li>{% endif %}
                     {% if u|can:"enquiries.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:enquiry_list' %}"><i class="iconoir-chat-bubble-question menu-icon"></i><span>Enquiries</span></a></li>{% endif %}
                     {% if u|can:"email_templates.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:email_template_list' %}"><i class="iconoir-mail menu-icon"></i><span>Email Templates</span></a></li>{% endif %}

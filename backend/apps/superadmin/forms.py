@@ -73,8 +73,26 @@ class IndustryForm(BootstrapMixin, forms.ModelForm):
 
     class Meta:
         model = Industry
-        fields = ["name", "key", "short_description", "description", "icon", "image", "is_active", "sort_order"]
+        fields = [
+            "name",
+            "key",
+            "short_description",
+            "description",
+            "icon",
+            "image",
+            "supported_languages",
+            "is_active",
+            "sort_order",
+        ]
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.platform_config.registry import LANGUAGES
+
+        self.fields["supported_languages"] = forms.MultipleChoiceField(
+            choices=LANGUAGES, required=False, widget=forms.CheckboxSelectMultiple, label="Supported languages"
+        )
 
     def clean(self):
         data = super().clean()

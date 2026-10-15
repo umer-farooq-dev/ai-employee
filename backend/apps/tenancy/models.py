@@ -55,6 +55,14 @@ class Company(BaseModel):
     industry = models.ForeignKey(
         "industries.Industry", null=True, blank=True, on_delete=models.PROTECT, related_name="companies"
     )
+    template_version = models.ForeignKey(
+        "industries.TemplateVersion",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="companies",
+        help_text="Industry template the company runs on; it changes only when the company accepts an update (IND-03)",
+    )
     business_size = models.CharField(max_length=30, blank=True)
     logo = models.CharField(max_length=500, blank=True, help_text="Image URL")
     email = models.EmailField(blank=True)

@@ -1,0 +1,27 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}{{ label }}{% endblock %}
+{% block page_content %}
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="card-title mb-0">{% if kind == 'statuses' %}Lead statuses (platform defaults){% elif kind == 'sources' %}Lead sources{% elif kind == 'holidays' %}Platform holidays{% else %}AI Employee roles{% endif %}</h4>
+        <a class="btn btn-sm btn-primary" href="{% url 'superadmin:platform_item_create' kind %}">Add {{ label|lower }}</a>
+    </div>
+    <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+        {% if kind == 'statuses' %}
+        <thead class="table-light"><tr><th>Order</th><th>Label</th><th>Key</th><th>Category</th></tr></thead><tbody>
+        {% for i in items %}<tr><td>{{ i.sort_order }}</td><td><span class="badge" style="background:{{ i.color }}">&nbsp;</span> <a href="{% url 'superadmin:platform_item_edit' kind i.pk %}">{{ i.label }}</a></td><td><code>{{ i.key }}</code></td><td>{{ i.get_category_display }}</td></tr>{% endfor %}
+        {% elif kind == 'sources' %}
+        <thead class="table-light"><tr><th>Label</th><th>Key</th><th>Active</th></tr></thead><tbody>
+        {% for i in items %}<tr><td><a href="{% url 'superadmin:platform_item_edit' kind i.pk %}">{{ i.label }}</a></td><td><code>{{ i.key }}</code></td><td>{{ i.is_active|yesno:"Yes,No" }}</td></tr>{% endfor %}
+        {% elif kind == 'holidays' %}
+        <thead class="table-light"><tr><th>Date</th><th>Name</th><th>Region</th></tr></thead><tbody>
+        {% for i in items %}<tr><td>{{ i.date|date:"d M Y" }}</td><td><a href="{% url 'superadmin:platform_item_edit' kind i.pk %}">{{ i.name }}</a></td><td>{{ i.region|default:"All India" }}</td></tr>
+        {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">No holidays yet.</td></tr>{% endfor %}
+        {% else %}
+        <thead class="table-light"><tr><th>Role</th><th>Channels</th><th>Plans</th><th>Active</th></tr></thead><tbody>
+        {% for i in items %}<tr><td><a href="{% url 'superadmin:platform_item_edit' kind i.pk %}">{{ i.name }}</a><div class="text-muted small">{{ i.description|truncatechars:80 }}</div></td><td class="small">{{ i.allowed_channels|join:", " }}</td><td class="small">{{ i.plan_keys|join:", "|default:"All" }}</td><td>{{ i.is_active|yesno:"Yes,No" }}</td></tr>{% endfor %}
+        {% endif %}
+        </tbody>
+    </table></div></div>
+</div>
+{% endblock %}

@@ -12,6 +12,7 @@ urlpatterns = [
     # Company panel (/app/)
     path("app/", company_views.dashboard, name="company_home"),
     path("app/pending/", company_views.pending, name="pending"),
+    path("app/template-update/", company_views.accept_template_update, name="accept_template_update"),
     path("app/settings/", company_views.company_settings, name="company_settings"),
     path("app/team/", company_views.team_page, name="team"),
     path("app/soon/<slug:key>/", company_views.coming_soon, name="coming_soon"),

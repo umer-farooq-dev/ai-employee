@@ -4,12 +4,12 @@
 <div class="card mt-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div><h4 class="card-title mb-0">Industries</h4>
-            <span class="text-muted small">Active industries appear on the website and in registration. Industry templates are added in Phase 3.</span></div>
+            <span class="text-muted small">Active industries appear on the website and in registration. Each industry has versioned templates (fields, catalogue, appointments, scoring).</span></div>
         <a class="btn btn-sm btn-primary" href="{% url 'superadmin:industry_create' %}">New industry</a>
     </div>
     <div class="card-body p-0"><div class="table-responsive">
         <table class="table table-hover mb-0">
-            <thead class="table-light"><tr><th></th><th>Name</th><th>Website URL</th><th>Status</th><th>Companies</th><th>Order</th></tr></thead>
+            <thead class="table-light"><tr><th></th><th>Name</th><th>Website URL</th><th>Status</th><th>Template</th><th>Companies</th><th>Order</th></tr></thead>
             <tbody>
             {% for i in industries %}
             <tr>
@@ -17,9 +17,10 @@
                 <td><a href="{% url 'superadmin:industry_edit' i.pk %}">{{ i.name }}</a><div class="text-muted small">{{ i.short_description }}</div></td>
                 <td><a href="{% url 'website:industry' i.key %}" target="_blank" rel="noopener">/industries/{{ i.key }}/</a></td>
                 <td>{% if i.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                <td><a href="{% url 'superadmin:industry_templates' i.pk %}">{% if i.published_version %}v{{ i.published_version.version }}{% else %}none{% endif %} · versions</a></td>
                 <td>{{ i.company_count }}</td><td>{{ i.sort_order }}</td>
             </tr>
-            {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No industries yet.</td></tr>{% endfor %}
+            {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No industries yet.</td></tr>{% endfor %}
             </tbody>
         </table>
     </div></div>

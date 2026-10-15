@@ -1,5 +1,6 @@
 from django import template
 
+from apps.core.money import format_inr, format_inr_short
 from apps.platform_config import services as config
 from apps.rbac.services import has_perm
 
@@ -17,28 +18,16 @@ def get(mapping, key):
     return (mapping or {}).get(key)
 
 
-def _indian_group(n: int) -> str:
-    s = str(n)
-    if len(s) <= 3:
-        return s
-    head, tail = s[:-3], s[-3:]
-    parts = []
-    while len(head) > 2:
-        parts.insert(0, head[-2:])
-        head = head[:-2]
-    if head:
-        parts.insert(0, head)
-    return ",".join(parts) + "," + tail
-
-
 @register.filter
 def inr(paise):
     """Paise → '₹2,999' using the platform number format setting (SA-25)."""
-    if paise in (None, ""):
-        return "—"
-    rupees, rem = divmod(int(paise), 100)
-    whole = _indian_group(rupees) if config.get("locale.number_format") == "indian" else f"{rupees:,}"
-    return f"₹{whole}" + (f".{rem:02d}" if rem else "")
+    return format_inr(paise, indian=config.get("locale.number_format") == "indian")
+
+
+@register.filter
+def inr_short(paise):
+    """Paise → '₹70 Lakh' / '₹1.2 Cr' (CAT-08)."""
+    return format_inr_short(paise)
 
 
 @register.filter
