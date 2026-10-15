@@ -68,6 +68,6 @@ Later-phase items in this area (not Phase 3 in the PRD): CAT-03 property matchin
 - [x] Template versioning: publish, upgrade a company, roll back (`test_publish_upgrade_and_rollback`)
 - [x] Company isolation tests for every new endpoint; RLS on all new company tables
 - [x] Lint, migrations check, Bandit (0 issues), pip-audit (no known vulnerabilities), all tests green locally
-- [ ] GitHub CI green on the pushed commit
+- [x] GitHub CI green on the pushed commit (run 38777351768, `46ed2df`)
 - [ ] Client confirms travel package and course fields (CAT-05 / CAT-06)
 - [ ] Device testing and client sign-off
