@@ -2,14 +2,12 @@ from django.conf import settings
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from apps.accounts.views import SignupView
 from apps.api.urls import api_v1, public_v1
 
 urlpatterns = [
     path("", include("apps.panel.urls")),
     path("", include("apps.core.urls")),
     path("superadmin/", include("apps.superadmin.urls")),
-    path("accounts/signup/", SignupView.as_view(), name="account_signup"),
     path("accounts/", include("allauth.urls")),
     # Login / 2FA / password API for browser and app clients (API-02: Bearer JWT for the app)
     path("api/v1/auth/", include("allauth.headless.urls")),
