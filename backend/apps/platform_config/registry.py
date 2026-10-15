@@ -31,6 +31,7 @@ GROUPS = {
     "security": ("system", "Security"),
     "sms": ("system", "SMS (mobile OTP)"),
     "crm": ("system", "CRM"),
+    "calendar": ("system", "Calendar"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
@@ -242,6 +243,8 @@ SETTINGS = [
     Setting("crm.import_max_mb", "number", 10, "Import: maximum file size (MB)", "crm", min=1, max=100),
     Setting("crm.export_max_rows", "number", 50000, "Export: maximum rows", "crm", min=100, max=500000),
     Setting("crm.task_reminder_minutes", "number", 30, "Task reminder (minutes before due)", "crm", min=0, max=10080),
+    # Calendar (CAL-*)
+    Setting("calendar.appointment_prefix", "text", "APT-", "Appointment number prefix", "calendar"),
     # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
     Setting(
         "sms.provider",

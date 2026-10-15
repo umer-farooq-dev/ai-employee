@@ -1,0 +1,52 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Book appointment{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">Book appointment</h4>
+    <a class="btn btn-sm btn-light" href="{% if lead %}{% url 'panel:lead_detail' lead.pk %}{% else %}{% url 'panel:calendar' %}{% endif %}">Back</a>
+</div>
+{% if not resources or not types %}
+<div class="alert alert-info">{% if not resources %}Add a calendar first (Calendar → Calendars &amp; availability).{% else %}Your industry template has no appointment types.{% endif %}</div>
+{% else %}
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card"><div class="card-body">
+            <form method="get">
+                {% if lead %}<input type="hidden" name="lead" value="{{ lead.pk }}">{% endif %}
+                <div class="mb-3"><label class="form-label" for="b-res">Calendar</label><select id="b-res" class="form-select" name="resource" onchange="this.form.submit()">{% for r in resources %}<option value="{{ r.pk }}" {% if r.pk == resource.pk %}selected{% endif %}>{{ r.name }}</option>{% endfor %}</select></div>
+                <div class="mb-3"><label class="form-label" for="b-type">Appointment type</label><select id="b-type" class="form-select" name="type" onchange="this.form.submit()">{% for t in types %}<option value="{{ t.key }}" {% if t.key == appt_type.key %}selected{% endif %}>{{ t.name }} ({{ t.duration_min }} min)</option>{% endfor %}</select></div>
+                <div class="mb-3"><label class="form-label" for="b-date">Date</label><input id="b-date" type="date" class="form-control" name="date" value="{{ date|date:'Y-m-d' }}" onchange="this.form.submit()"></div>
+                <noscript><button class="btn btn-light">Show free times</button></noscript>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <form method="post">{% csrf_token %}
+            <input type="hidden" name="resource" value="{{ resource.pk }}"><input type="hidden" name="type" value="{{ appt_type.key }}"><input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+            <div class="card"><div class="card-header"><h5 class="card-title mb-0">Free times on {{ date|date:"D, d M Y" }}</h5></div><div class="card-body">
+                {% if holidays %}<p class="text-warning mb-0">Holiday: {{ holidays|join:", " }}</p>
+                {% else %}
+                <div class="d-flex flex-wrap gap-2">
+                    {% for s in slots %}<input type="radio" class="btn-check" name="start" id="slot-{{ forloop.counter }}" value="{{ s.isoformat }}" {% if forloop.first %}checked{% endif %}>
+                        <label class="btn btn-outline-primary btn-sm" for="slot-{{ forloop.counter }}">{{ s|date:"H:i" }}</label>
+                    {% empty %}<p class="text-muted mb-0">No free time on this day. Try another date.</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div></div>
+            {% if slots %}
+            <div class="card"><div class="card-body">
+                <div class="mb-3"><label class="form-label" for="b-lead">Lead</label>
+                    <select id="b-lead" name="lead" class="form-select"><option value="">— no lead —</option>
+                        {% if lead %}<option value="{{ lead.pk }}" selected>{{ lead.reference }} {{ lead.name }}</option>{% endif %}
+                        {% for l in leads %}{% if l.pk != lead.pk %}<option value="{{ l.pk }}">{{ l.reference }} {{ l.name }} {{ l.phone }}</option>{% endif %}{% endfor %}</select></div>
+                <div class="row"><div class="col-md-6 mb-3"><label class="form-label" for="b-loc">Location</label><input id="b-loc" class="form-control" name="location"></div>
+                    <div class="col-md-6 mb-3"><label class="form-label" for="b-link">Meeting link</label><input id="b-link" type="url" class="form-control" name="meeting_link"></div></div>
+                <div class="mb-3"><label class="form-label" for="b-notes">Notes</label><textarea id="b-notes" class="form-control" name="notes" rows="2"></textarea></div>
+                <button class="btn btn-primary">Book</button>
+            </div></div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock page_content %}

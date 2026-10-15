@@ -1,0 +1,35 @@
+{% extends 'panel/company/layout.html' %}
+{% load static %}
+{% block title %}Calendar{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <h4 class="mb-0">Calendar</h4>
+    <div class="d-flex flex-wrap gap-2">
+        <form method="get"><select name="resource" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Calendar">
+            <option value="">All calendars</option>{% for r in resources %}<option value="{{ r.pk }}" {% if resource_id == r.pk|stringformat:'s' %}selected{% endif %}>{{ r.name }}</option>{% endfor %}</select></form>
+        {% if can_configure %}<a class="btn btn-sm btn-light" href="{% url 'panel:calendar_resources' %}">Calendars &amp; availability</a>{% endif %}
+        {% if can_book %}<a class="btn btn-sm btn-primary" href="{% url 'panel:calendar_book' %}{% if resource_id %}?resource={{ resource_id }}{% endif %}"><i class="iconoir-plus"></i> Book appointment</a>{% endif %}
+    </div>
+</div>
+{% if not resources %}<div class="alert alert-info">No calendars yet.{% if can_configure %} <a href="{% url 'panel:calendar_resource_create' %}">Add your first calendar</a> (a team member, a site or a room) and its working hours.{% endif %}</div>{% endif %}
+<div class="card"><div class="card-body"><div id="calendar"></div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}
+<script src="{% static 'panel/vendor/fullcalendar/index.global.min.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var small = window.innerWidth < 768;
+    var cal = new FullCalendar.Calendar(document.getElementById("calendar"), {
+      initialView: small ? "listWeek" : "timeGridWeek",
+      headerToolbar: small ? {left: "prev,next", center: "title", right: "listWeek,timeGridDay"}
+                           : {left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek"},
+      buttonText: {listWeek: "Agenda"},
+      timeZone: "local",
+      nowIndicator: true,
+      height: "auto",
+      events: {url: "{% url 'panel:calendar_events' %}", extraParams: {resource: "{{ resource_id|escapejs }}"}},
+    });
+    cal.render();
+  });
+</script>
+{% endblock %}

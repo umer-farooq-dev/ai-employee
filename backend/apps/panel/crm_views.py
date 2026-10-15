@@ -187,6 +187,8 @@ def lead_detail(request, pk):
             "notes": lead.notes.select_related("author"),
             "tasks": lead.tasks.select_related("assigned_user").order_by("status", "due_at"),
             "score_events": lead.score_events.all()[:10],
+            "appointments": lead.appointments.select_related("appointment_type", "resource").order_by("-starts_at"),
+            "can_book": _can(request, "calendar.manage"),
             "statuses": templates.statuses(request.company),
             "members": crm.members(request.company),
             "task_form": TaskForm(company=request.company),

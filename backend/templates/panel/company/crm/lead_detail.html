@@ -53,6 +53,14 @@
             {% empty %}<tr><td class="text-muted text-center">No changes yet.</td></tr>{% endfor %}</tbody></table></div></div>
     </div>
     <div class="col-lg-8">
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0">Appointments</h5>
+            {% if can_book and not lead.deleted_at %}<a class="btn btn-sm btn-primary" href="{% url 'panel:calendar_book' %}?lead={{ lead.pk }}">Book appointment</a>{% endif %}</div>
+            <div class="card-body p-0"><table class="table mb-0 small align-middle"><tbody>
+                {% for a in appointments %}<tr><td><a href="{% url 'panel:appointment' a.pk %}">{{ a.appointment_type.name }}</a><div class="text-muted">{{ a.reference }} · {{ a.resource.name }}</div></td>
+                    <td>{{ a.starts_at|date:"d M Y H:i" }}</td><td>{{ a.get_status_display }}</td></tr>
+                {% empty %}<tr><td class="text-muted text-center">No appointments.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </div>
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Tasks</h5></div>
             <div class="card-body p-0"><table class="table mb-0 align-middle small"><tbody>
                 {% for t in tasks %}<tr class="{% if t.status != 'open' %}text-muted{% endif %}"><td>{{ t.title }}<div class="text-muted">{{ t.get_type_display }} · {{ t.assigned_user|person|default:""  }}</div></td>

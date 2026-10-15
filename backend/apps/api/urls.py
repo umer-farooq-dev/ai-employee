@@ -4,6 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
+from . import views_calendar as calapi
 from . import views_catalog as catapi
 from . import views_company as company
 from . import views_crm as crmapi
@@ -48,6 +49,10 @@ catalog_router = DefaultRouter(trailing_slash=True)
 catalog_router.register("items", catapi.CatalogItemViewSet, basename="catalog-items")
 catalog_router.register("collections", catapi.CollectionViewSet, basename="catalog-collections")
 
+calendar_router = DefaultRouter(trailing_slash=True)
+calendar_router.register("resources", calapi.ResourceViewSet, basename="calendar-resources")
+calendar_router.register("appointments", calapi.AppointmentViewSet, basename="calendar-appointments")
+
 public = DefaultRouter(trailing_slash=True)
 public.register("industries", company.PublicIndustryViewSet, basename="public-industries")
 
@@ -68,6 +73,8 @@ api_v1 = [
     path("catalog/imports/", catapi.CatalogImportView.as_view(), name="catalog-import"),
     path("catalog/imports/<uuid:pk>/", catapi.CatalogImportView.as_view(), name="catalog-import-run"),
     path("catalog/", include(catalog_router.urls)),
+    path("calendar/config/", calapi.CalendarConfigView.as_view(), name="calendar-config"),
+    path("calendar/", include(calendar_router.urls)),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),
     path("admin/uploads/", views.UploadView.as_view(), name="admin-uploads"),
     path("admin/sessions/", views.SessionsView.as_view(), name="admin-sessions"),

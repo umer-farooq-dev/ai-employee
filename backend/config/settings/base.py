@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.roles_tools",
     "apps.crm",
     "apps.catalog",
+    "apps.scheduling",
     "apps.cms",
     "apps.notifications",
     "apps.superadmin",

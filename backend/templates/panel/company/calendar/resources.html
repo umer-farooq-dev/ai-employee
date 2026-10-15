@@ -1,0 +1,15 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}Calendars{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">Calendars &amp; availability</h4><span class="text-muted small">Anything bookable: team members, sites / projects, counsellors, rooms.</span></div>
+    <div class="d-flex gap-2"><a class="btn btn-sm btn-light" href="{% url 'panel:calendar' %}">Back</a>
+        <a class="btn btn-sm btn-primary" href="{% url 'panel:calendar_resource_create' %}">Add calendar</a></div>
+</div>
+<div class="card"><div class="card-body p-0"><table class="table mb-0 align-middle"><thead class="table-light"><tr><th>Calendar</th><th>Kind</th><th>Slot</th><th>Per slot</th><th>Notice</th><th>Window</th><th>Active</th></tr></thead><tbody>
+    {% for r in resources %}<tr><td><a href="{% url 'panel:calendar_resource_edit' r.pk %}">{{ r.name }}</a><div class="text-muted small">{{ r.user|person }}</div></td>
+        <td>{{ r.get_kind_display }}</td><td>{{ r.slot_minutes }} min</td><td>{{ r.max_per_slot }}</td><td>{{ r.min_notice_minutes }} min</td><td>{{ r.booking_window_days }} days</td><td>{{ r.is_active|yesno:"Yes,No" }}</td></tr>
+    {% empty %}<tr><td colspan="7" class="text-center text-muted py-5">No calendars yet.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock page_content %}

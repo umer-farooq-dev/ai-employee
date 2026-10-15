@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import catalog_views, company_views, crm_views, views
+from . import calendar_views, catalog_views, company_views, crm_views, views
 
 app_name = "panel"
 
@@ -28,6 +28,14 @@ urlpatterns = [
     path("app/leads/<uuid:pk>/edit/", crm_views.lead_form, name="lead_edit"),
     path("app/leads/<uuid:pk>/status/", crm_views.lead_status, name="lead_status"),
     path("app/tasks/", crm_views.tasks, name="tasks"),
+    # Calendar (Phase 3)
+    path("app/calendar/", calendar_views.index, name="calendar"),
+    path("app/calendar/events/", calendar_views.events, name="calendar_events"),
+    path("app/calendar/book/", calendar_views.book, name="calendar_book"),
+    path("app/calendar/appointments/<uuid:pk>/", calendar_views.appointment, name="appointment"),
+    path("app/calendar/resources/", calendar_views.resources, name="calendar_resources"),
+    path("app/calendar/resources/new/", calendar_views.resource_form, name="calendar_resource_create"),
+    path("app/calendar/resources/<uuid:pk>/", calendar_views.resource_form, name="calendar_resource_edit"),
     # Catalogue (Phase 3)
     path("app/catalogue/", catalog_views.home, name="catalog_home"),
     path("app/catalogue/<slug:type_key>/", catalog_views.item_list, name="catalog_list"),

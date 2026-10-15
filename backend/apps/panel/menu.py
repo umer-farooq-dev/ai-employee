@@ -11,7 +11,7 @@ MENU = [
     ("ai_employees", "AI Employees", "user-star", None, "company.view", "ai_employees", 4),
     ("leads", "Leads", "group", "panel:lead_list", "leads.view", None, 3),
     ("tasks", "Follow-ups", "task-list", "panel:tasks", "leads.view", None, 3),
-    ("calendar", "Calendar", "calendar", None, "company.view", None, 3),
+    ("calendar", "Calendar", "calendar", "panel:calendar", "calendar.view", None, 3),
     ("conversations", "Conversations", "chat-lines", None, "company.view", None, 5),
     ("campaigns", "Campaigns", "megaphone", None, "company.view", "campaigns", 6),
     ("knowledge", "Knowledge Base", "book-stack", None, "company.view", None, 4),
