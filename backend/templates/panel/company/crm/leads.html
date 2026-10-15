@@ -1,0 +1,134 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}Leads{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">{% if p.deleted == '1' %}Deleted leads{% else %}Leads{% endif %}</h4><span class="text-muted small">{{ page.paginator.count }} lead{{ page.paginator.count|pluralize }}</span></div>
+    <div class="d-flex flex-wrap gap-2">
+        <div class="btn-group">
+            <a class="btn btn-sm btn-primary" href="{% url 'panel:lead_list' %}">List</a>
+            <a class="btn btn-sm btn-light" href="{% url 'panel:lead_board' %}?{{ params }}">Pipeline</a>
+        </div>
+        {% if can.manage %}<a class="btn btn-sm btn-primary" href="{% url 'panel:lead_create' %}"><i class="iconoir-plus"></i> New lead</a>{% endif %}
+        {% if can.import %}<a class="btn btn-sm btn-light" href="{% url 'panel:lead_import' %}">Import</a>{% endif %}
+        {% if can.export %}<div class="btn-group"><a class="btn btn-sm btn-light" href="{% url 'panel:lead_export' %}?{{ params }}">Export CSV</a>
+            <a class="btn btn-sm btn-light" href="{% url 'panel:lead_export' %}?{{ params }}&format=xlsx">Excel</a></div>{% endif %}
+        {% if can.delete %}<a class="btn btn-sm btn-light" href="{% url 'panel:lead_duplicates' %}">Duplicates</a>
+            <a class="btn btn-sm btn-light" href="?deleted=1">Deleted</a>{% endif %}
+    </div>
+</div>
+
+{# Filters (CRM-09) #}
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            {% if p.deleted == '1' %}<input type="hidden" name="deleted" value="1">{% endif %}
+            <div class="col-md-3"><label class="form-label small">Search</label><input class="form-control form-control-sm" name="q" value="{{ p.q }}" placeholder="Name, phone, email, lead ID"></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Status</label><select class="form-select form-select-sm" name="status"><option value="">All</option>{% for s in statuses %}<option value="{{ s.key }}" {% if p.status == s.key %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-1"><label class="form-label small">Score</label><select class="form-select form-select-sm" name="score"><option value="">All</option><option value="hot" {% if p.score == 'hot' %}selected{% endif %}>Hot</option><option value="warm" {% if p.score == 'warm' %}selected{% endif %}>Warm</option><option value="cold" {% if p.score == 'cold' %}selected{% endif %}>Cold</option></select></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Source</label><select class="form-select form-select-sm" name="source"><option value="">All</option>{% for s in sources %}<option value="{{ s.key }}" {% if p.source == s.key %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Assigned to</label><select class="form-select form-select-sm" name="assignee"><option value="">Anyone</option><option value="me" {% if p.assignee == 'me' %}selected{% endif %}>Me</option><option value="none" {% if p.assignee == 'none' %}selected{% endif %}>Unassigned</option>{% for u in members %}<option value="{{ u.pk }}" {% if p.assignee == u.pk|stringformat:'s' %}selected{% endif %}>{{ u|person }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Sort</label><select class="form-select form-select-sm" name="sort">
+                <option value="newest">Newest</option><option value="oldest" {% if p.sort == 'oldest' %}selected{% endif %}>Oldest</option><option value="score" {% if p.sort == 'score' %}selected{% endif %}>Score</option><option value="follow_up" {% if p.sort == 'follow_up' %}selected{% endif %}>Follow-up date</option><option value="name" {% if p.sort == 'name' %}selected{% endif %}>Name</option><option value="updated" {% if p.sort == 'updated' %}selected{% endif %}>Recently updated</option></select></div>
+            <div class="col-12"><a class="small" data-bs-toggle="collapse" href="#more-filters" role="button">More filters</a></div>
+            <div class="collapse col-12 {% if p.created_from or p.created_to or p.follow_up or p.tag %}show{% endif %}" id="more-filters"><div class="row g-2">
+                <div class="col-6 col-md-2"><label class="form-label small">Created from</label><input type="date" class="form-control form-control-sm" name="created_from" value="{{ p.created_from }}"></div>
+                <div class="col-6 col-md-2"><label class="form-label small">Created to</label><input type="date" class="form-control form-control-sm" name="created_to" value="{{ p.created_to }}"></div>
+                <div class="col-6 col-md-2"><label class="form-label small">Follow-up</label><select class="form-select form-select-sm" name="follow_up"><option value="">Any</option><option value="today" {% if p.follow_up == 'today' %}selected{% endif %}>Today</option><option value="overdue" {% if p.follow_up == 'overdue' %}selected{% endif %}>Overdue</option><option value="upcoming" {% if p.follow_up == 'upcoming' %}selected{% endif %}>Upcoming</option></select></div>
+                <div class="col-6 col-md-2"><label class="form-label small">Tag</label><input class="form-control form-control-sm" name="tag" value="{{ p.tag }}"></div>
+                {% for d in custom_filters %}
+                <div class="col-6 col-md-2"><label class="form-label small">{{ d.label }}</label>
+                    {% with key="cf_"|add:d.key %}
+                    {% if d.type == 'number' or d.type == 'currency' %}
+                        <div class="input-group input-group-sm"><input class="form-control" name="{{ key }}_min" value="{% with k2=key|add:'_min' %}{{ p|get:k2|default:'' }}{% endwith %}" placeholder="Min"><input class="form-control" name="{{ key }}_max" value="{% with k3=key|add:'_max' %}{{ p|get:k3|default:'' }}{% endwith %}" placeholder="Max"></div>
+                    {% elif d.type == 'single_select' or d.type == 'multi_select' %}
+                        <select class="form-select form-select-sm" name="{{ key }}"><option value="">All</option>{% for o in d.options %}<option value="{{ o }}" {% if p|get:key == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+                    {% elif d.type == 'yes_no' %}
+                        <select class="form-select form-select-sm" name="{{ key }}"><option value="">All</option><option value="yes" {% if p|get:key == 'yes' %}selected{% endif %}>Yes</option><option value="no" {% if p|get:key == 'no' %}selected{% endif %}>No</option></select>
+                    {% else %}<input class="form-control form-control-sm" name="{{ key }}" value="{{ p|get:key|default:'' }}">{% endif %}
+                    {% endwith %}
+                </div>
+                {% endfor %}
+            </div></div>
+            <div class="col-12 d-flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-primary">Apply</button>
+                <a class="btn btn-sm btn-light" href="{% url 'panel:lead_list' %}">Clear</a>
+                {% for v in saved_views %}<a class="btn btn-sm btn-outline-secondary" href="?{{ v.params }}">{{ v.name }}</a>{% endfor %}
+            </div>
+        </form>
+        <form method="post" class="d-flex gap-2 mt-2">{% csrf_token %}<input type="hidden" name="op" value="save_view"><input type="hidden" name="params" value="{{ params }}">
+            <input class="form-control form-control-sm" style="max-width:220px" name="name" placeholder="Save these filters as…" aria-label="View name">
+            <button class="btn btn-sm btn-light">Save view</button></form>
+    </div>
+</div>
+
+{# List + bulk actions (CRM-17) #}
+<form method="post" id="bulk-form">{% csrf_token %}<input type="hidden" name="op" value="bulk"><input type="hidden" name="back" value="{{ request.get_full_path }}">
+{% if can.assign or can.delete or can.export %}
+<div class="card mb-2"><div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
+    <span class="small text-muted">With selected:</span>
+    <select class="form-select form-select-sm w-auto" name="action" id="bulk-action" aria-label="Bulk action">
+        {% if can.assign %}<option value="assign">Assign to…</option><option value="status">Change status…</option><option value="add_to_campaign">Add to campaign</option>{% endif %}
+        {% if can.manage %}<option value="tag">Add tag…</option>{% endif %}
+        {% if can.export %}<option value="export">Export</option>{% endif %}
+        {% if can.delete %}<option value="delete">Delete</option>{% endif %}
+    </select>
+    <select class="form-select form-select-sm w-auto bulk-value" data-for="assign" name="value" aria-label="Assign to"><option value="">Unassign</option>{% for u in members %}<option value="{{ u.pk }}">{{ u|person }}</option>{% endfor %}</select>
+    <select class="form-select form-select-sm w-auto bulk-value d-none" data-for="status" name="value" disabled aria-label="Status">{% for s in statuses %}<option value="{{ s.key }}">{{ s.label }}</option>{% endfor %}</select>
+    <input class="form-control form-control-sm w-auto bulk-value d-none" data-for="tag" name="value" disabled placeholder="Tag" aria-label="Tag">
+    <button class="btn btn-sm btn-primary">Apply</button>
+</div></div>
+{% endif %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive d-none d-md-block"><table class="table table-hover mb-0 align-middle">
+            <thead class="table-light"><tr><th style="width:32px"><input type="checkbox" class="form-check-input" id="check-all" aria-label="Select all"></th>
+                <th>Lead</th><th>Phone / Email</th><th>Status</th><th>Score</th>{% for d in list_fields %}<th>{{ d.label }}</th>{% endfor %}<th>Assigned</th><th>Follow-up</th></tr></thead>
+            <tbody>
+            {% for lead, values in rows %}
+            <tr>
+                <td><input type="checkbox" class="form-check-input row-check" name="ids" value="{{ lead.pk }}" aria-label="Select {{ lead.reference }}"></td>
+                <td><a href="{% url 'panel:lead_detail' lead.pk %}" class="fw-medium">{{ lead.name|default:"(no name)" }}</a><div class="text-muted small">{{ lead.reference }} · {{ lead.source.label|default:"" }}</div></td>
+                <td class="small">{{ lead.phone }}<div class="text-muted">{{ lead.email }}</div></td>
+                <td><span class="badge" style="background:{{ lead.status.color }}">{{ lead.status.label }}</span></td>
+                <td>{% if lead.score_label %}<span class="badge {% if lead.score_label == 'hot' %}bg-danger{% elif lead.score_label == 'warm' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ lead.get_score_label_display }} {{ lead.score_value }}</span>{% endif %}</td>
+                {% for v in values %}<td class="small">{{ v }}</td>{% endfor %}
+                <td class="small">{{ lead.assigned_user|person|default:"—"  }}</td>
+                <td class="small {% if lead.follow_up_at and lead.follow_up_at < now %}text-danger{% endif %}">{{ lead.follow_up_at|date:"d M H:i"|default:"—" }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="9" class="text-center text-muted py-5">No leads match these filters.</td></tr>{% endfor %}
+            </tbody>
+        </table></div>
+        {# Card view on phones #}
+        <div class="d-md-none">
+            {% for lead, values in rows %}
+            <div class="border-bottom p-3 d-flex gap-2">
+                <input type="checkbox" class="form-check-input row-check mt-1" name="ids" value="{{ lead.pk }}" aria-label="Select {{ lead.reference }}">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between"><a href="{% url 'panel:lead_detail' lead.pk %}" class="fw-medium">{{ lead.name|default:"(no name)" }}</a>
+                        <span class="badge" style="background:{{ lead.status.color }}">{{ lead.status.label }}</span></div>
+                    <div class="small text-muted">{{ lead.reference }} · {{ lead.phone }} {% if lead.score_label %}· {{ lead.get_score_label_display }} {{ lead.score_value }}{% endif %}</div>
+                    {% if lead.follow_up_at %}<div class="small">Follow-up {{ lead.follow_up_at|date:"d M H:i" }}</div>{% endif %}
+                </div>
+            </div>
+            {% empty %}<p class="text-center text-muted py-5 mb-0">No leads match these filters.</p>{% endfor %}
+        </div>
+    </div>
+    <div class="card-footer">{% include 'panel/partials/pagination.html' %}</div>
+</div>
+</form>
+{% endblock page_content %}
+{% block extra_javascript %}
+<script>
+  document.getElementById("check-all")?.addEventListener("change", function (e) {
+    document.querySelectorAll(".row-check").forEach(function (c) { c.checked = e.target.checked; });
+  });
+  var action = document.getElementById("bulk-action");
+  function syncBulk() {
+    document.querySelectorAll(".bulk-value").forEach(function (el) {
+      var on = el.dataset.for === action.value; el.classList.toggle("d-none", !on); el.disabled = !on;
+    });
+  }
+  if (action) { action.addEventListener("change", syncBulk); syncBulk(); }
+</script>
+{% endblock %}

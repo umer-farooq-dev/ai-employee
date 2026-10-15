@@ -9,7 +9,8 @@ from apps.rbac.services import has_perm
 MENU = [
     ("dashboard", "Dashboard", "home-simple", "panel:company_home", "company.view", None, 2),
     ("ai_employees", "AI Employees", "user-star", None, "company.view", "ai_employees", 4),
-    ("leads", "Leads", "group", None, "company.view", None, 3),
+    ("leads", "Leads", "group", "panel:lead_list", "leads.view", None, 3),
+    ("tasks", "Follow-ups", "task-list", "panel:tasks", "leads.view", None, 3),
     ("calendar", "Calendar", "calendar", None, "company.view", None, 3),
     ("conversations", "Conversations", "chat-lines", None, "company.view", None, 5),
     ("campaigns", "Campaigns", "megaphone", None, "company.view", "campaigns", 6),

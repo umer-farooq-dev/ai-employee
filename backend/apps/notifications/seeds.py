@@ -129,4 +129,15 @@ SEED_TEMPLATES = [
         + P.format('<a href="{{ review_url }}">Open in Super Admin</a>'),
         ["platform_name", "enquiry", "review_url"],
     ),
+    # Phase 3
+    (
+        "crm/task_reminder",
+        "Follow-up task reminder",
+        "Reminder: {{ task.title }}",
+        P.format("Hello {{ user.full_name|default:user.email }},")
+        + P.format("Your task <b>{{ task.title }}</b> is due at {{ task.due_at|date:'d M Y H:i' }}.")
+        + P.format("{% if task.lead %}Lead: {{ task.lead }}{% endif %}")
+        + P.format('<a href="{{ task_url }}">Open my follow-ups</a>'),
+        ["platform_name", "task", "user", "task_url"],
+    ),
 ]

@@ -1,0 +1,40 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}CRM settings{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">CRM settings</h4><span class="text-muted small">Industry fields and default rules come from your {{ request.company.industry.name|default:"" }} template; here you add your own and adjust.</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:company_settings' %}">Company settings</a>
+</div>
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Lead fields</h5>
+            <a class="btn btn-sm btn-primary" href="{% url 'panel:crm_field_create' %}">Add custom field</a></div>
+            <div class="card-body p-0"><table class="table mb-0 small align-middle"><tbody>
+                {% for f in template_fields %}<tr><td>{{ f.label }}</td><td><code>{{ f.key }}</code></td><td>{{ f.get_type_display }}</td><td class="text-muted">industry</td></tr>{% endfor %}
+                {% for f in company_fields %}<tr><td><a href="{% url 'panel:crm_field_edit' f.pk %}">{{ f.label }}</a></td><td><code>{{ f.key }}</code></td><td>{{ f.get_type_display }}</td><td><span class="badge bg-primary-subtle text-primary">yours</span></td></tr>{% endfor %}
+            </tbody></table></div>
+            {% if field_limit is not None %}<div class="card-footer small text-muted">Your plan allows {{ field_limit }} custom field{{ field_limit|pluralize }}.</div>{% endif %}
+        </div>
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Assignment rules</h5>
+            <a class="btn btn-sm btn-primary" href="{% url 'panel:crm_assignment_create' %}">Add rule</a></div>
+            <div class="card-body p-0"><table class="table mb-0 small"><tbody>
+                {% for r in assignment_rules %}<tr><td><a href="{% url 'panel:crm_assignment_edit' r.pk %}">{{ r.name }}</a></td><td>{{ r.get_strategy_display }}</td><td>{% if r.condition %}<code>{{ r.condition.field }} {{ r.condition.op }} {{ r.condition.value|default:"" }}</code>{% else %}all new leads{% endif %}</td><td>{{ r.is_active|yesno:"On,Off" }}</td></tr>
+                {% empty %}<tr><td class="text-muted text-center">No rules: new leads stay unassigned unless someone picks them.</td></tr>{% endfor %}
+            </tbody></table></div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Lead scoring rules</h5>
+            <a class="btn btn-sm btn-primary" href="{% url 'panel:crm_scoring_rule_create' %}">Add rule</a></div>
+            <div class="card-body p-0"><table class="table mb-0 small align-middle"><tbody>
+                {% for r in template_rules %}<tr><td>{{ r.name }}</td><td>{{ r.points }}{% if r.force_label %} → {{ r.force_label }}{% endif %}</td>
+                    <td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'panel:crm_scoring_rule_create' %}?from={{ r.pk }}">Adjust</a></td></tr>{% endfor %}
+                {% for r in company_rules %}<tr><td><a href="{% url 'panel:crm_scoring_rule_edit' r.pk %}">{{ r.name }}</a> <span class="badge bg-primary-subtle text-primary">yours</span></td><td>{{ r.points }}{% if r.force_label %} → {{ r.force_label }}{% endif %}</td><td class="text-end">{{ r.is_active|yesno:"On,Off" }}</td></tr>{% endfor %}
+            </tbody></table></div>
+            <div class="card-footer small text-muted">Your rule with the same key replaces the industry rule. Rules in use now: {% for r in rules %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}

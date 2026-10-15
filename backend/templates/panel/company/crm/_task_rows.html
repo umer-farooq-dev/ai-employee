@@ -1,0 +1,10 @@
+{% load admin_tags %}
+<table class="table mb-0 align-middle"><tbody>
+{% for t in items %}
+<tr>
+    <td>{{ t.title }}<div class="text-muted small">{{ t.get_type_display }}{% if t.lead %} · <a href="{% url 'panel:lead_detail' t.lead.pk %}">{{ t.lead.reference }} {{ t.lead.name }}</a>{% endif %}{% if not mine %} · {{ t.assigned_user|person }}{% endif %}</div></td>
+    <td class="small">{{ t.due_at|date:"d M Y H:i" }}</td>
+    <td class="text-end"><form method="post">{% csrf_token %}<input type="hidden" name="task" value="{{ t.pk }}"><button class="btn btn-sm btn-light">Done</button></form></td>
+</tr>
+{% empty %}<tr><td class="text-center text-muted py-4">Nothing here.</td></tr>{% endfor %}
+</tbody></table>

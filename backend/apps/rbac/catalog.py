@@ -41,12 +41,40 @@ PERMISSIONS = {
     "company.manage": (COMPANY, "Edit company profile and settings"),
     "team.view": (COMPANY, "View team members"),
     "team.manage": (COMPANY, "Invite and manage team members"),
+    "leads.view": (COMPANY, "View leads (assigned to me)"),
+    "leads.view_all": (COMPANY, "View all leads of the company"),
+    "leads.manage": (COMPANY, "Create and edit leads, notes and follow-ups"),
+    "leads.assign": (COMPANY, "Assign leads and use bulk actions"),
+    "leads.delete": (COMPANY, "Delete, restore and merge leads"),
+    "leads.import": (COMPANY, "Import leads"),
+    "leads.export": (COMPANY, "Export leads"),
+    "crm.configure": (COMPANY, "Configure company CRM fields, scoring and assignment rules"),
+    "catalog.view": (COMPANY, "View catalogue"),
+    "catalog.manage": (COMPANY, "Manage catalogue items, collections and imports"),
+    "calendar.view": (COMPANY, "View calendar"),
+    "calendar.manage": (COMPANY, "Book and manage appointments"),
+    "calendar.configure": (COMPANY, "Configure calendar resources and availability"),
     "billing.view": (COMPANY, "View subscription and billing"),
     "billing.manage": (COMPANY, "Change subscription and billing"),
 }
 
 PLATFORM_KEYS = [k for k, (scope, _) in PERMISSIONS.items() if scope == PLATFORM]
 COMPANY_KEYS = [k for k, (scope, _) in PERMISSIONS.items() if scope == COMPANY]
+
+MANAGER_P3 = [
+    "leads.view",
+    "leads.view_all",
+    "leads.manage",
+    "leads.assign",
+    "leads.import",
+    "leads.export",
+    "catalog.view",
+    "catalog.manage",
+    "calendar.view",
+    "calendar.manage",
+    "calendar.configure",
+]
+AGENT_P3 = ["leads.view", "leads.manage", "catalog.view", "calendar.view", "calendar.manage"]
 
 SEED_ROLES = [
     # (scope, key, name, permissions)
@@ -68,6 +96,6 @@ SEED_ROLES = [
         ],
     ),
     (COMPANY, "owner", "Owner / Admin", COMPANY_KEYS),
-    (COMPANY, "manager", "Manager", ["company.view", "team.view"]),
-    (COMPANY, "agent", "Human Agent", ["company.view"]),
+    (COMPANY, "manager", "Manager", ["company.view", "team.view", *MANAGER_P3]),
+    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3]),
 ]

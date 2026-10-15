@@ -1,0 +1,40 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}{% if lead %}Edit {{ lead.reference }}{% else %}New lead{% endif %}{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">{% if lead %}Edit {{ lead.reference }}{% else %}New lead{% endif %}</h4>
+    <a class="btn btn-sm btn-light" href="{% if lead %}{% url 'panel:lead_detail' lead.pk %}{% else %}{% url 'panel:lead_list' %}{% endif %}">Back</a>
+</div>
+{% if duplicate %}<div class="alert alert-warning">This lead already exists: <a href="{% url 'panel:lead_detail' duplicate.pk %}">{{ duplicate.reference }} {{ duplicate.name }}</a>.</div>{% endif %}
+<form method="post">{% csrf_token %}
+{% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Contact</h5></div><div class="card-body">
+            {% for field in form %}{% if not field.name|slice:":2" == "f_" %}
+            <div class="mb-3">
+                {% if field.widget_type == 'checkbox' %}<div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+                {% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}{% endfor %}
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">{{ request.company.industry.name|default:"Lead" }} details</h5></div><div class="card-body">
+            {% for field in form %}{% if field.name|slice:":2" == "f_" %}
+            <div class="mb-3">
+                {% if field.widget_type == 'checkbox' %}<div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+                {% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}{% endif %}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}{% endfor %}
+        </div></div>
+    </div>
+</div>
+<button class="btn btn-primary">Save lead</button>
+</form>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'website/partials/phone-input.html' %}{% endblock %}

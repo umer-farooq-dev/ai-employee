@@ -30,6 +30,7 @@ GROUPS = {
     "registration": ("system", "Registration & team"),
     "security": ("system", "Security"),
     "sms": ("system", "SMS (mobile OTP)"),
+    "crm": ("system", "CRM"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
@@ -234,6 +235,13 @@ SETTINGS = [
     Setting(
         "security.api_rate_public_form", "text", "10/hour", "Website forms per IP (registration, enquiries)", "security"
     ),
+    # CRM (SA-07 / CRM-18)
+    Setting("crm.lead_number_prefix", "text", "LD-", "Lead number prefix", "crm", help="LD- gives LD-000123"),
+    Setting("crm.lead_number_digits", "number", 6, "Lead number digits", "crm", min=3, max=10),
+    Setting("crm.import_max_rows", "number", 10000, "Import: maximum rows per file", "crm", min=10, max=200000),
+    Setting("crm.import_max_mb", "number", 10, "Import: maximum file size (MB)", "crm", min=1, max=100),
+    Setting("crm.export_max_rows", "number", 50000, "Export: maximum rows", "crm", min=100, max=500000),
+    Setting("crm.task_reminder_minutes", "number", 30, "Task reminder (minutes before due)", "crm", min=0, max=10080),
     # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
     Setting(
         "sms.provider",

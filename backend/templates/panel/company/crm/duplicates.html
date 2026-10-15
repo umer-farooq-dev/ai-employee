@@ -1,0 +1,23 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Duplicate leads{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">Duplicate leads</h4><span class="text-muted small">Leads sharing an email. A phone number can only belong to one lead, so new duplicates are blocked when they are created or imported.</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:lead_list' %}">Back to leads</a>
+</div>
+{% for g in groups %}
+<div class="card"><div class="card-header"><h5 class="card-title mb-0">{{ g.key }}</h5></div><div class="card-body">
+    <form method="post">{% csrf_token %}
+        <table class="table table-sm align-middle mb-2"><thead><tr><th>Keep</th><th>Merge in</th><th>Lead</th><th>Status</th><th>Created</th></tr></thead><tbody>
+        {% for lead in g.leads %}<tr>
+            <td><input type="radio" class="form-check-input" name="primary" value="{{ lead.pk }}" {% if forloop.first %}checked{% endif %} aria-label="Keep {{ lead.reference }}"></td>
+            <td><input type="checkbox" class="form-check-input" name="merge" value="{{ lead.pk }}" {% if not forloop.first %}checked{% endif %} aria-label="Merge {{ lead.reference }}"></td>
+            <td><a href="{% url 'panel:lead_detail' lead.pk %}">{{ lead.reference }} {{ lead.name }}</a><div class="text-muted small">{{ lead.phone }}</div></td>
+            <td><span class="badge" style="background:{{ lead.status.color }}">{{ lead.status.label }}</span></td><td>{{ lead.created_at|date:"d M Y" }}</td></tr>{% endfor %}
+        </tbody></table>
+        <button class="btn btn-sm btn-primary">Merge</button>
+        <span class="text-muted small ms-2">Notes, timeline and tasks move to the kept lead; empty fields are filled from the others.</span>
+    </form>
+</div></div>
+{% empty %}<div class="card"><div class="card-body text-center text-muted py-5">No duplicates found.</div></div>{% endfor %}
+{% endblock page_content %}

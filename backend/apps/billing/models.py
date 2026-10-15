@@ -13,6 +13,7 @@ ENTITLEMENTS = [
     ("kb_storage_mb", "Knowledge storage (MB)"),
     ("concurrent_calls", "Concurrent calls"),
     ("campaigns", "Active campaigns"),
+    ("custom_fields", "Company custom CRM fields"),
 ]
 
 

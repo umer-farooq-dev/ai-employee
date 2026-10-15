@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from . import views_company as company
+from . import views_crm as crmapi
 from . import views_templates as tpl
 
 admin = DefaultRouter(trailing_slash=True)
@@ -35,6 +36,13 @@ team = DefaultRouter(trailing_slash=True)
 team.register("members", company.TeamMemberViewSet, basename="team-members")
 team.register("invitations", company.InvitationViewSet, basename="team-invitations")
 
+crm_router = DefaultRouter(trailing_slash=True)
+crm_router.register("leads", crmapi.LeadViewSet, basename="crm-leads")
+crm_router.register("tasks", crmapi.TaskViewSet, basename="crm-tasks")
+crm_router.register("fields", crmapi.CompanyFieldViewSet, basename="crm-fields")
+crm_router.register("scoring-rules", crmapi.CompanyScoringRuleViewSet, basename="crm-scoring-rules")
+crm_router.register("assignment-rules", crmapi.AssignmentRuleViewSet, basename="crm-assignment-rules")
+
 public = DefaultRouter(trailing_slash=True)
 public.register("industries", company.PublicIndustryViewSet, basename="public-industries")
 
@@ -47,6 +55,10 @@ api_v1 = [
     path("company/template/", tpl.CompanyTemplateView.as_view(), name="company-template"),
     path("company/team/transfer-ownership/", company.TransferOwnershipView.as_view(), name="team-transfer"),
     path("company/team/", include(team.urls)),
+    path("crm/config/", crmapi.CrmConfigView.as_view(), name="crm-config"),
+    path("crm/imports/", crmapi.LeadImportView.as_view(), name="crm-import"),
+    path("crm/imports/<uuid:pk>/", crmapi.LeadImportView.as_view(), name="crm-import-run"),
+    path("crm/", include(crm_router.urls)),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),
     path("admin/uploads/", views.UploadView.as_view(), name="admin-uploads"),
     path("admin/sessions/", views.SessionsView.as_view(), name="admin-sessions"),

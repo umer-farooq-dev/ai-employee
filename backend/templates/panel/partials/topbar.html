@@ -13,12 +13,16 @@
                 </li>
             </ul>
             <ul class="topbar-item list-unstyled d-inline-flex align-items-center mb-0">
+                {% if request.company and not request.user.is_staff %}
                 <li class="hide-phone app-search">
-                    <form role="search" action="#" method="get">
-                        <input type="search" name="q" class="form-control top-search mb-0" placeholder="Search...">
-                        <button type="button"><i class="iconoir-search"></i></button>
+                    {# CP-04: find leads by name, phone or email from anywhere in the panel #}
+                    <form role="search" action="{% url 'panel:search' %}" method="get">
+                        <input type="search" name="q" value="{{ request.GET.q|default:'' }}" class="form-control top-search mb-0"
+                               placeholder="Search leads: name, phone, email" aria-label="Search leads">
+                        <button type="submit" aria-label="Search"><i class="iconoir-search"></i></button>
                     </form>
                 </li>
+                {% endif %}
                 <li class="dropdown topbar-item">
                     <a class="nav-link dropdown-toggle arrow-none nav-icon" data-bs-toggle="dropdown" href="#" role="button"
                        aria-haspopup="false" aria-expanded="false">

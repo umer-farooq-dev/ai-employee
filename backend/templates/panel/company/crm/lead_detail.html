@@ -1,0 +1,96 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}{{ lead.reference }}{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div>
+        <h4 class="mb-0">{{ lead.name|default:"(no name)" }} <span class="text-muted fs-14">{{ lead.reference }}</span></h4>
+        <span class="badge" style="background:{{ lead.status.color }}">{{ lead.status.label }}</span>
+        {% if lead.score_label %}<span class="badge {% if lead.score_label == 'hot' %}bg-danger{% elif lead.score_label == 'warm' %}bg-warning text-dark{% else %}bg-info{% endif %}" title="{{ lead.score_reason }}">{{ lead.get_score_label_display }} · {{ lead.score_value }}</span>{% endif %}
+        {% if lead.deleted_at %}<span class="badge bg-secondary">Deleted{% if lead.merged_into %} (merged into {{ lead.merged_into.reference }}){% endif %}</span>{% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        {% if can.manage and not lead.deleted_at %}<a class="btn btn-sm btn-primary" href="{% url 'panel:lead_edit' lead.pk %}">Edit</a>{% endif %}
+        {% if can.delete %}<form method="post">{% csrf_token %}{% if lead.deleted_at %}<button name="op" value="restore" class="btn btn-sm btn-outline-success">Restore</button>{% else %}<button name="op" value="delete" class="btn btn-sm btn-outline-danger">Delete</button>{% endif %}</form>{% endif %}
+        <a class="btn btn-sm btn-light" href="{% url 'panel:lead_list' %}">Back</a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Profile</h5></div><div class="card-body">
+            <dl class="row mb-0 small">
+                <dt class="col-5">Phone</dt><dd class="col-7">{% if lead.phone %}<a href="tel:{{ lead.phone }}">{{ lead.phone }}</a>{% else %}—{% endif %}{% if lead.dnd %} <span class="badge bg-dark">DND</span>{% endif %}</dd>
+                <dt class="col-5">Email</dt><dd class="col-7 text-break">{{ lead.email|default:"—" }}</dd>
+                <dt class="col-5">Source</dt><dd class="col-7">{{ lead.source.label|default:"—" }}</dd>
+                <dt class="col-5">Language</dt><dd class="col-7">{{ lead.preferred_language|default:"—" }}</dd>
+                <dt class="col-5">AI Employee</dt><dd class="col-7">{{ lead.assigned_ai_employee_id|default:"—" }}</dd>
+                <dt class="col-5">Tags</dt><dd class="col-7">{% for t in lead.tags %}<span class="badge bg-light text-dark">{{ t }}</span> {% empty %}—{% endfor %}</dd>
+                <dt class="col-5">Consent</dt><dd class="col-7">{{ lead.get_consent_status_display }}</dd>
+                <dt class="col-5">Last contact</dt><dd class="col-7">{{ lead.last_contact_at|date:"d M Y H:i"|default:"—" }}</dd>
+                <dt class="col-5">Created</dt><dd class="col-7">{{ lead.created_at|date:"d M Y H:i" }} · {{ lead.get_created_via_display }}</dd>
+                {% for d, value in custom %}<dt class="col-5">{{ d.label }}</dt><dd class="col-7">{{ value|default:"—" }}</dd>{% endfor %}
+            </dl>
+        </div></div>
+        {% if not lead.deleted_at %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Status &amp; owner</h5></div><div class="card-body">
+            {% if can.manage %}<form method="post" class="d-flex gap-2 mb-2">{% csrf_token %}<input type="hidden" name="op" value="status">
+                <select name="status" class="form-select form-select-sm" aria-label="Status">{% for s in statuses %}<option value="{{ s.key }}" {% if s.pk == lead.status_id %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select>
+                <button class="btn btn-sm btn-light">Set</button></form>{% endif %}
+            {% if can.assign %}<form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="op" value="assign">
+                <select name="user" class="form-select form-select-sm" aria-label="Assigned to"><option value="">Unassigned</option>{% for u in members %}<option value="{{ u.pk }}" {% if u.pk == lead.assigned_user_id %}selected{% endif %}>{{ u|person }}</option>{% endfor %}</select>
+                <button class="btn btn-sm btn-light">Assign</button></form>
+            {% else %}<p class="small mb-0">Assigned to {{ lead.assigned_user|person|default:"nobody"  }}</p>{% endif %}
+        </div></div>
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Next action</h5></div><div class="card-body">
+            <p class="small mb-2">{% if lead.follow_up_at %}<strong>{{ lead.follow_up_at|date:"d M Y H:i" }}</strong>{% if lead.next_action %} — {{ lead.next_action }}{% endif %}{% else %}No follow-up scheduled.{% endif %}</p>
+            {% if can.manage %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="follow_up">
+                {% include 'panel/partials/form_fields.html' with form=follow_form %}
+                <button class="btn btn-sm btn-primary w-100">Schedule follow-up</button></form>{% endif %}
+        </div></div>
+        {% endif %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Score history</h5></div><div class="card-body p-0"><table class="table table-sm mb-0 small"><tbody>
+            {% for e in score_events %}<tr><td>{{ e.created_at|date:"d M H:i" }}</td><td>{{ e.value }} {{ e.label }}</td><td class="text-muted">{{ e.reason|truncatechars:50 }}</td></tr>
+            {% empty %}<tr><td class="text-muted text-center">No changes yet.</td></tr>{% endfor %}</tbody></table></div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Tasks</h5></div>
+            <div class="card-body p-0"><table class="table mb-0 align-middle small"><tbody>
+                {% for t in tasks %}<tr class="{% if t.status != 'open' %}text-muted{% endif %}"><td>{{ t.title }}<div class="text-muted">{{ t.get_type_display }} · {{ t.assigned_user|person|default:""  }}</div></td>
+                    <td class="{% if t.status == 'open' and t.due_at < now %}text-danger{% endif %}">{{ t.due_at|date:"d M H:i" }}</td>
+                    <td class="text-end">{% if t.status == 'open' and can.manage %}<form method="post">{% csrf_token %}<input type="hidden" name="task" value="{{ t.pk }}"><button name="op" value="task_done" class="btn btn-sm btn-light">Done</button></form>{% else %}{{ t.get_status_display }}{% endif %}</td></tr>
+                {% empty %}<tr><td class="text-muted text-center">No tasks.</td></tr>{% endfor %}
+            </tbody></table></div>
+            {% if can.manage and not lead.deleted_at %}<div class="card-footer"><a data-bs-toggle="collapse" href="#new-task" class="small">+ Add task</a>
+                <form method="post" class="collapse mt-2" id="new-task">{% csrf_token %}<input type="hidden" name="op" value="task">
+                    <div class="row">{% for field in task_form %}<div class="col-md-6 mb-2"><label class="form-label small" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>{% endfor %}</div>
+                    <button class="btn btn-sm btn-primary">Add task</button></form></div>{% endif %}
+        </div>
+        {% if can.manage and not lead.deleted_at %}
+        <div class="card"><div class="card-body">
+            <form method="post">{% csrf_token %}<input type="hidden" name="op" value="note">
+                <label class="form-label fw-semibold" for="note-body">Add a note</label>
+                <textarea id="note-body" name="body" class="form-control mb-2" rows="2" required></textarea>
+                <button class="btn btn-sm btn-primary">Save note</button></form>
+        </div></div>
+        {% endif %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Timeline</h5>
+            <span class="text-muted small">Calls, WhatsApp and chat transcripts appear here from Phases 5–6.</span></div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                {% for a in activities %}
+                    <li class="d-flex gap-3 pb-3">
+                        <span class="badge bg-light text-dark align-self-start" style="min-width:96px">{{ a.get_type_display }}</span>
+                        <div class="small"><div>{{ a.summary }}</div>
+                            <div class="text-muted">{{ a.created_at|date:"d M Y H:i" }} · {% if a.actor %}{{ a.actor|person }}{% else %}{{ a.actor_type|title }}{% endif %}</div></div>
+                    </li>
+                {% empty %}<li class="text-muted">No activity yet.</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Notes</h5></div><div class="card-body">
+            {% for n in notes %}<div class="border-bottom pb-2 mb-2 small"><div>{{ n.body|linebreaksbr }}</div><div class="text-muted">{{ n.created_at|date:"d M Y H:i" }} · {{ n.author|person|default:""  }}</div></div>
+            {% empty %}<p class="text-muted small mb-0">No notes.</p>{% endfor %}
+        </div></div>
+    </div>
+</div>
+{% endblock page_content %}

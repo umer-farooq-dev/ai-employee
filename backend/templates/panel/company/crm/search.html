@@ -1,0 +1,11 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Search{% endblock title %}
+{% block page_content %}
+<div class="card mt-3"><div class="card-header"><h4 class="card-title mb-0">Search results for “{{ q }}”</h4></div>
+    <div class="card-body p-0"><table class="table table-hover mb-0 align-middle"><tbody>
+        {% for lead in results %}<tr><td><a href="{% url 'panel:lead_detail' lead.pk %}" class="fw-medium">{{ lead.name|default:"(no name)" }}</a><div class="text-muted small">{{ lead.reference }}</div></td>
+            <td class="small">{{ lead.phone }}<div class="text-muted">{{ lead.email }}</div></td>
+            <td><span class="badge" style="background:{{ lead.status.color }}">{{ lead.status.label }}</span></td></tr>
+        {% empty %}<tr><td class="text-center text-muted py-5">{% if q|length < 2 %}Type at least 2 characters.{% else %}No leads found.{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div></div>
+{% endblock page_content %}

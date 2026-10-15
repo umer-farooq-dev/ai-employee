@@ -1,0 +1,54 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Import leads{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">Import leads</h4>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:lead_list' %}">Back to leads</a>
+</div>
+{% if not imp %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-body">
+            <p class="text-muted">Upload a CSV or Excel (.xlsx) file. The first row must contain the column names. Phone numbers are converted to international format (+91 by default), duplicates are detected and every rejected row is listed in a report.</p>
+            <form method="post" enctype="multipart/form-data">{% csrf_token %}
+                <input type="file" name="file" accept=".csv,.xlsx" class="form-control mb-3" required aria-label="File">
+                <button class="btn btn-primary">Upload and map columns</button></form>
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Recent imports</h5></div><div class="card-body p-0"><table class="table mb-0 small"><tbody>
+            {% for i in recent %}<tr><td><a href="{% url 'panel:lead_import_map' i.pk %}">{{ i.file_name }}</a><div class="text-muted">{{ i.created_at|date:"d M Y H:i" }}</div></td>
+                <td>{% if i.status == 'done' %}{{ i.created }} new · {{ i.updated }} updated · {{ i.skipped }} skipped · {{ i.failed }} failed{% else %}{{ i.status }}{% endif %}</td></tr>
+            {% empty %}<tr><td class="text-muted text-center">No imports yet.</td></tr>{% endfor %}</tbody></table></div></div>
+    </div>
+</div>
+{% elif imp.status == 'pending' %}
+<div class="card"><div class="card-header"><h5 class="card-title mb-0">{{ imp.file_name }} · {{ imp.total }} rows · map the columns</h5></div><div class="card-body">
+    <form method="post">{% csrf_token %}
+        <div class="table-responsive"><table class="table align-middle">
+            <thead class="table-light"><tr><th>Column in your file</th><th>Save as</th></tr></thead><tbody>
+            {% for i, header in columns %}<tr><td>{{ header }}</td><td>
+                <select name="map_{{ i }}" class="form-select form-select-sm" aria-label="Target for {{ header }}"><option value="">Ignore this column</option>
+                    {% for key, label in targets %}<option value="{{ key }}" {% for h, t in imp.mapping.items %}{% if h == header and t == key %}selected{% endif %}{% endfor %}>{{ label }}</option>{% endfor %}</select></td></tr>{% endfor %}
+            </tbody></table></div>
+        <div class="mb-3"><label class="form-label">When a lead with the same phone or email already exists</label>
+            <select name="duplicate_mode" class="form-select w-auto"><option value="skip">Skip the row</option><option value="update">Update the existing lead</option></select></div>
+        <button class="btn btn-primary">Import</button>
+    </form>
+</div></div>
+{% else %}
+<div class="card"><div class="card-header"><h5 class="card-title mb-0">{{ imp.file_name }} · done</h5></div><div class="card-body">
+    <div class="row text-center mb-3">
+        <div class="col"><h3 class="mb-0">{{ imp.total }}</h3><span class="text-muted small">rows</span></div>
+        <div class="col"><h3 class="mb-0 text-success">{{ imp.created }}</h3><span class="text-muted small">new leads</span></div>
+        <div class="col"><h3 class="mb-0 text-primary">{{ imp.updated }}</h3><span class="text-muted small">updated</span></div>
+        <div class="col"><h3 class="mb-0 text-warning">{{ imp.skipped }}</h3><span class="text-muted small">duplicates skipped</span></div>
+        <div class="col"><h3 class="mb-0 text-danger">{{ imp.failed }}</h3><span class="text-muted small">errors</span></div>
+    </div>
+    {% if imp.errors %}<a class="btn btn-sm btn-outline-secondary" href="?report=1">Download error report (CSV)</a>
+    <table class="table table-sm small mt-3"><thead><tr><th>Row</th><th>Reason</th></tr></thead><tbody>
+        {% for e in imp.errors|slice:":20" %}<tr><td>{{ e.row }}</td><td>{{ e.reason }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+    <a class="btn btn-primary" href="{% url 'panel:lead_list' %}?source=import">View imported leads</a>
+</div></div>
+{% endif %}
+{% endblock page_content %}

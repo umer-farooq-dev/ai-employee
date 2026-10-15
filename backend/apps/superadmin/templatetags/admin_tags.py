@@ -43,3 +43,9 @@ def bs(field):
     if field.errors:
         css += " is-invalid"
     return field.as_widget(attrs={"class": css})
+
+
+@register.filter
+def person(user):
+    """User → full name, else email, else '' (safe for empty assignees)."""
+    return (user.full_name or user.email) if user else ""
