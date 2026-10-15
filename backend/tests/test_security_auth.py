@@ -104,3 +104,19 @@ def test_2fa_secret_encrypted_at_rest():
     adapter = MFAAdapter()
     token = adapter.encrypt("JBSWY3DPEHPK3PXP")
     assert token != "JBSWY3DPEHPK3PXP" and adapter.decrypt(token) == "JBSWY3DPEHPK3PXP"
+
+
+@pytest.mark.django_db
+def test_super_admin_on_its_own_host(client, settings, super_admin):
+    """Staff and website / company sessions never share a cookie: Super Admin is served only on ADMIN_HOST."""
+    settings.ADMIN_HOST = "admin.testserver"
+    settings.ALLOWED_HOSTS = ["testserver", "admin.testserver"]
+    response = client.get("/superadmin/companies/?q=x")
+    assert response.url == "http://admin.testserver/superadmin/companies/?q=x"
+    assert client.get("/superadmin/", HTTP_HOST="admin.testserver").status_code == 302  # login on the admin host
+    client.force_login(super_admin)  # staff signed in on the website host …
+    landing = client.get("/dashboard/")
+    assert landing.url.startswith("http://admin.testserver/accounts/login/")
+    assert not client.get("/accounts/signup/").wsgi_request.user.is_authenticated  # … is signed out there
+    assert client.get("/accounts/signup/").status_code == 200
+    assert b"/accounts/signup/" not in client.get("/accounts/login/", HTTP_HOST="admin.testserver").content

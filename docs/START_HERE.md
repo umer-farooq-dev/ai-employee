@@ -125,6 +125,7 @@ _Approval par AI Employee template se khud banna (EMP-14) Phase 4 mein — AI en
 - Migrations: backward-compatible, CI mein `makemigrations --check`
 
 ## Launch se pehle (Phase 8)
+- `.env` mein `ADMIN_HOST=admin.<client domain>` aur dono hosts `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` mein (Super Admin alag address par)
 - Super Admin → Settings → Security → **"2FA mandatory for platform staff" on karna** (development mein owner ke kehne par off)
 - Super Admin → System Settings → Registration → **Email verification = Mandatory** (development mein Optional)
 - **SMS provider** chun kar Super Admin mein lagana (client ka faisla) agar mobile OTP on karna hai

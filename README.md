@@ -14,7 +14,8 @@ python backend/manage.py createsuperuser
 python backend/manage.py runserver
 ```
 
-- Website: http://localhost:8000/ · Super Admin: http://localhost:8000/superadmin/ · Company panel: http://localhost:8000/app/ · API docs: http://localhost:8000/api/v1/docs/
+- Website: http://127.0.0.1:8000/ · Company panel: http://127.0.0.1:8000/app/ · API docs: http://127.0.0.1:8000/api/v1/docs/
+- Super Admin: http://admin.localhost:8000/superadmin/ — its own host (`ADMIN_HOST`), so staff and company / website logins never mix in one browser
 - Emails: http://localhost:8025 (Mailpit)
 - Free LLM gateway (testing only, after the system is built): `docker compose --profile ai up -d`; it is connected as a provider in Super Admin (Phase 4)
 

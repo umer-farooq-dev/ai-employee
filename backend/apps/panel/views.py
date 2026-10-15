@@ -1,7 +1,10 @@
 from django import forms
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import record
@@ -11,7 +14,14 @@ from apps.tenancy import services as tenancy
 
 @login_required
 def after_login(request):
-    """Single post-login landing: platform staff go to Super Admin, everyone else to the company panel."""
+    """Single post-login landing: platform staff go to Super Admin, everyone else to the company panel.
+
+    Staff who signed in on the website host are signed out there and sent to the admin host, so the website and
+    company panel never carry a staff session (see AdminHostMiddleware)."""
+    admin_host = settings.ADMIN_HOST
+    if request.user.is_staff and admin_host and request.get_host() != admin_host:
+        logout(request)
+        return redirect(f"{request.scheme}://{admin_host}{reverse('account_login')}?next=/superadmin/")
     return redirect("superadmin:dashboard" if request.user.is_staff else "panel:company_home")
 
 

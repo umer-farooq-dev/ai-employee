@@ -156,3 +156,20 @@ class MaintenanceMiddleware:
                 status=503,
             )
         return self.get_response(request)
+
+
+class AdminHostMiddleware:
+    """Super Admin lives on its own host (ADMIN_HOST in the server environment, e.g. admin.example.com).
+
+    Browsers keep cookies per host, so a staff login never leaks into the website or company panel tabs and the
+    other way round. Empty ADMIN_HOST (tests, single-host setups) turns this off.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        admin_host = settings.ADMIN_HOST
+        if admin_host and request.path.startswith("/superadmin/") and request.get_host() != admin_host:
+            return redirect(f"{request.scheme}://{admin_host}{request.get_full_path()}")
+        return self.get_response(request)

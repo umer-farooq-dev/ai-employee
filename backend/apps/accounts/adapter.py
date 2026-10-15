@@ -19,8 +19,12 @@ def lockout_config():
 
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
-        """AUTH-01: company registration on / off from Super Admin → System Settings → Registration."""
-        return config.get("registration.enabled")
+        """AUTH-01: company registration on / off from Super Admin → System Settings → Registration.
+        Never on the Super Admin host: companies register on the website."""
+        from django.conf import settings
+
+        on_admin_host = bool(settings.ADMIN_HOST and request and request.get_host() == settings.ADMIN_HOST)
+        return config.get("registration.enabled") and not on_admin_host
 
     def pre_authenticate(self, request, **credentials):
         """AUTH-06: lockout after N failed attempts per account and per IP; N and duration come from Super Admin."""

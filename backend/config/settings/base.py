@@ -17,6 +17,8 @@ SECRET_KEY = env("SECRET_KEY")
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default=SECRET_KEY)  # master key for encrypted DB fields
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+# Super Admin on its own host so staff and company / website sessions never share a cookie (empty = same host).
+ADMIN_HOST = env("ADMIN_HOST", default="")
 ENVIRONMENT = env("ENVIRONMENT", default="local")  # local | staging | production
 
 INSTALLED_APPS = [
@@ -53,6 +55,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "apps.core.request.RequestContextMiddleware",
+    "apps.accounts.middleware.AdminHostMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
