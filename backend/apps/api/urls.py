@@ -4,11 +4,13 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
+from . import views_agents as agentapi
 from . import views_ai as aiapi
 from . import views_calendar as calapi
 from . import views_catalog as catapi
 from . import views_company as company
 from . import views_crm as crmapi
+from . import views_knowledge as kbapi
 from . import views_templates as tpl
 
 admin = DefaultRouter(trailing_slash=True)
@@ -29,6 +31,8 @@ admin.register("lead-sources", tpl.LeadSourceViewSet, basename="admin-lead-sourc
 admin.register("holidays", tpl.HolidayViewSet, basename="admin-holidays")
 admin.register("employee-roles", tpl.EmployeeRoleViewSet, basename="admin-employee-roles")
 admin.register("ai-providers", aiapi.ProviderViewSet, basename="admin-ai-providers")
+admin.register("tools", agentapi.ToolViewSet, basename="admin-tools")
+admin.register("ai-employees", agentapi.AdminEmployeeViewSet, basename="admin-ai-employees")
 admin.register("cms/pages", views.PageViewSet, basename="admin-cms-pages")
 admin.register("cms/sections", views.SectionViewSet, basename="admin-cms-sections")
 admin.register("email-templates", views.EmailTemplateViewSet, basename="admin-email-templates")
@@ -55,6 +59,15 @@ calendar_router = DefaultRouter(trailing_slash=True)
 calendar_router.register("resources", calapi.ResourceViewSet, basename="calendar-resources")
 calendar_router.register("appointments", calapi.AppointmentViewSet, basename="calendar-appointments")
 
+agents_router = DefaultRouter(trailing_slash=True)
+agents_router.register("ai-employees", agentapi.AIEmployeeViewSet, basename="ai-employees")
+agents_router.register("conversations", agentapi.ConversationViewSet, basename="conversations")
+
+kb_router = DefaultRouter(trailing_slash=True)
+kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")
+kb_router.register("faqs", kbapi.FAQViewSet, basename="kb-faqs")
+kb_router.register("unanswered", kbapi.UnansweredViewSet, basename="kb-unanswered")
+
 public = DefaultRouter(trailing_slash=True)
 public.register("industries", company.PublicIndustryViewSet, basename="public-industries")
 
@@ -77,6 +90,15 @@ api_v1 = [
     path("catalog/", include(catalog_router.urls)),
     path("calendar/config/", calapi.CalendarConfigView.as_view(), name="calendar-config"),
     path("calendar/", include(calendar_router.urls)),
+    path("kb/test-query/", kbapi.TestQueryView.as_view(), name="kb-test-query"),
+    path("kb/", include(kb_router.urls)),
+    path("", include(agents_router.urls)),
+    path("admin/conversations/<uuid:pk>/", agentapi.AdminConversationView.as_view(), name="admin-conversation"),
+    path(
+        "admin/companies/<uuid:pk>/ai-employee/",
+        agentapi.AdminCompanyEmployeeView.as_view(),
+        name="admin-company-employee",
+    ),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),
     path("admin/ai-routes/", aiapi.RoutesView.as_view(), name="admin-ai-routes"),
     path("admin/ai-routes/<slug:task>/", aiapi.RoutesView.as_view(), name="admin-ai-route"),

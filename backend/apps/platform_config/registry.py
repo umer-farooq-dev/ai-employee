@@ -303,6 +303,16 @@ SETTINGS = [
     Setting(
         "ai.max_turns_per_conversation", "number", 80, "Customer messages per conversation (max)", "ai", min=5, max=1000
     ),
+    Setting(
+        "ai.conversation_idle_minutes",
+        "number",
+        30,
+        "End a conversation after this many idle minutes",
+        "ai",
+        help="Then the summary, CRM update and scoring run",
+        min=5,
+        max=1440,
+    ),
     Setting("ai.max_message_chars", "number", 2000, "Longest customer message accepted", "ai", min=100, max=20000),
     Setting(
         "ai.min_confidence_percent",
