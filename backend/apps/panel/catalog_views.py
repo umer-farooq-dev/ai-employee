@@ -226,3 +226,40 @@ def item_import(request, type_key, pk=None):
             "back": reverse("panel:catalog_list", args=[type_key]),
         },
     )
+
+
+@company_perm("catalog.manage")
+def matching(request, type_key):
+    """CAT-03 company rules for AI matching: budget tolerance and nearby-area aliases (template values as defaults)."""
+    company, ctype = request.company, _type(request, type_key)
+    rules = {**(ctype.match_rules or {}), **(company.settings.get("catalog_match", {}).get(ctype.key) or {})}
+    if request.method == "POST":
+        try:
+            tolerance = float(request.POST.get("budget_tolerance_percent") or 0)
+            if not 0 <= tolerance <= 100:
+                raise ValidationError("Budget tolerance must be between 0 and 100 %.")
+            aliases = {}
+            for line in request.POST.get("location_aliases", "").splitlines():
+                area, _, names = line.partition(":")
+                if area.strip() and names.strip():
+                    aliases[area.strip().lower()] = [n.strip().lower() for n in names.split(",") if n.strip()]
+            settings_ = dict(company.settings)
+            settings_.setdefault("catalog_match", {})[ctype.key] = {
+                "budget_tolerance_percent": tolerance,
+                "location_aliases": aliases,
+            }
+            company.settings = settings_
+            company.save(update_fields=["settings", "updated_at"])
+            from apps.audit.services import record
+
+            record(request, "catalog.matching", "catalog_type", ctype.key, company=company)
+            messages.success(request, "Matching rules saved.")
+            return redirect("panel:catalog_matching", type_key=ctype.key)
+        except (ValueError, ValidationError) as exc:
+            _errors(request, exc if isinstance(exc, ValidationError) else ValidationError("Enter a number."))
+    aliases = "\n".join(f"{k}: {', '.join(v)}" for k, v in (rules.get("location_aliases") or {}).items())
+    return render(
+        request,
+        "panel/company/catalog/matching.html",
+        {"ctype": ctype, "tolerance": rules.get("budget_tolerance_percent", 10), "aliases": aliases},
+    )

@@ -21,7 +21,7 @@ from apps.industries.models import (
     ScoringRule,
     TemplateVersion,
 )
-from apps.roles_tools.models import EmployeeRole
+from apps.roles_tools.models import EmployeeRole, Tool
 from apps.tenancy.models import Company
 
 from . import cms_form
@@ -35,6 +35,7 @@ from .template_forms import (
     LeadSourceForm,
     LeadStatusForm,
     ScoringRuleForm,
+    ToolForm,
 )
 from .views import _errors, staff_perm
 
@@ -216,6 +217,7 @@ PLATFORM_KINDS = {
     "sources": (LeadSource, LeadSourceForm, "Lead source", "crm_config.manage", {}),
     "holidays": (Holiday, HolidayForm, "Holiday", "holidays.manage", {}),
     "employee-roles": (EmployeeRole, EmployeeRoleForm, "AI Employee role", "employee_roles.manage", {}),
+    "tools": (Tool, ToolForm, "Tool", "tools.manage", {}),
 }
 
 
@@ -241,6 +243,7 @@ crm_statuses = _platform_list_view("statuses")
 crm_sources = _platform_list_view("sources")
 holidays = _platform_list_view("holidays")
 employee_roles = _platform_list_view("employee-roles")
+tools = _platform_list_view("tools")
 
 
 def platform_item(request, kind, pk=None):

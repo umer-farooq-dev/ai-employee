@@ -1,0 +1,10 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Conversation{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">{{ conv.employee.name }} · {{ conv.get_channel_display }}{% if conv.is_test %} <span class="badge bg-light text-dark">test</span>{% endif %}</h4>
+        <span class="text-muted small">{{ conv.started_at|date:"d M Y H:i" }}{% if conv.ended_at %} – {{ conv.ended_at|date:"H:i" }}{% endif %} · settings v{{ conv.employee_version }} · {{ conv.tool_calls }} tool call{{ conv.tool_calls|pluralize }}</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:conversations' %}">All conversations</a>
+</div>
+{% include 'panel/partials/conversation_body.html' with msgs=conv.messages.all tools=conv.tool_invocations.all lead_links=True %}
+{% endblock page_content %}

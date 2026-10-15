@@ -1,0 +1,10 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Conversation{% endblock %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">{{ conv.company.name }} · {{ conv.employee.name }} · {{ conv.get_channel_display }}{% if conv.is_test %} <span class="badge bg-light text-dark">test</span>{% endif %}</h4>
+        <span class="text-muted small">{{ conv.started_at|date:"d M Y H:i" }} · settings v{{ conv.employee_version }}</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'superadmin:ai_employee' conv.employee_id %}">Back</a>
+</div>
+{% include 'panel/partials/conversation_body.html' with msgs=conv.message_list tools=conv.tool_list lead_links=False %}
+{% endblock %}

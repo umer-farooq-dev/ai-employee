@@ -1,0 +1,28 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Unanswered questions{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/knowledge/_tabs.html' %}
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div><h4 class="card-title mb-0">Questions the AI could not answer</h4><span class="small text-muted">Grouped and counted — add the missing knowledge, then mark them resolved.</span></div>
+        <ul class="nav nav-pills"><li class="nav-item"><a class="nav-link {% if status == 'open' %}active{% endif %}" href="?status=open">Open</a></li><li class="nav-item"><a class="nav-link {% if status == 'resolved' %}active{% endif %}" href="?status=resolved">Resolved</a></li></ul>
+    </div>
+    <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Question</th><th>Asked</th><th>Last</th><th>AI Employee</th><th class="text-end"></th></tr></thead><tbody>
+        {% for q in items %}
+        <tr>
+            <td>{{ q.example_text }}{% if q.conversation_id %} <a class="small" href="{% url 'panel:conversation' q.conversation_id %}">conversation</a>{% endif %}</td>
+            <td><span class="badge bg-primary-subtle text-primary">{{ q.count }}×</span></td>
+            <td class="small">{{ q.last_seen_at|date:"d M Y H:i" }}</td>
+            <td class="small">{{ q.employee.name|default:"—" }}</td>
+            <td class="text-end text-nowrap">
+                {% if can_manage and status == 'open' %}
+                {% if faq_source %}<a class="btn btn-sm btn-light" href="{% url 'panel:kb_source' faq_source.pk %}">Add FAQ</a>{% else %}<a class="btn btn-sm btn-light" href="{% url 'panel:kb_new' %}?type=faq">Add FAQ</a>{% endif %}
+                <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="item" value="{{ q.pk }}"><button class="btn btn-sm btn-success">Resolved</button></form>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}<tr><td colspan="5" class="text-center text-muted py-5">Nothing here.</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% endblock page_content %}

@@ -9,7 +9,8 @@
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-sm btn-light" href="{% url 'panel:catalog_collections' ctype.key %}">Collections</a>
-        {% if can_manage %}<a class="btn btn-sm btn-light" href="{% url 'panel:catalog_import' ctype.key %}">Import</a>
+        {% if can_manage %}<a class="btn btn-sm btn-light" href="{% url 'panel:catalog_matching' ctype.key %}">AI matching</a>
+        <a class="btn btn-sm btn-light" href="{% url 'panel:catalog_import' ctype.key %}">Import</a>
         <a class="btn btn-sm btn-primary" href="{% url 'panel:catalog_create' ctype.key %}"><i class="iconoir-plus"></i> New {{ ctype.item_label|default:"item"|lower }}</a>{% endif %}
     </div>
 </div>

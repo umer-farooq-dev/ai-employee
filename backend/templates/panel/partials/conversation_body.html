@@ -1,0 +1,46 @@
+{% comment %}Transcript with knowledge citations (KB-11), outcome and tool log (TOOL-14). Used by the company panel and Super Admin.{% endcomment %}
+<style>
+    .bubble{max-width:80%;padding:10px 14px;border-radius:14px;margin-bottom:6px;white-space:pre-wrap;word-wrap:break-word}
+    .bubble.ai{background:#fff;border:1px solid var(--bs-border-color)}
+    .bubble.customer{background:var(--brand-primary);color:#fff;margin-left:auto}
+    .meta{font-size:11px;color:var(--bs-secondary-color);margin-bottom:12px}
+    .meta.right{text-align:right}
+    pre.tool{font-size:11px;background:var(--bs-light);padding:8px;border-radius:6px;max-height:180px;overflow:auto}
+</style>
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Transcript</h4></div><div class="card-body bg-light rounded-bottom">
+        {% for m in msgs %}
+            <div class="bubble {% if m.role == 'customer' %}customer{% else %}ai{% endif %}">{{ m.content }}</div>
+            <div class="meta {% if m.role == 'customer' %}right{% endif %}">
+                {{ m.get_role_display }} · {{ m.created_at|date:"H:i:s" }}{% if m.meta.model %} · {{ m.meta.provider }}/{{ m.meta.model }}{% endif %}
+                {% if m.meta.disclosure %} · AI disclosure{% endif %}
+                {% if m.meta.grounding_blocked %} · <span class="text-danger">blocked invented amount {{ m.meta.grounding_blocked|join:", " }}</span>{% endif %}
+                {% if m.meta.fallback %} · <span class="text-warning">fallback (facts missing)</span>{% endif %}
+                {% if m.citations %}<br>Knowledge: {% for c in m.citations %}<span class="badge bg-primary-subtle text-primary">{{ c.source_title }}{% if c.title and c.title != c.source_title %} — {{ c.title|truncatechars:40 }}{% endif %}</span> {% endfor %}{% endif %}
+            </div>
+        {% endfor %}
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Outcome</h4></div><div class="card-body small">
+            <p class="mb-2">{{ conv.summary|default:"Summary appears when the conversation ends." }}</p>
+            <dl class="row mb-0">
+                <dt class="col-5 fw-normal text-muted">Lead</dt><dd class="col-7">{% if conv.lead %}{% if lead_links %}<a href="{% url 'panel:lead_detail' conv.lead.pk %}">{{ conv.lead.reference }} {{ conv.lead.name }}</a>{% else %}{{ conv.lead.reference }}{% endif %}{% else %}—{% endif %}</dd>
+                <dt class="col-5 fw-normal text-muted">Intent</dt><dd class="col-7">{{ conv.intent|upper|default:"—" }}{% if conv.intent_score is not None %} ({{ conv.intent_score }}/100){% endif %}</dd>
+                <dt class="col-5 fw-normal text-muted">Sentiment</dt><dd class="col-7">{{ conv.sentiment|default:"—" }}</dd>
+                <dt class="col-5 fw-normal text-muted">Outcome</dt><dd class="col-7">{{ conv.outcome|default:"—" }}</dd>
+                <dt class="col-5 fw-normal text-muted">Lead score after</dt><dd class="col-7">{{ conv.score_label_after|upper|default:"—" }}</dd>
+                <dt class="col-5 fw-normal text-muted">Language</dt><dd class="col-7">{{ conv.language|default:"—" }}</dd>
+            </dl>
+            {% if conv.requirement %}<hr><strong>Extracted</strong><dl class="row mb-0 mt-1">{% for k, v in conv.requirement.items %}<dt class="col-5 fw-normal text-muted">{{ k }}</dt><dd class="col-7">{{ v }}</dd>{% endfor %}</dl>{% endif %}
+        </div></div>
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Tool log</h4></div><div class="card-body small">
+        {% for t in tools %}
+            <div class="d-flex justify-content-between"><strong>{{ t.tool_key }}</strong><span><span class="badge {% if t.status == 'ok' %}bg-success{% elif t.status == 'denied' %}bg-dark{% else %}bg-danger{% endif %}">{{ t.status }}</span> {{ t.latency_ms }} ms</span></div>
+            <pre class="tool">{{ t.input|pprint }}
+→ {{ t.output|pprint }}</pre>
+        {% empty %}<p class="text-muted mb-0">No tools were used.</p>{% endfor %}
+        </div></div>
+    </div>
+</div>

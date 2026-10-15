@@ -1,0 +1,34 @@
+{% extends 'panel/company/ai/_step_form.html' %}
+{% block step_title %}Connect tools{% endblock %}
+{% block fields %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <h6>What {{ employee.name }} may do</h6>
+        <div class="list-group mb-3">
+        {% for t, on in tools %}
+            <label class="list-group-item d-flex gap-3 align-items-start">
+                <span class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" name="tools" value="{{ t.key }}" {% if on %}checked{% endif %} aria-label="{{ t.name }}"></span>
+                <span><strong>{{ t.name }}</strong> <span class="badge bg-light text-dark">{{ t.get_category_display }}</span><br><span class="small text-muted">{{ t.description }}</span></span>
+            </label>
+        {% empty %}<div class="list-group-item text-muted">No tools are available for this employee type.</div>{% endfor %}
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card border mb-3"><div class="card-body">
+            <h6><i class="iconoir-calendar me-1"></i>Calendar</h6>
+            <p class="small text-muted mb-2">Calendars {{ employee.name }} may book. None ticked = all.</p>
+            {% for r in resources %}<div class="form-check"><input class="form-check-input" type="checkbox" id="r-{{ r.pk }}" name="calendar_resources" value="{{ r.pk }}" {% if r.pk|stringformat:"s" in employee.calendar_resources %}checked{% endif %}><label class="form-check-label" for="r-{{ r.pk }}">{{ r.name }}</label></div>
+            {% empty %}<p class="small mb-0">No calendars yet. <a href="{% url 'panel:calendar_resources' %}">Add one</a> so the AI can book appointments.</p>{% endfor %}
+        </div></div>
+        <div class="card border mb-3"><div class="card-body">
+            <h6><i class="iconoir-group me-1"></i>CRM</h6>
+            <p class="small mb-1">Built in: new leads use your pipeline ({{ statuses|length }} statuses) and assignment rules.</p>
+            <a class="small" href="{% url 'panel:crm_settings' %}">CRM settings</a>
+        </div></div>
+        <div class="card border mb-0"><div class="card-body">
+            <h6><i class="iconoir-phone me-1"></i>Phone &amp; WhatsApp</h6>
+            <p class="small text-muted mb-0">Phone numbers arrive in Phase 5, WhatsApp and the website chat widget in Phase 6.</p>
+        </div></div>
+    </div>
+</div>
+{% endblock %}

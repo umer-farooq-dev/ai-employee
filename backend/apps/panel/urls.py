@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import calendar_views, catalog_views, company_views, crm_views, views
+from . import ai_views, calendar_views, catalog_views, company_views, crm_views, knowledge_views, views
 
 app_name = "panel"
 
@@ -43,6 +43,7 @@ urlpatterns = [
     path("app/catalogue/<slug:type_key>/import/", catalog_views.item_import, name="catalog_import"),
     path("app/catalogue/<slug:type_key>/import/<uuid:pk>/", catalog_views.item_import, name="catalog_import_step"),
     path("app/catalogue/<slug:type_key>/collections/", catalog_views.collections, name="catalog_collections"),
+    path("app/catalogue/<slug:type_key>/matching/", catalog_views.matching, name="catalog_matching"),
     path(
         "app/catalogue/<slug:type_key>/collections/new/",
         catalog_views.collection_form,
@@ -54,6 +55,18 @@ urlpatterns = [
         name="catalog_collection_edit",
     ),
     path("app/catalogue/<slug:type_key>/<uuid:pk>/", catalog_views.item_form, name="catalog_edit"),
+    # AI Employees, knowledge, conversations (Phase 4)
+    path("app/ai-employees/", ai_views.employee_list, name="ai_list"),
+    path("app/ai-employees/new/", ai_views.employee_new, name="ai_new"),
+    path("app/ai-employees/<uuid:pk>/", ai_views.employee_detail, name="ai_detail"),
+    path("app/ai-employees/<uuid:pk>/setup/<slug:step>/", ai_views.employee_step, name="ai_step"),
+    path("app/conversations/", ai_views.conversation_list, name="conversations"),
+    path("app/conversations/<uuid:pk>/", ai_views.conversation_detail, name="conversation"),
+    path("app/knowledge/", knowledge_views.index, name="kb"),
+    path("app/knowledge/new/", knowledge_views.source_new, name="kb_new"),
+    path("app/knowledge/test/", knowledge_views.test, name="kb_test"),
+    path("app/knowledge/unanswered/", knowledge_views.unanswered, name="kb_unanswered"),
+    path("app/knowledge/<uuid:pk>/", knowledge_views.source_detail, name="kb_source"),
     path("app/search/", crm_views.search, name="search"),
     path("app/settings/crm/", crm_views.crm_settings, name="crm_settings"),
     path("app/settings/crm/fields/new/", crm_views.company_field, name="crm_field_create"),

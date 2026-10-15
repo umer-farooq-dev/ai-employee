@@ -8,13 +8,13 @@ from apps.rbac.services import has_perm
 # key, label, icon, url name (None = later phase), permission, plan entitlement, phase
 MENU = [
     ("dashboard", "Dashboard", "home-simple", "panel:company_home", "company.view", None, 2),
-    ("ai_employees", "AI Employees", "user-star", None, "company.view", "ai_employees", 4),
+    ("ai_employees", "AI Employees", "user-star", "panel:ai_list", "ai_employees.view", "ai_employees", 4),
     ("leads", "Leads", "group", "panel:lead_list", "leads.view", None, 3),
     ("tasks", "Follow-ups", "task-list", "panel:tasks", "leads.view", None, 3),
     ("calendar", "Calendar", "calendar", "panel:calendar", "calendar.view", None, 3),
-    ("conversations", "Conversations", "chat-lines", None, "company.view", None, 5),
+    ("conversations", "Conversations", "chat-lines", "panel:conversations", "conversations.view", None, 4),
     ("campaigns", "Campaigns", "megaphone", None, "company.view", "campaigns", 6),
-    ("knowledge", "Knowledge Base", "book-stack", None, "company.view", None, 4),
+    ("knowledge", "Knowledge Base", "book-stack", "panel:kb", "knowledge.view", None, 4),
     ("catalogue", "Catalogue", "package", "panel:catalog_home", "catalog.view", None, 3),
     ("analytics", "Analytics", "stats-up-square", None, "company.view", None, 7),
     ("billing", "Billing & Usage", "wallet", None, "billing.view", None, 7),

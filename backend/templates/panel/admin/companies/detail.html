@@ -59,6 +59,14 @@
             <div class="form-text">Upgrade or roll back this company. Companies can also accept updates themselves.</div>{% endif %}
         </div></div>
         {% endif %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">AI Employees</h5></div>
+            <ul class="list-group list-group-flush">
+            {% for e in ai_employees %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'superadmin:ai_employee' e.pk %}">{{ e.name }}</a><span class="small text-muted">{{ e.role.name }} · {{ e.get_status_display }}</span></li>
+            {% empty %}<li class="list-group-item text-muted small">None yet. One is created from the industry template on approval.</li>{% endfor %}
+            </ul>
+            {% if can_ai and company.industry %}<div class="card-body"><form method="post" action="{% url 'superadmin:ai_employees' %}">{% csrf_token %}<input type="hidden" name="company" value="{{ company.pk }}">
+                <button class="btn btn-sm btn-light">Create ready-made AI Employee from template</button></form></div>{% endif %}
+        </div>
         {% if can.suspend %}
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Status</h5></div><div class="card-body">
             {% if company.status == 'suspended' %}

@@ -1,0 +1,75 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}AI Employees{% endblock title %}
+{% block extra_css %}
+<style>
+    .emp-avatar{width:56px;height:56px;border-radius:14px;background:var(--brand-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;flex-shrink:0;overflow:hidden}
+    .emp-avatar img{width:100%;height:100%;object-fit:cover}
+    .emp-stat{flex:1;text-align:center;border-right:1px solid var(--bs-border-color)}
+    .emp-stat:last-child{border-right:0}
+</style>
+{% endblock %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">AI Employees</h4><span class="text-muted small">Your AI team: each one answers, qualifies and books for your business.</span></div>
+    {% if can_manage %}<a class="btn btn-primary" href="{% url 'panel:ai_new' %}"><i class="iconoir-plus"></i> New AI Employee</a>{% endif %}
+</div>
+{% if any %}
+<form method="get" class="card"><div class="card-body row g-2 align-items-end">
+    <div class="col-md-4"><label class="form-label small" for="f-q">Search</label><input id="f-q" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Name or role"></div>
+    <div class="col-6 col-md-3"><label class="form-label small" for="f-status">Status</label>
+        <select id="f-status" class="form-select form-select-sm" name="status"><option value="">All (not archived)</option>{% for k, v in statuses %}<option value="{{ k }}" {% if status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Apply</button> <a class="btn btn-sm btn-light" href="?">Clear</a></div>
+</div></form>
+{% endif %}
+<div class="row">
+{% for e, s, langs in rows %}
+    <div class="col-md-6 col-xxl-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex gap-3 align-items-center">
+                    <div class="emp-avatar">{% if e.avatar %}<img src="{{ e.avatar }}" alt="">{% else %}{{ e.name|first|upper }}{% endif %}</div>
+                    <div class="flex-grow-1" style="min-width:0">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 class="mb-0"><a href="{% url 'panel:ai_detail' e.pk %}">{{ e.name }}</a></h5>
+                            <span class="badge {% if e.status == 'active' %}bg-success{% elif e.status == 'paused' %}bg-warning text-dark{% elif e.status == 'archived' %}bg-secondary{% else %}bg-light text-dark{% endif %}">{{ e.get_status_display }}</span>
+                        </div>
+                        <div class="text-muted small">{{ e.role.name }} · {{ e.industry.name }}</div>
+                        <div class="small mt-1">{% for l in langs %}<span class="badge bg-primary-subtle text-primary me-1">{{ l }}</span>{% endfor %}</div>
+                    </div>
+                </div>
+                <div class="d-flex border rounded-3 py-2 my-3 small">
+                    <div class="emp-stat"><div class="fw-semibold fs-16">{{ s.calls }}</div><div class="text-muted">Calls</div></div>
+                    <div class="emp-stat"><div class="fw-semibold fs-16">{{ s.conversations }}</div><div class="text-muted">Chats</div></div>
+                    <div class="emp-stat"><div class="fw-semibold fs-16">{{ s.leads }}</div><div class="text-muted">Leads</div></div>
+                    <div class="emp-stat"><div class="fw-semibold fs-16">{{ s.appointments }}</div><div class="text-muted">Appointments</div></div>
+                </div>
+                {% if e.paused_by_platform %}<div class="alert alert-warning py-1 small">Paused by the platform team: {{ e.paused_reason }}</div>{% endif %}
+                <div class="d-flex flex-wrap gap-1">
+                    {% if can_manage %}<a class="btn btn-sm btn-light" href="{% url 'panel:ai_step' e.pk 'identity' %}"><i class="iconoir-edit-pencil"></i> Edit</a>
+                    <a class="btn btn-sm btn-light" href="{% url 'panel:ai_step' e.pk 'rules' %}"><i class="iconoir-settings"></i> Settings</a>{% endif %}
+                    <a class="btn btn-sm btn-light" href="{% url 'panel:ai_step' e.pk 'knowledge' %}"><i class="iconoir-book-stack"></i> Knowledge</a>
+                    <a class="btn btn-sm btn-light" href="{% url 'panel:conversations' %}?employee={{ e.pk }}"><i class="iconoir-phone"></i> Calls</a>
+                    <a class="btn btn-sm btn-light" href="{% url 'panel:ai_detail' e.pk %}"><i class="iconoir-stats-up-square"></i> Analytics</a>
+                    {% if can_manage and e.status != 'archived' %}
+                    <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="employee" value="{{ e.pk }}">
+                        {% if e.status == 'active' %}<button class="btn btn-sm btn-outline-warning" name="op" value="pause">Pause</button>
+                        {% else %}<button class="btn btn-sm btn-outline-success" name="op" value="activate">Activate</button>{% endif %}
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% empty %}
+    <div class="col-12"><div class="card"><div class="card-body text-center py-5">
+        <i class="iconoir-user-star fs-48 text-muted"></i>
+        {% if any %}<p class="text-muted mt-2 mb-0">No AI Employees match the filter.</p>
+        {% else %}
+        <h5 class="mt-3">Create your first AI Employee</h5>
+        <p class="text-muted mx-auto" style="max-width:520px">Pick an employee type (sales, receptionist, appointments, follow-up), give it a name and language, add your business knowledge, test it in the chat console and switch it on.</p>
+        {% if can_manage %}<a class="btn btn-primary" href="{% url 'panel:ai_new' %}">Create AI Employee</a>{% endif %}
+        {% endif %}
+    </div></div></div>
+{% endfor %}
+</div>
+{% endblock page_content %}

@@ -1,0 +1,39 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Knowledge Base{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/knowledge/_tabs.html' %}
+{% if can_manage %}
+<div class="row g-2 mb-3">
+    {% for key, label in types %}
+    <div class="col-6 col-md-4 col-xl-2">
+        <a class="card h-100 mb-0 text-reset" href="{% url 'panel:kb_new' %}?type={{ key }}"><div class="card-body text-center py-3">
+            <i class="fs-24 text-primary {% if key == 'url' %}iconoir-globe{% elif key == 'pdf' %}iconoir-page{% elif key == 'docx' %}iconoir-journal-page{% elif key == 'text' %}iconoir-text-box{% elif key == 'sheet' %}iconoir-table{% else %}iconoir-chat-bubble-question{% endif %}"></i>
+            <div class="small fw-semibold mt-1">Add {{ label }}</div></div></a>
+    </div>
+    {% endfor %}
+</div>
+<p class="small text-muted">Products, properties, packages and courses with prices belong in the <a href="{% url 'panel:catalog_home' %}">Catalogue</a> — the AI looks them up exactly, never guesses them from text.</p>
+{% endif %}
+<form method="get" class="card"><div class="card-body row g-2 align-items-end">
+    <div class="col-6 col-md-3"><label class="form-label small" for="f-type">Type</label><select id="f-type" class="form-select form-select-sm" name="type"><option value="">All</option>{% for k, v in types %}<option value="{{ k }}" {% if p.type == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-3"><label class="form-label small" for="f-ap">Approval</label><select id="f-ap" class="form-select form-select-sm" name="approval"><option value="">All</option><option value="draft" {% if p.approval == 'draft' %}selected{% endif %}>Draft</option><option value="approved" {% if p.approval == 'approved' %}selected{% endif %}>Approved</option></select></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Apply</button> <a class="btn btn-sm btn-light" href="?">Clear</a></div>
+</div></form>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead class="table-light"><tr><th>Source</th><th>Processing</th><th>Approval</th><th>Used by</th><th>Updated</th><th class="text-end">Actions</th></tr></thead><tbody>
+    {% for s in sources %}
+    <tr>
+        <td><a href="{% url 'panel:kb_source' s.pk %}" class="fw-medium">{{ s.title }}</a><div class="small text-muted">{{ s.get_type_display }}{% if s.category %} · {{ s.category }}{% endif %} · {% if s.type == 'faq' %}{{ s.n_faqs }} FAQs{% else %}{{ s.n_chunks }} chunk{{ s.n_chunks|pluralize }}{% endif %}</div></td>
+        <td>{% if s.type == 'faq' %}<span class="text-muted small">per FAQ</span>{% else %}<span class="badge {% if s.status == 'ready' %}bg-success{% elif s.status == 'failed' %}bg-danger{% else %}bg-info{% endif %}">{{ s.get_status_display }}</span>{% if s.error %}<div class="small text-danger">{{ s.error|truncatechars:80 }}</div>{% endif %}{% endif %}</td>
+        <td>{% if s.type == 'faq' %}<span class="text-muted small">per FAQ</span>{% else %}<span class="badge {% if s.approval == 'approved' %}bg-success{% else %}bg-light text-dark{% endif %}">{{ s.get_approval_display }}</span>{% endif %}</td>
+        <td class="small">{% for e in s.employees.all %}{{ e.name }}{% if not forloop.last %}, {% endif %}{% empty %}All AI Employees{% endfor %}</td>
+        <td class="small">{{ s.updated_at|date:"d M Y" }}</td>
+        <td class="text-end"><form method="post" class="d-inline-flex gap-1">{% csrf_token %}<input type="hidden" name="source" value="{{ s.pk }}">
+            {% if can_approve and s.type != 'faq' %}{% if s.approval == 'approved' %}<button class="btn btn-sm btn-light" name="op" value="unapprove">Unapprove</button>{% elif s.status == 'ready' %}<button class="btn btn-sm btn-success" name="op" value="approve">Approve</button>{% endif %}{% endif %}
+            {% if can_manage and s.type != 'faq' and s.type != 'text' %}<button class="btn btn-sm btn-light" name="op" value="reprocess" title="Process again">Re-process</button>{% endif %}
+            {% if can_manage %}<button class="btn btn-sm btn-outline-danger" name="op" value="delete" onclick="return confirm('Delete “{{ s.title|escapejs }}”? The AI stops using it immediately.')" aria-label="Delete {{ s.title }}"><i class="iconoir-trash"></i></button>{% endif %}
+        </form></td>
+    </tr>
+    {% empty %}<tr><td colspan="6" class="text-center text-muted py-5">No knowledge yet. Start with your website, a brochure or your FAQs.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock page_content %}

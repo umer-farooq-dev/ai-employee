@@ -1,0 +1,22 @@
+{% extends 'panel/company/ai/_step_form.html' %}
+{% load admin_tags %}
+{% block step_title %}Name &amp; persona{% endblock %}
+{% block fields %}
+<div class="row g-3">
+    <div class="col-md-6"><label class="form-label" for="f-name">Name</label><input id="f-name" class="form-control" name="name" value="{{ employee.name }}" maxlength="80" required></div>
+    <div class="col-md-6"><label class="form-label" for="f-avatar">Avatar</label>
+        <div class="d-flex gap-2 align-items-center">{% if employee.avatar %}<img src="{{ employee.avatar }}" alt="" class="rounded" style="width:38px;height:38px;object-fit:cover">{% endif %}<input id="f-avatar" type="file" class="form-control" name="avatar" accept="image/*"></div></div>
+    <div class="col-md-6"><label class="form-label" for="f-tone">Tone</label>
+        <select id="f-tone" class="form-select" name="tone">{% for k, v in employee.TONES %}<option value="{{ k }}" {% if employee.persona.tone == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="form-label" for="f-gender">Presents as</label>
+        <select id="f-gender" class="form-select" name="gender"><option value="">Not specified</option><option value="female" {% if employee.persona.gender == 'female' %}selected{% endif %}>Female</option><option value="male" {% if employee.persona.gender == 'male' %}selected{% endif %}>Male</option></select>
+        <div class="form-text">Used for Hindi / Bengali grammar and, in Phase 5, the voice.</div></div>
+    <div class="col-12"><label class="form-label" for="f-desc">Persona</label>
+        <textarea id="f-desc" class="form-control" name="description" rows="3" placeholder="e.g. Experienced property consultant, patient and helpful.">{{ employee.persona.description }}</textarea></div>
+    <div class="col-12"><h6 class="mt-2 mb-1">Greeting per language</h6><div class="form-text mb-2">Said right after the AI disclosure. {% verbatim %}{{ company_name }}{% endverbatim %} and {% verbatim %}{{ employee_name }}{% endverbatim %} are filled in.</div></div>
+    {% for code, name in languages %}
+    <div class="col-md-6"><label class="form-label" for="g-{{ code }}">{{ name }}</label>
+        <textarea id="g-{{ code }}" class="form-control" name="greeting_{{ code }}" rows="2">{{ greetings|get:code|default:"" }}</textarea></div>
+    {% endfor %}
+</div>
+{% endblock %}

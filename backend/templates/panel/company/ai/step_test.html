@@ -1,0 +1,133 @@
+{% extends 'panel/company/ai/_wizard.html' %}
+{% block step_css %}
+<style>
+    .console{height:460px;overflow-y:auto;background:var(--bs-light);border-radius:12px;padding:16px}
+    .bubble{max-width:78%;padding:10px 14px;border-radius:14px;margin-bottom:10px;white-space:pre-wrap;word-wrap:break-word}
+    .bubble.ai{background:#fff;border:1px solid var(--bs-border-color);border-bottom-left-radius:4px}
+    .bubble.customer{background:var(--brand-primary);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+    .bubble .flag{font-size:11px;display:block;margin-top:6px;opacity:.85}
+    .side-section{font-size:13px}
+    .side-section pre{font-size:11px;background:var(--bs-light);padding:6px;border-radius:6px;max-height:140px;overflow:auto;margin:4px 0 8px}
+</style>
+{% endblock %}
+{% block step %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h4 class="card-title mb-0">Test {{ employee.name }} <span class="badge bg-light text-dark">version {{ employee.config_version }}</span></h4>
+                <div class="d-flex gap-2 align-items-center">
+                    <input id="t-phone" class="form-control form-control-sm" style="width:170px" placeholder="Customer phone (optional)" aria-label="Customer phone to test returning-customer memory">
+                    <select id="t-lang" class="form-select form-select-sm" style="width:auto" aria-label="Language">{% for code, name in languages %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select>
+                    <button class="btn btn-sm btn-primary" id="t-start" type="button">New test chat</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="console" class="console" role="log" aria-live="polite"><p class="text-muted text-center mt-5">Start a test chat and talk like a customer — e.g. “Mujhe New Town mein 2BHK chahiye, budget 70 lakh”.</p></div>
+                <form id="t-form" class="d-flex gap-2 mt-3" autocomplete="off">
+                    <input id="t-text" class="form-control" placeholder="Type as the customer…" aria-label="Message" disabled>
+                    <button class="btn btn-primary" id="t-send" disabled><i class="iconoir-send-solid"></i></button>
+                    <button class="btn btn-light" type="button" id="t-end" disabled>End</button>
+                </form>
+                <p class="small text-muted mt-2 mb-0">Test chats use your real CRM and calendar; leads, appointments and tasks created in a test are removed when it ends. E-mails are really sent.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card"><div class="card-body side-section">
+            <h6>Captured in the CRM</h6><div id="s-lead" class="text-muted">—</div>
+            <hr><h6>Tool calls</h6><div id="s-tools" class="text-muted">—</div>
+            <hr><h6>Knowledge used</h6><div id="s-kb" class="text-muted">—</div>
+            <hr><h6>After the chat</h6><div id="s-end" class="text-muted">End the chat to see the summary, extracted fields and score.</div>
+        </div></div>
+        {% if can_manage %}
+        <form method="post" class="card"><div class="card-body">{% csrf_token %}
+            {% if employee.test_passed %}<p class="text-success small mb-2"><i class="iconoir-check-circle"></i> Version {{ employee.config_version }} passed the test.</p>{% endif %}
+            <p class="small text-muted">Happy with the answers, tool use and captured data? Mark this version as tested to allow activation.</p>
+            <button class="btn btn-success w-100">Test passed — continue</button>
+        </div></form>
+        {% endif %}
+    </div>
+</div>
+{{ field_labels|json_script:"field-labels" }}
+{% endblock %}
+{% block extra_javascript %}
+<script>
+(function () {
+    "use strict";
+    var TOKEN = "{{ csrf_token }}", EMP = "{% url 'api:ai-employees-detail' employee.pk %}", CONV_BASE = "{% url 'api:conversations-list' %}";
+    var labels = JSON.parse(document.getElementById("field-labels").textContent || "{}");
+    var box = document.getElementById("console"), text = document.getElementById("t-text");
+    var conv = null;
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function api(url, body) {
+        return fetch(url, {method: "POST", credentials: "same-origin",
+            headers: {"X-CSRFToken": TOKEN, "Content-Type": "application/json", "Accept": "application/json"},
+            body: JSON.stringify(body || {})}).then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (j) {
+                if (!r.ok) { var e = j.error || {}; throw new Error([].concat(e.details && e.details.length ? e.details : e.message || "Error").join(" ")); }
+                return j;
+            });
+        });
+    }
+    function bubble(m) {
+        var flags = [];
+        if (m.meta && m.meta.disclosure) flags.push("AI disclosure added by the system");
+        if (m.meta && m.meta.grounding_blocked) flags.push("Blocked an invented amount: " + m.meta.grounding_blocked.join(", ") + " — fallback sent");
+        if (m.meta && m.meta.fallback) flags.push("Facts missing — fallback sent, question logged");
+        if (m.meta && m.meta.error) flags.push("No AI provider available: " + m.meta.error);
+        box.insertAdjacentHTML("beforeend", '<div class="bubble ' + (m.role === "customer" ? "customer" : "ai") + '">' + esc(m.content) +
+            (flags.length ? '<span class="flag">⚑ ' + esc(flags.join(" · ")) + "</span>" : "") + "</div>");
+        box.scrollTop = box.scrollHeight;
+    }
+    function side(m, lead) {
+        if (lead) {
+            var rows = ["<strong>" + esc(lead.reference) + "</strong> " + esc(lead.name || "")];
+            Object.keys(lead.custom || {}).forEach(function (k) { if (lead.custom[k] !== null && lead.custom[k] !== "") rows.push(esc(labels[k] || k) + ": " + esc(lead.custom[k])); });
+            document.getElementById("s-lead").innerHTML = rows.join("<br>");
+        }
+        var calls = (m.meta && m.meta.tool_calls) || [];
+        if (calls.length) document.getElementById("s-tools").innerHTML = calls.map(function (c) {
+            return "<strong>" + esc(c.tool) + "</strong><pre>" + esc(JSON.stringify(c.input, null, 1)) + "\n→ " + esc(JSON.stringify(c.output, null, 1)) + "</pre>";
+        }).join("");
+        if (m.citations && m.citations.length) document.getElementById("s-kb").innerHTML = m.citations.map(function (c) {
+            return "• " + esc(c.source_title) + (c.title && c.title !== c.source_title ? " — " + esc(c.title) : "");
+        }).join("<br>");
+    }
+    function setActive(on) { ["t-text", "t-send", "t-end"].forEach(function (id) { document.getElementById(id).disabled = !on; }); if (on) text.focus(); }
+    document.getElementById("t-start").addEventListener("click", function () {
+        var customer = {language: document.getElementById("t-lang").value};
+        var phone = document.getElementById("t-phone").value.trim();
+        if (phone) customer.phone = phone;
+        api(EMP + "test-sessions/", {customer: customer}).then(function (c) {
+            conv = c; box.innerHTML = "";
+            ["s-lead", "s-tools", "s-kb"].forEach(function (id) { document.getElementById(id).textContent = "—"; });
+            document.getElementById("s-end").textContent = "End the chat to see the summary, extracted fields and score.";
+            c.messages.forEach(bubble); setActive(true);
+        }).catch(function (e) { box.insertAdjacentHTML("beforeend", '<div class="alert alert-danger">' + esc(e.message) + "</div>"); });
+    });
+    document.getElementById("t-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var t = text.value.trim(); if (!t || !conv) return;
+        bubble({role: "customer", content: t}); text.value = ""; setActive(false);
+        box.insertAdjacentHTML("beforeend", '<div class="bubble ai text-muted" id="typing">…</div>');
+        api(CONV_BASE + conv.id + "/messages/", {text: t}).then(function (r) {
+            document.getElementById("typing").remove(); bubble(r.message); side(r.message, r.lead);
+            setActive(r.status === "active");
+        }).catch(function (err) { document.getElementById("typing").remove(); bubble({role: "ai", content: "⚠ " + err.message}); setActive(true); });
+    });
+    document.getElementById("t-end").addEventListener("click", function () {
+        if (!conv) return; setActive(false);
+        api(CONV_BASE + conv.id + "/end/").then(function (c) {
+            var req = Object.keys(c.requirement || {}).map(function (k) { return esc(labels[k] || k) + ": " + esc(c.requirement[k]); });
+            document.getElementById("s-end").innerHTML =
+                (c.summary ? "<p class='mb-1'>" + esc(c.summary) + "</p>" : "") +
+                (req.length ? "<div class='mb-1'><strong>Extracted:</strong><br>" + req.join("<br>") + "</div>" : "") +
+                (c.intent ? "<div>Intent: <strong>" + esc(c.intent.toUpperCase()) + "</strong> (" + esc(c.intent_score) + "/100)</div>" : "") +
+                (c.sentiment ? "<div>Sentiment: " + esc(c.sentiment) + "</div>" : "") +
+                "<div class='text-muted mt-1'>Test records removed.</div>";
+        }).catch(function (err) { document.getElementById("s-end").textContent = err.message; });
+    });
+})();
+</script>
+{% endblock %}

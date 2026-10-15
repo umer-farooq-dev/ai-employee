@@ -1,0 +1,14 @@
+{% extends 'panel/company/ai/_step_form.html' %}
+{% load admin_tags %}
+{% block step_title %}Voice{% endblock %}
+{% block fields %}
+<div class="alert alert-info small">Voices for phone calls arrive with calling (Phase 5): the platform team adds the voices per language, and you will be able to listen to samples and pick one here. Text conversations work without a voice.</div>
+<div class="row g-3">
+    {% for code, name in languages %}
+    <div class="col-md-4"><label class="form-label" for="v-{{ code }}">{{ name }} voice</label>
+        <select id="v-{{ code }}" class="form-select" name="voice_{{ code }}" disabled><option>Available in Phase 5</option></select></div>
+    {% endfor %}
+    <div class="col-md-4"><label class="form-label" for="f-speed">Speaking speed: <output id="speed-out">{{ employee.voices.speed|default:"1.0" }}</output>×</label>
+        <input id="f-speed" type="range" class="form-range" name="speed" min="0.5" max="2" step="0.1" value="{{ employee.voices.speed|default:'1.0' }}" oninput="document.getElementById('speed-out').textContent=this.value"></div>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'panel/company/ai/_wizard.html' %}
+{% block step %}
+<form method="post" enctype="multipart/form-data" class="card">{% csrf_token %}
+    <div class="card-header"><h4 class="card-title mb-0">{% block step_title %}{% endblock %}</h4>{% block step_help %}{% endblock %}</div>
+    <div class="card-body">
+        <fieldset {% if not can_manage %}disabled{% endif %}>{% block fields %}{% endblock %}</fieldset>
+    </div>
+    {% if can_manage %}
+    <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
+        <button class="btn btn-light" name="then" value="stay">Save</button>
+        <button class="btn btn-primary">{% block next_label %}Save &amp; continue{% endblock %} <i class="iconoir-arrow-right"></i></button>
+    </div>
+    {% endif %}
+</form>
+{% endblock %}

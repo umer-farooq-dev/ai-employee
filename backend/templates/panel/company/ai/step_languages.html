@@ -1,0 +1,13 @@
+{% extends 'panel/company/ai/_step_form.html' %}
+{% block step_title %}Languages{% endblock %}
+{% block fields %}
+<p class="text-muted small">The AI notices the customer's language and switches automatically — mixed speech like Hinglish or Bengali-English is fine. Languages offered come from your industry template.</p>
+<div class="row g-3">
+    <div class="col-md-4"><label class="form-label" for="f-primary">Primary language</label>
+        <select id="f-primary" class="form-select" name="primary_language">{% for code, name in supported %}<option value="{{ code }}" {% if employee.primary_language == code %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+    <div class="col-md-8"><span class="form-label d-block">Also speaks</span>
+        {% for code, name in supported %}
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="l-{{ code }}" name="languages" value="{{ code }}" {% if code in employee.languages %}checked{% endif %}><label class="form-check-label" for="l-{{ code }}">{{ name }}</label></div>
+        {% endfor %}</div>
+</div>
+{% endblock %}

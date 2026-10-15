@@ -1,0 +1,30 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Knowledge test{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/knowledge/_tabs.html' %}
+<div class="row">
+    <div class="col-lg-6">
+        <form method="post" class="card">{% csrf_token %}
+            <div class="card-header"><h4 class="card-title mb-0">Ask your knowledge base</h4></div>
+            <div class="card-body">
+                <label class="form-label" for="f-q">Question</label>
+                <textarea id="f-q" class="form-control mb-3" name="question" rows="3" required placeholder="e.g. Is there covered parking?">{{ question }}</textarea>
+                <label class="form-label" for="f-e">As AI Employee (its knowledge scope)</label>
+                <select id="f-e" class="form-select" name="employee"><option value="">Company-wide knowledge</option>{% for e in employees %}<option value="{{ e.pk }}" {% if employee_id == e.pk|stringformat:"s" %}selected{% endif %}>{{ e.name }}</option>{% endfor %}</select>
+            </div>
+            <div class="card-footer text-end"><button class="btn btn-primary">Ask</button></div>
+        </form>
+    </div>
+    <div class="col-lg-6">
+        {% if result %}
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Answer</h4></div><div class="card-body">
+            {% if result.found %}<p>{{ result.answer }}</p>
+                <h6 class="mt-3">Sources used</h6>
+                <ul class="small mb-0">{% for s in result.sources %}<li>{{ s.source_title }}{% if s.title and s.title != s.source_title %} — {{ s.title }}{% endif %}{% if s.url %} (<a href="{{ s.url }}" target="_blank" rel="noopener">page</a>){% endif %}</li>{% empty %}<li class="text-muted">No marker returned.</li>{% endfor %}</ul>
+            {% else %}<div class="alert alert-warning mb-0">Your approved knowledge does not answer this. Add an FAQ or approved text so the AI can answer it.</div>{% endif %}
+            {% if result.retrieved %}<details class="mt-3 small"><summary>Searched pieces ({{ result.retrieved|length }})</summary><ul>{% for s in result.retrieved %}<li>{{ s.source_title }}{% if s.title %} — {{ s.title|truncatechars:60 }}{% endif %}</li>{% endfor %}</ul></details>{% endif %}
+        </div></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock page_content %}

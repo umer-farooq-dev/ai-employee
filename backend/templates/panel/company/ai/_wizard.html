@@ -1,0 +1,36 @@
+{% extends 'panel/company/layout.html' %}
+{% comment %}EMP-02 … EMP-11: the 10-step wizard. Steps 1-2 create the draft; steps 3-10 can be reopened any time.{% endcomment %}
+{% block title %}{% if employee %}{{ employee.name }} — setup{% else %}New AI Employee{% endif %}{% endblock title %}
+{% block extra_css %}
+<style>
+    .wizard-steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+    .wizard-steps a,.wizard-steps span{display:flex;align-items:center;gap:8px;white-space:nowrap;padding:8px 12px;border-radius:10px;border:1px solid var(--bs-border-color);font-size:13px;color:var(--bs-body-color);background:#fff}
+    .wizard-steps .num{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:var(--bs-light);font-weight:600}
+    .wizard-steps .active{border-color:var(--brand-primary);color:var(--brand-primary);font-weight:600}
+    .wizard-steps .active .num,.wizard-steps .done .num{background:var(--brand-primary);color:#fff}
+    .wizard-steps span{opacity:.55}
+    .option-card{border:1px solid var(--bs-border-color);border-radius:14px;padding:16px;cursor:pointer;height:100%;display:block}
+    .option-card:hover{border-color:var(--brand-primary)}
+    .btn-check:checked + .option-card{border-color:var(--brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand-primary) 25%,transparent)}
+</style>
+{% block step_css %}{% endblock %}
+{% endblock extra_css %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div>
+        <h4 class="mb-0">{% if employee %}{{ employee.name }} <span class="badge bg-light text-dark align-middle fs-11">{{ employee.get_status_display }} · v{{ employee.config_version }}</span>{% else %}New AI Employee{% endif %}</h4>
+        <span class="text-muted small">{% if employee %}{{ employee.role.name }} · {{ employee.industry.name }}{% else %}Set it up in 10 short steps — you can change anything later.{% endif %}</span>
+    </div>
+    {% if employee %}<a class="btn btn-sm btn-light" href="{% url 'panel:ai_detail' employee.pk %}">Overview</a>{% endif %}
+</div>
+<nav class="wizard-steps mb-3" aria-label="Setup steps">
+    {% for key, label in steps %}
+        {% if employee and forloop.counter > 2 %}
+            <a href="{% url 'panel:ai_step' employee.pk key %}" class="{% if key == current %}active{% elif forloop.counter < employee.wizard_step %}done{% endif %}" {% if key == current %}aria-current="step"{% endif %}><span class="num">{{ forloop.counter }}</span>{{ label }}</a>
+        {% else %}
+            <span class="{% if key == current or not employee and forloop.counter == 2 and current == 'industry' %}active{% elif employee %}done{% endif %}"><span class="num">{{ forloop.counter }}</span>{{ label }}</span>
+        {% endif %}
+    {% endfor %}
+</nav>
+{% block step %}{% endblock %}
+{% endblock page_content %}

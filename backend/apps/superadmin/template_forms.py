@@ -17,7 +17,7 @@ from apps.industries.models import (
     LeadStatus,
     ScoringRule,
 )
-from apps.roles_tools.models import CHANNELS, EmployeeRole
+from apps.roles_tools.models import CHANNELS, EmployeeRole, Tool
 
 from .forms import BootstrapMixin
 
@@ -237,8 +237,8 @@ class EmployeeRoleForm(BootstrapMixin, forms.ModelForm):
     """ROLE-01."""
 
     allowed_channels = forms.MultipleChoiceField(choices=CHANNELS, widget=forms.CheckboxSelectMultiple, required=False)
-    tools_text = forms.CharField(
-        required=False, label="Allowed tools", help_text="Tool keys, comma separated (Phase 4)"
+    allowed_tools = forms.MultipleChoiceField(
+        required=False, widget=forms.CheckboxSelectMultiple, help_text="None ticked = every tool in the registry"
     )
     plan_keys = forms.MultipleChoiceField(
         required=False, widget=forms.CheckboxSelectMultiple, help_text="None ticked = available on every plan"
@@ -259,16 +259,70 @@ class EmployeeRoleForm(BootstrapMixin, forms.ModelForm):
         self.fields["plan_keys"].choices = [(p.key, p.name) for p in Plan.objects.all()]
         self.fields["allowed_channels"].initial = self.instance.allowed_channels
         self.fields["plan_keys"].initial = self.instance.plan_keys
-        self.fields["tools_text"].initial = ", ".join(self.instance.allowed_tools or [])
+        self.fields["allowed_tools"].choices = [(t.key, f"{t.name} ({t.key})") for t in Tool.objects.all()]
+        self.fields["allowed_tools"].initial = self.instance.allowed_tools
         self.fields["default_rules_json"].initial = json.dumps(self.instance.default_rules or {}, indent=1)
 
     def clean(self):
         data = super().clean()
         self.instance.allowed_channels = data.get("allowed_channels") or []
         self.instance.plan_keys = data.get("plan_keys") or []
-        self.instance.allowed_tools = [t.strip() for t in (data.get("tools_text") or "").split(",") if t.strip()]
+        self.instance.allowed_tools = data.get("allowed_tools") or []
         try:
             self.instance.default_rules = _parse_json(data.get("default_rules_json"), "Default rules")
         except ValidationError as exc:
             self.add_error("default_rules_json", exc)
+        return data
+
+
+class ToolForm(BootstrapMixin, forms.ModelForm):
+    """TOOL-01: a tool = a server handler + configuration. Industry tools reuse generic handlers with a config."""
+
+    handler = forms.ChoiceField()
+    config_json = _json_field(
+        "Configuration (JSON)", 'e.g. {"catalog_type": "property"} or {"appointment_type": "site_visit"}'
+    )
+    schema_json = _json_field("Extra input schema (JSON)", "Optional JSON-schema properties")
+    role_keys = forms.MultipleChoiceField(
+        required=False, widget=forms.CheckboxSelectMultiple, label="Allowed roles", help_text="None ticked = every role"
+    )
+
+    class Meta:
+        model = Tool
+        fields = [
+            "key",
+            "name",
+            "description",
+            "category",
+            "handler",
+            "side_effect",
+            "timeout_ms",
+            "industries",
+            "is_active",
+            "sort_order",
+        ]
+        widgets = {"description": forms.Textarea(attrs={"rows": 3}), "industries": forms.CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        from apps.agents.tools import HANDLER_CHOICES
+
+        super().__init__(*args, **kwargs)
+        self.fields["handler"].choices = HANDLER_CHOICES
+        self.fields["role_keys"].choices = [(r.key, r.name) for r in EmployeeRole.objects.all()]
+        self.fields["role_keys"].initial = self.instance.role_keys
+        self.fields["config_json"].initial = json.dumps(self.instance.config or {}, indent=1)
+        self.fields["schema_json"].initial = json.dumps(self.instance.input_schema or {}, indent=1)
+        self.fields["industries"].help_text = "None ticked = every industry"
+
+    def clean(self):
+        data = super().clean()
+        self.instance.role_keys = data.get("role_keys") or []
+        for field, attr, label in (
+            ("config_json", "config", "Configuration"),
+            ("schema_json", "input_schema", "Schema"),
+        ):
+            try:
+                setattr(self.instance, attr, _parse_json(data.get(field), label))
+            except ValidationError as exc:
+                self.add_error(field, exc)
         return data

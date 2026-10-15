@@ -148,12 +148,21 @@ def company_detail(request, pk):
             "member_form": MemberForm(),
             "impersonate_form": ImpersonateForm(company=company),
             "audit": AuditLog.objects.filter(company=company)[:10],
+            "ai_employees": _company_employees(company),
+            "can_ai": has_perm(request.user, "ai_oversight.manage"),
             "can": {
                 k: has_perm(request.user, f"companies.{k}")
                 for k in ("manage", "suspend", "impersonate", "export", "delete", "approve")
             },
         },
     )
+
+
+def _company_employees(company):
+    from apps.agents.models import AIEmployee
+
+    with platform_context():
+        return list(AIEmployee.all_companies.filter(company=company).select_related("role"))
 
 
 @require_POST
@@ -631,3 +640,91 @@ def ai_settings(request):
         "production": production(),
     }
     return render(request, "panel/admin/ai/settings.html", {"data": data})
+
+
+# ------------------------------------------------------------------ AI Employees of all companies (SA-08, EMP-14)
+@staff_perm("ai_oversight.view")
+def ai_employees(request):
+    from apps.agents import services as agents
+    from apps.agents.models import AIEmployee
+
+    if request.method == "POST":
+        if not has_perm(request.user, "ai_oversight.manage"):
+            raise PermissionDenied
+        company = get_object_or_404(Company, pk=request.POST.get("company"))
+        try:
+            employee = agents.create_from_template(company, request.user, request, force=True)
+            if not employee:
+                raise ValidationError("The company needs an industry with a published template.")
+            messages.success(request, f"{employee.name} created for {company.name} (draft).")
+            return redirect("superadmin:ai_employee", pk=employee.pk)
+        except ValidationError as exc:
+            _errors(request, exc)
+        return redirect("superadmin:company_detail", pk=company.pk)
+    with platform_context():
+        qs = AIEmployee.all_companies.select_related("company", "industry", "role")
+        if request.GET.get("status"):
+            qs = qs.filter(status=request.GET["status"])
+        if request.GET.get("q"):
+            qs = qs.filter(Q(name__icontains=request.GET["q"]) | Q(company__name__icontains=request.GET["q"]))
+        page = page_of(request, qs.order_by("company__name", "name"))
+        stats = agents.stats(list(page))
+    return render(
+        request,
+        "panel/admin/ai/employees.html",
+        {"page": page, "stats": stats, "statuses": AIEmployee.STATUSES, "p": request.GET},
+    )
+
+
+@staff_perm("ai_oversight.view")
+def ai_employee(request, pk):
+    from apps.agents import services as agents
+    from apps.agents.models import AIEmployee, Conversation
+    from apps.tenancy.context import company_context
+
+    with platform_context():
+        employee = get_object_or_404(AIEmployee.all_companies.select_related("company", "industry", "role"), pk=pk)
+    if request.method == "POST":
+        if not has_perm(request.user, "ai_oversight.manage"):
+            raise PermissionDenied
+        op = request.POST.get("op")
+        with company_context(employee.company_id):
+            try:
+                if op == "pause":
+                    agents.pause(
+                        employee, request.POST.get("reason") or "Paused by the platform", True, request.user, request
+                    )
+                    messages.success(request, "Paused. The company cannot switch it on until you release it.")
+                elif op == "release":
+                    agents.release_platform_pause(employee, request)
+                    messages.success(request, "Released: the company can activate it again.")
+                elif op == "role":
+                    agents.change_role(employee, request.POST.get("role"), request.user, request)
+                    messages.success(request, "Role changed.")
+            except ValidationError as exc:
+                _errors(request, exc)
+        return redirect("superadmin:ai_employee", pk=pk)
+    with company_context(employee.company_id):
+        context = {
+            "employee": employee,
+            "stats": agents.stats([employee])[employee.pk],
+            "versions": list(employee.versions.all()[:30]),
+            "conversations": list(Conversation.objects.filter(employee=employee).select_related("lead")[:20]),
+            "roles": agents.roles_for(employee.company, employee.industry),
+            "can_manage": has_perm(request.user, "ai_oversight.manage"),
+        }
+    return render(request, "panel/admin/ai/employee.html", context)
+
+
+@staff_perm("ai_oversight.view")
+def conversation(request, pk):
+    """TOOL-14: transcript and tool log of any conversation."""
+    from apps.agents.models import Conversation
+    from apps.tenancy.context import company_context
+
+    with platform_context():
+        conv = get_object_or_404(Conversation.all_companies.select_related("employee", "lead", "company"), pk=pk)
+    with company_context(conv.company_id):
+        conv.message_list = list(conv.messages.all())
+        conv.tool_list = list(conv.tool_invocations.all())
+        return render(request, "panel/admin/ai/conversation.html", {"conv": conv})

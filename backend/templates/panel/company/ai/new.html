@@ -1,0 +1,42 @@
+{% extends 'panel/company/ai/_wizard.html' %}
+{% block step %}
+<form method="post" class="card">{% csrf_token %}
+    <div class="card-header"><h4 class="card-title mb-0">Industry &amp; employee type</h4></div>
+    <div class="card-body">
+        <h6 class="mb-2">1. Industry</h6>
+        <div class="row g-2 mb-4">
+            {% for i in industries %}
+            <div class="col-sm-6 col-lg-4">
+                <a class="option-card text-reset {% if i.pk == industry.pk %}border-primary{% endif %}" href="?industry={{ i.key }}" {% if i.pk == industry.pk %}aria-current="true"{% endif %}>
+                    <div class="d-flex justify-content-between"><strong>{{ i.name }}</strong>{% if i.pk == industry.pk %}<i class="iconoir-check-circle text-primary"></i>{% endif %}</div>
+                    <div class="small text-muted">{{ i.short_description|default:"" }}</div>
+                </a>
+            </div>
+            {% empty %}<p class="text-muted">No active industry template yet — please contact support.</p>{% endfor %}
+        </div>
+        <input type="hidden" name="industry" value="{{ industry.key }}">
+        <h6 class="mb-2">2. Employee type</h6>
+        <div class="row g-2 mb-4">
+            {% for r in roles %}
+            <div class="col-sm-6 col-lg-4">
+                <input type="radio" class="btn-check" name="role" id="role-{{ r.pk }}" value="{{ r.key }}" {% if selected_role == r.key or not selected_role and forloop.first %}checked{% endif %}>
+                <label class="option-card" for="role-{{ r.pk }}">
+                    <strong>{{ r.name }}</strong>
+                    <div class="small text-muted mb-1">{{ r.description }}</div>
+                    <div class="small">{% for c in r.channel_labels %}<span class="badge bg-light text-dark me-1">{{ c }}</span>{% endfor %}</div>
+                </label>
+            </div>
+            {% empty %}<p class="text-muted">No employee type is available for this industry on your plan.</p>{% endfor %}
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="emp-name">Name</label>
+            <input id="emp-name" class="form-control" name="name" maxlength="80" placeholder="e.g. Sara" value="{{ request.POST.name }}">
+            <div class="form-text">Customers hear this name. You can change it later.</div>
+        </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+        <a class="btn btn-light" href="{% url 'panel:ai_list' %}">Cancel</a>
+        <button class="btn btn-primary" {% if not roles %}disabled{% endif %}>Create draft &amp; continue <i class="iconoir-arrow-right"></i></button>
+    </div>
+</form>
+{% endblock %}

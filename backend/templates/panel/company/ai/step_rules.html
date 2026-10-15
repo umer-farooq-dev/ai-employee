@@ -1,0 +1,100 @@
+{% extends 'panel/company/ai/_step_form.html' %}
+{% load admin_tags %}
+{% block step_title %}Rules{% endblock %}
+{% block fields %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <h6>Working hours</h6>
+        <p class="small text-muted">Empty = your company's business hours. Outside these hours the AI offers a callback.</p>
+        <table class="table table-sm align-middle">
+            <tbody>
+            {% for key, label, day in days %}
+            <tr><th class="fw-normal" style="width:110px">{{ label }}</th>
+                <td><input type="time" class="form-control form-control-sm" name="day_{{ key }}_open" value="{{ day.open|default:'' }}" aria-label="{{ label }} opens"></td>
+                <td><input type="time" class="form-control form-control-sm" name="day_{{ key }}_close" value="{{ day.close|default:'' }}" aria-label="{{ label }} closes"></td>
+                <td><div class="form-check"><input class="form-check-input" type="checkbox" id="c-{{ key }}" name="day_{{ key }}_closed" {% if day.closed %}checked{% endif %}><label class="form-check-label small" for="c-{{ key }}">Closed</label></div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <label class="form-label" for="f-ah">After-hours message</label>
+        <textarea id="f-ah" class="form-control mb-3" name="after_hours_message" rows="2" placeholder="Our office is closed now; I can arrange a callback tomorrow morning.">{{ rules.after_hours_message|default:"" }}</textarea>
+        <div class="row g-2">
+            <div class="col-6"><label class="form-label" for="f-max">Max call duration (min)</label><input id="f-max" type="number" min="1" max="120" class="form-control" name="max_call_minutes" value="{{ rules.max_call_minutes|default:15 }}"></div>
+            <div class="col-6"><label class="form-label" for="f-fa">When facts are missing</label>
+                <select id="f-fa" class="form-select" name="fallback_action"><option value="callback" {% if rules.fallback_action != 'message' %}selected{% endif %}>Say fallback + create callback task</option><option value="message" {% if rules.fallback_action == 'message' %}selected{% endif %}>Say fallback only</option></select></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <h6>Hand-over to people</h6>
+        <label class="form-label" for="f-tr">Transfer targets</label>
+        <select id="f-tr" class="form-select mb-1" name="transfer_user_ids" multiple size="4">{% for u in team %}<option value="{{ u.pk }}" {% if u.pk|stringformat:"s" in rules.transfer_user_ids %}selected{% endif %}>{{ u.full_name|default:u.email }}</option>{% endfor %}</select>
+        <div class="form-text mb-3">Live call transfers start in Phase 5; until then hot leads are assigned and the team gets a task.</div>
+        <label class="form-label" for="f-esc">Escalate when (one per line)</label>
+        <textarea id="f-esc" class="form-control mb-3" name="escalation_triggers" rows="3" placeholder="Customer asks for a human&#10;Budget above 2 Cr">{% for t in rules.escalation_triggers %}{{ t }}&#10;{% endfor %}</textarea>
+        <label class="form-label" for="f-rt">Restricted topics (one per line)</label>
+        <textarea id="f-rt" class="form-control mb-3" name="restricted_topics" rows="3" placeholder="Politics&#10;Competitor prices">{% for t in rules.restricted_topics %}{{ t }}&#10;{% endfor %}</textarea>
+        <div class="row g-2">
+            <div class="col-6"><div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" id="f-fu" name="follow_up_enabled" {% if rules.follow_up.enabled|default_if_none:True %}checked{% endif %}><label class="form-check-label" for="f-fu">Schedule follow-ups</label></div></div>
+            <div class="col-6"><label class="form-label small" for="f-fuh">Follow up after (hours)</label><input id="f-fuh" type="number" min="1" class="form-control form-control-sm" name="follow_up_hours" value="{{ rules.follow_up.after_hours|default:24 }}"></div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <h6>Texts per language</h6>
+        <div class="row g-3">
+        {% for code, name in languages %}
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1">{{ name }}</div>
+                <label class="form-label small" for="d-{{ code }}">AI disclosure (said first, every conversation)</label>
+                <textarea id="d-{{ code }}" class="form-control form-control-sm mb-2" rows="2" name="disclosure_{{ code }}" placeholder="Template text is used when empty">{{ rules.disclosure|get:code|default:"" }}</textarea>
+                <label class="form-label small" for="fb-{{ code }}">Fallback message</label>
+                <textarea id="fb-{{ code }}" class="form-control form-control-sm mb-2" rows="2" name="fallback_{{ code }}" placeholder="Platform text is used when empty">{{ rules.fallback|get:code|default:"" }}</textarea>
+                <label class="form-label small" for="cs-{{ code }}">Recording consent (calls)</label>
+                <textarea id="cs-{{ code }}" class="form-control form-control-sm" rows="2" name="consent_{{ code }}">{{ rules.consent|get:code|default:"" }}</textarea>
+            </div>
+        {% endfor %}
+        </div>
+        <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" id="f-rec" name="recording" {% if rules.recording|default_if_none:True %}checked{% endif %}><label class="form-check-label" for="f-rec">Record calls (Phase 5)</label></div>
+        <div class="small text-muted mt-1">Current defaults — disclosure: “{{ disclosure_default }}” · fallback: “{{ fallback_default }}”</div>
+    </div>
+
+    <div class="col-12">
+        <h6>Qualification questions</h6>
+        <p class="small text-muted">Asked naturally, one at a time, in {{ languages.0.1 }}; answers are saved to the CRM field. Use the arrows to reorder.</p>
+        <div id="questions">
+        {% for q in questions %}
+            <div class="input-group mb-2 q-row">
+                <select class="form-select" name="q_field" style="max-width:220px" aria-label="CRM field">{% for d in lead_fields %}<option value="{{ d.key }}" {% if d.key == q.field %}selected{% endif %}>{{ d.label }}</option>{% endfor %}</select>
+                <input class="form-control" name="q_text" value="{{ q.text }}" aria-label="Question">
+                <button type="button" class="btn btn-light q-up" aria-label="Move up"><i class="iconoir-arrow-up"></i></button>
+                <button type="button" class="btn btn-light text-danger q-del" aria-label="Remove"><i class="iconoir-trash"></i></button>
+            </div>
+        {% endfor %}
+        </div>
+        <template id="q-template">
+            <div class="input-group mb-2 q-row">
+                <select class="form-select" name="q_field" style="max-width:220px" aria-label="CRM field">{% for d in lead_fields %}<option value="{{ d.key }}">{{ d.label }}</option>{% endfor %}</select>
+                <input class="form-control" name="q_text" aria-label="Question">
+                <button type="button" class="btn btn-light q-up" aria-label="Move up"><i class="iconoir-arrow-up"></i></button>
+                <button type="button" class="btn btn-light text-danger q-del" aria-label="Remove"><i class="iconoir-trash"></i></button>
+            </div>
+        </template>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="q-add"><i class="iconoir-plus"></i> Add question</button>
+    </div>
+</div>
+{% endblock %}
+{% block extra_javascript %}
+<script>
+(function () {
+    var box = document.getElementById("questions");
+    document.getElementById("q-add").addEventListener("click", function () {
+        box.appendChild(document.getElementById("q-template").content.cloneNode(true));
+    });
+    box.addEventListener("click", function (e) {
+        var row = e.target.closest(".q-row"); if (!row) return;
+        if (e.target.closest(".q-del")) row.remove();
+        if (e.target.closest(".q-up") && row.previousElementSibling) box.insertBefore(row, row.previousElementSibling);
+    });
+})();
+</script>
+{% endblock %}

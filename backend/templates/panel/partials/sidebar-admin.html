@@ -15,6 +15,8 @@
                     {% if u|can:"roles.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:role_list' %}"><i class="iconoir-shield-check menu-icon"></i><span>Roles &amp; Permissions</span></a></li>{% endif %}
                     {% if u|can:"industries.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:industry_list' %}"><i class="iconoir-industry menu-icon"></i><span>Industries</span></a></li>{% endif %}
                     {% if u|can:"employee_roles.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:employee_roles' %}"><i class="iconoir-user-star menu-icon"></i><span>AI Employee Roles</span></a></li>{% endif %}
+                    {% if u|can:"ai_oversight.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:ai_employees' %}"><i class="iconoir-user-star menu-icon"></i><span>AI Employees</span></a></li>{% endif %}
+                    {% if u|can:"tools.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:tools' %}"><i class="iconoir-tools menu-icon"></i><span>AI Tools</span></a></li>{% endif %}
                     {% if u|can:"ai_providers.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:ai_settings' %}"><i class="iconoir-brain-electricity menu-icon"></i><span>AI Settings</span></a></li>{% endif %}
                     {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>

@@ -1,0 +1,19 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}{{ ctype.name }} matching{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <div><h4 class="mb-0">{{ ctype.name }}: AI matching</h4><span class="text-muted small">How AI Employees rank {{ ctype.name|lower }} for a customer's requirement.</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:catalog_list' ctype.key %}">Back</a>
+</div>
+<form method="post" class="card" style="max-width:760px">{% csrf_token %}
+    <div class="card-body">
+        <div class="mb-3"><label class="form-label" for="f-tol">Budget tolerance (%)</label>
+            <input id="f-tol" type="number" min="0" max="100" step="0.5" class="form-control" style="max-width:160px" name="budget_tolerance_percent" value="{{ tolerance }}">
+            <div class="form-text">Items up to this much above the customer's budget still match (e.g. 10 % of ₹70 Lakh = up to ₹77 Lakh).</div></div>
+        <div class="mb-1"><label class="form-label" for="f-al">Nearby areas (one area per line: <code>area: nearby, nearby</code>)</label>
+            <textarea id="f-al" class="form-control" name="location_aliases" rows="6" placeholder="new town: rajarhat, action area&#10;baner: balewadi, aundh">{{ aliases }}</textarea>
+            <div class="form-text">A customer asking for “New Town” is also shown items in Rajarhat and Action Area.</div></div>
+    </div>
+    <div class="card-footer text-end"><button class="btn btn-primary">Save</button></div>
+</form>
+{% endblock page_content %}
