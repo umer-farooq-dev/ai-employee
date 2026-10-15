@@ -103,6 +103,25 @@ _Approval par AI Employee template se khud banna (EMP-14) Phase 4 mein — AI en
 
 ---
 
+## Phase 3 — Configuration Engine, CRM, Catalogues & Calendar
+
+1. [x] Industry templates: industries, versions (draft → published → archived), company upgrade / rollback, clone, activate / deactivate (IND-01..05, SA-05)
+2. [x] MVP templates: Real Estate, Travel & Tours, Education — fields, catalogue, appointment types, scoring, greetings EN / HI / BN, FAQs, WhatsApp templates (IND-06; AI tuning Phase 4)
+3. [x] AI Employee role templates (ROLE-01)
+4. [x] CRM: leads, statuses, sources, dynamic fields, list / filters / saved views, pipeline, lead detail, create / edit / delete / restore (CRM-01..07, 09..12)
+5. [x] Import / export, duplicates & merge, assignment (manual, rules, round robin), follow-up tasks + reminders, bulk actions (CRM-13..17)
+6. [x] Lead scoring rules (SCORE-02) + CRM configuration in Super Admin (CRM-18, SA-07)
+7. [x] Catalogues: property / package / course, collections, import & media, Indian prices (CAT-01, 02, 04..08)
+8. [x] Calendar: views, resources, availability, appointment types, booking, holidays (CAL-01..05, 08, 09)
+9. [x] Global search (CP-04)
+10. [x] Har feature ki REST API + tests
+
+**Phase 3 gate:** naya CRM field + catalogue field Super Admin se, bina deployment · 10,000 leads import (duplicates + errors report) · double booking concurrent requests mein bhi nahi · template publish → company upgrade → rollback · CI green · client sign-off
+
+_Client se confirm: travel package aur course catalogue ke fields (CAT-05, CAT-06 abhi PRD ke proposed fields par)._
+
+---
+
 ## Har phase ke rules (kabhi miss nahi karne)
 
 - **No hard-coding** — har business value Super Admin / database se
@@ -125,6 +144,7 @@ _Approval par AI Employee template se khud banna (EMP-14) Phase 4 mein — AI en
 - Migrations: backward-compatible, CI mein `makemigrations --check`
 
 ## Launch se pehle (Phase 8)
+- Server scheduler (cron) mein har 5 minute: `python backend/manage.py send_task_reminders --base-url https://<domain>` (follow-up reminders)
 - `.env` mein `ADMIN_HOST=admin.<client domain>` aur dono hosts `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` mein (Super Admin alag address par)
 - Super Admin → Settings → Security → **"2FA mandatory for platform staff" on karna** (development mein owner ke kehne par off)
 - Super Admin → System Settings → Registration → **Email verification = Mandatory** (development mein Optional)

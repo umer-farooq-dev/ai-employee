@@ -28,6 +28,8 @@ python backend/manage.py runserver
 - Daily compressed backups: `docker compose --profile backup up -d` writes `./backups/db-*.dump` and keeps
   `BACKUP_KEEP_DAYS` (default 14). Copy them off the server. Point-in-time recovery is set up on the client's hosting (Phase 8).
 - Restore: `pg_restore --clean -d <database> backups/db-<date>.dump`
+- Scheduled job (cron, every 5 minutes): `python backend/manage.py send_task_reminders --base-url https://<domain>` emails
+  follow-up reminders (CRM-16).
 
 ## Code conventions
 

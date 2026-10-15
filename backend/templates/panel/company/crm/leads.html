@@ -88,7 +88,7 @@
             {% for lead, values in rows %}
             <tr>
                 <td><input type="checkbox" class="form-check-input row-check" name="ids" value="{{ lead.pk }}" aria-label="Select {{ lead.reference }}"></td>
-                <td><a href="{% url 'panel:lead_detail' lead.pk %}" class="fw-medium">{{ lead.name|default:"(no name)" }}</a><div class="text-muted small">{{ lead.reference }} · {{ lead.source.label|default:"" }}</div></td>
+                <td><a href="{% url 'panel:lead_detail' lead.pk %}" class="fw-medium">{{ lead.name|default:"(no name)" }}</a><div class="text-muted small">{{ lead.reference }}{% if lead.source %} · {{ lead.source.label }}{% endif %}</div></td>
                 <td class="small">{{ lead.phone }}<div class="text-muted">{{ lead.email }}</div></td>
                 <td><span class="badge" style="background:{{ lead.status.color }}">{{ lead.status.label }}</span></td>
                 <td>{% if lead.score_label %}<span class="badge {% if lead.score_label == 'hot' %}bg-danger{% elif lead.score_label == 'warm' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ lead.get_score_label_display }} {{ lead.score_value }}</span>{% endif %}</td>

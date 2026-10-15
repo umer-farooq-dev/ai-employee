@@ -11,7 +11,8 @@
         <a class="btn btn-sm btn-primary" href="{% url 'panel:lead_board' %}">Pipeline</a>
     </div>
 </div>
-<div class="d-flex gap-3 overflow-auto pb-3" style="min-height:70vh">
+<div class="row"><div class="col-12" style="min-width:0">
+<div class="d-flex gap-3 pb-3" style="min-height:70vh;overflow-x:auto;max-width:100%">
     {% for col in columns %}
     <div class="flex-shrink-0" style="width:280px">
         <div class="card h-100 mb-0">
@@ -36,6 +37,7 @@
     </div>
     {% endfor %}
 </div>
+</div></div>
 <div id="board-msg" class="position-fixed bottom-0 end-0 m-3" role="status" aria-live="polite"></div>
 {% endblock page_content %}
 {% block extra_javascript %}

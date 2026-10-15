@@ -78,3 +78,15 @@ def test_general_settings_screen_saves(admin_client):
     )
     assert response.status_code == 302
     assert config.get("general.color_primary") == "#112233"
+
+
+@pytest.mark.django_db
+def test_new_registry_keys_work_with_an_old_cached_copy():
+    """A release that adds settings must not break while Redis still holds the previous settings dict."""
+    from django.core.cache import cache
+
+    from apps.platform_config import services as config
+
+    cache.set(config.CACHE_KEY, {"general.platform_name": "Cached Name"}, None)
+    assert config.get("general.platform_name") == "Cached Name"
+    assert config.get("crm.lead_number_prefix") == "LD-"

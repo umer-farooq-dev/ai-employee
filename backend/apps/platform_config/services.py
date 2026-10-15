@@ -20,10 +20,10 @@ RATE_RE = re.compile(r"^\d+/(second|minute|hour|day)$")
 def get_all() -> dict:
     values = cache.get(CACHE_KEY)
     if values is None:
-        values = {s.key: s.default for s in SETTINGS}
-        values.update(dict(PlatformSetting.objects.values_list("key", "value")))
+        values = dict(PlatformSetting.objects.values_list("key", "value"))
         cache.set(CACHE_KEY, values, None)
-    return values
+    # Defaults underneath: keys added by a new release work even while an older cached copy is still in Redis.
+    return {**{s.key: s.default for s in SETTINGS}, **values}
 
 
 def get(key):

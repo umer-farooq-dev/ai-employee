@@ -74,6 +74,17 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `security.api_rate_user` / `security.api_rate_anon` / `security.api_rate_company` | text | 1000/hour / 100/hour / 5000/hour | REST API throttling (API-06) |
 | `security.api_rate_public_form` | text | 10/hour | website / app forms per IP |
 
+## C3. CRM & Calendar — Phase 3 · screen: Settings → CRM / Calendar
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `crm.lead_number_prefix` / `crm.lead_number_digits` | text / number | LD- / 6 | LD-000123 |
+| `crm.import_max_rows` / `crm.import_max_mb` | number | 10000 / 10 | lead and catalogue imports |
+| `crm.export_max_rows` | number | 50000 | |
+| `crm.task_reminder_minutes` | number | 30 | reminder before a follow-up is due |
+| `calendar.appointment_prefix` | text | APT- | APT-000123 |
+| `locale.default_phone_country` | text | in | flag + dial code pre-selected in phone fields |
+
 ## C2. SMS (mobile OTP) — Phase 2 · screen: Settings → SMS
 
 | Key | Type | Default | Notes |
