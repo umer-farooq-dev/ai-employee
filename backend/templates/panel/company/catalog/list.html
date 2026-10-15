@@ -1,0 +1,61 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}{{ ctype.name }}{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div>
+        <ul class="nav nav-pills">{% for t in types %}<li class="nav-item"><a class="nav-link {% if t.pk == ctype.pk %}active{% endif %}" href="{% url 'panel:catalog_list' t.key %}">{{ t.name }}</a></li>{% endfor %}</ul>
+        <span class="text-muted small">{{ page.paginator.count }} item{{ page.paginator.count|pluralize }}</span>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-sm btn-light" href="{% url 'panel:catalog_collections' ctype.key %}">Collections</a>
+        {% if can_manage %}<a class="btn btn-sm btn-light" href="{% url 'panel:catalog_import' ctype.key %}">Import</a>
+        <a class="btn btn-sm btn-primary" href="{% url 'panel:catalog_create' ctype.key %}"><i class="iconoir-plus"></i> New {{ ctype.item_label|default:"item"|lower }}</a>{% endif %}
+    </div>
+</div>
+<div class="card"><div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3"><label class="form-label small">Search</label><input class="form-control form-control-sm" name="q" value="{{ p.q }}"></div>
+        <div class="col-6 col-md-2"><label class="form-label small">Status</label><select class="form-select form-select-sm" name="status"><option value="">All</option><option value="active" {% if p.status == 'active' %}selected{% endif %}>Active</option><option value="inactive" {% if p.status == 'inactive' %}selected{% endif %}>Inactive</option></select></div>
+        {% for d in filter_defs %}
+        <div class="col-6 col-md-2"><label class="form-label small">{{ d.label }}</label>{% with key="f_"|add:d.key %}
+            {% if d.type == 'number' or d.type == 'currency' %}
+            <div class="input-group input-group-sm"><input class="form-control" name="{{ key }}_min" value="{% with k=key|add:'_min' %}{{ p|get:k|default:'' }}{% endwith %}" placeholder="Min"><input class="form-control" name="{{ key }}_max" value="{% with k=key|add:'_max' %}{{ p|get:k|default:'' }}{% endwith %}" placeholder="Max"></div>
+            {% elif d.type == 'single_select' or d.type == 'multi_select' %}
+            <select class="form-select form-select-sm" name="{{ key }}"><option value="">All</option>{% for o in d.options %}<option value="{{ o }}" {% if p|get:key == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+            {% else %}<input class="form-control form-control-sm" name="{{ key }}" value="{{ p|get:key|default:'' }}">{% endif %}{% endwith %}</div>
+        {% endfor %}
+        <div class="col-6 col-md-2"><label class="form-label small">Sort</label><select class="form-select form-select-sm" name="sort"><option value="">Name</option><option value="price" {% if p.sort == 'price' %}selected{% endif %}>Price: low to high</option><option value="-price" {% if p.sort == '-price' %}selected{% endif %}>Price: high to low</option><option value="newest" {% if p.sort == 'newest' %}selected{% endif %}>Newest</option></select></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary">Apply</button> <a class="btn btn-sm btn-light" href="?">Clear</a></div>
+    </form>
+</div></div>
+<form method="post">{% csrf_token %}
+{% if can_manage %}
+<div class="card mb-2"><div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
+    <span class="small text-muted">Bulk edit selected:</span>
+    <select class="form-select form-select-sm w-auto" name="field" aria-label="Field"><option value="status">Status</option>{% for d in edit_defs %}{% if d.type != 'file' %}<option value="{{ d.key }}">{{ d.label }}</option>{% endif %}{% endfor %}<option value="delete">Delete</option></select>
+    <input class="form-control form-control-sm w-auto" name="value" placeholder="New value (active / inactive for status)" aria-label="Value">
+    <button class="btn btn-sm btn-primary">Apply</button>
+</div></div>
+{% endif %}
+<div class="row">
+    {% for item, values in rows %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card">
+            {% with photo=item.media.all|first %}{% if photo and photo.kind == 'photo' %}<img src="{{ photo.file_key|signed }}" class="card-img-top" alt="" style="height:160px;object-fit:cover">{% endif %}{% endwith %}
+            <div class="card-body">
+                <div class="d-flex justify-content-between gap-2">
+                    {% if can_manage %}<input type="checkbox" class="form-check-input" name="ids" value="{{ item.pk }}" aria-label="Select {{ item.title }}">{% endif %}
+                    <h5 class="card-title flex-grow-1 mb-1">{% if can_manage %}<a href="{% url 'panel:catalog_edit' ctype.key item.pk %}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</h5>
+                    {% if item.status != 'active' %}<span class="badge bg-secondary align-self-start">Inactive</span>{% endif %}
+                </div>
+                {% if item.price_paise is not None %}<p class="mb-2"><strong>{{ item.price_paise|inr }}</strong> <span class="text-muted small">({{ item.price_paise|inr_short }})</span></p>{% endif %}
+                <dl class="row small mb-0">{% for label, v in values %}{% if v %}<dt class="col-5 text-muted fw-normal">{{ label }}</dt><dd class="col-7 mb-1">{{ v }}</dd>{% endif %}{% endfor %}</dl>
+            </div>
+        </div>
+    </div>
+    {% empty %}<div class="col-12"><div class="card"><div class="card-body text-center text-muted py-5">No {{ ctype.name|lower }} yet.</div></div></div>{% endfor %}
+</div>
+</form>
+{% include 'panel/partials/pagination.html' %}
+{% endblock page_content %}

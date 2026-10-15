@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from apps.audit.services import record
 from apps.core.storage import company_path, private_storage
+from apps.core.tabular import read_table
 from apps.industries import services as templates
 from apps.industries.models import LeadSource
 from apps.platform_config import services as config
@@ -40,27 +41,12 @@ def targets(company):
     return CORE_TARGETS + [(f"custom:{d.key}", d.label) for d in templates.fields_for(company, "lead")]
 
 
-def _read(name, data: bytes):
-    ext = os.path.splitext(name)[1].lower()
-    if ext == ".csv":
-        text = data.decode("utf-8-sig", errors="replace")
-        return list(csv.reader(io.StringIO(text)))
-    if ext in (".xlsx", ".xlsm"):
-        from openpyxl import load_workbook
-
-        wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-        rows = [["" if c is None else str(c) for c in row] for row in wb.active.iter_rows(values_only=True)]
-        wb.close()
-        return rows
-    raise ValidationError("Upload a .csv or .xlsx file.")
-
-
 def start(company, upload, user=None, request=None) -> LeadImport:
     max_mb = config.get("crm.import_max_mb")
     if upload.size > max_mb * 1024 * 1024:
         raise ValidationError(f"The file is larger than {max_mb} MB.")
     data = upload.read()
-    rows = [r for r in _read(upload.name, data) if any(str(c).strip() for c in r)]
+    rows = read_table(upload.name, data)
     if not rows:
         raise ValidationError("The file is empty.")
     limit = config.get("crm.import_max_rows")
@@ -99,8 +85,7 @@ def suggest_mapping(company, headers):
 
 def _rows(imp):
     with private_storage.open(imp.file_key, "rb") as fh:
-        rows = _read(imp.file_name, fh.read())
-    return [r for r in rows if any(str(c).strip() for c in r)][1:]
+        return read_table(imp.file_name, fh.read())[1:]
 
 
 @transaction.atomic

@@ -1,0 +1,34 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}{{ collection.name|default:"New collection" }}{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">{{ collection.name|default:"New collection" }}</h4>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:catalog_collections' ctype.key %}">Back</a>
+</div>
+<form method="post">{% csrf_token %}
+<div class="row">
+    <div class="col-lg-5">
+        <div class="card"><div class="card-body">
+            <div class="mb-3"><label class="form-label" for="c-name">Name *</label><input id="c-name" class="form-control" name="name" value="{{ collection.name|default:'' }}" required></div>
+            <div class="mb-3"><label class="form-label" for="c-desc">Description</label><input id="c-desc" class="form-control" name="description" value="{{ collection.description|default:'' }}"></div>
+            <div class="mb-3"><label class="form-label" for="c-mode">How items are chosen</label>
+                <select id="c-mode" class="form-select" name="mode"><option value="manual">Picked by hand</option><option value="filter" {% if collection.mode == 'filter' %}selected{% endif %}>By filter (updates automatically)</option></select></div>
+            <div class="mb-3"><label class="form-label" for="c-filter">Filter</label><input id="c-filter" class="form-control" name="filter" value="{{ collection.filter|default:'' }}" placeholder="Copy the filters from the item list address, e.g. f_bhk=2+BHK&f_price_max=80+lakh">
+                <div class="form-text">Used when “By filter” is chosen.</div></div>
+            <button class="btn btn-primary">Save collection</button>
+        </div></div>
+        {% if collection %}<div class="card"><div class="card-header"><h5 class="card-title mb-0">In this collection now ({{ members|length }})</h5></div><div class="card-body small">
+            {% for i in members %}<div>{{ i.title }}{% if i.price_paise is not None %} · {{ i.price_paise|inr_short }}{% endif %}</div>{% empty %}<span class="text-muted">Empty.</span>{% endfor %}</div></div>{% endif %}
+    </div>
+    <div class="col-lg-7">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Pick items (for “Picked by hand”)</h5></div><div class="card-body" style="max-height:60vh;overflow:auto">
+            {% for i in items %}<div class="form-check"><input class="form-check-input" type="checkbox" name="items" value="{{ i.pk }}" id="it-{{ i.pk }}" {% if i.pk in selected %}checked{% endif %}>
+                <label class="form-check-label" for="it-{{ i.pk }}">{{ i.title }}{% if i.price_paise is not None %} <span class="text-muted">· {{ i.price_paise|inr_short }}</span>{% endif %}</label></div>
+            {% empty %}<p class="text-muted mb-0">No items yet.</p>{% endfor %}
+        </div></div>
+    </div>
+</div>
+</form>
+{% if collection %}<form method="post" class="text-end">{% csrf_token %}<input type="hidden" name="op" value="delete"><button class="btn btn-sm btn-outline-danger">Delete collection</button></form>{% endif %}
+{% endblock page_content %}

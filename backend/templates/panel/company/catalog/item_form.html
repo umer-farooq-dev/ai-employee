@@ -1,0 +1,51 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}{% if item %}{{ item.title }}{% else %}New {{ ctype.item_label|default:"item"|lower }}{% endif %}{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">{% if item %}{{ item.title }}{% else %}New {{ ctype.item_label|default:"item"|lower }}{% endif %}</h4>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:catalog_list' ctype.key %}">Back to {{ ctype.name|lower }}</a>
+</div>
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card"><div class="card-body">
+            <form method="post">{% csrf_token %}
+                {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+                <div class="row">
+                {% for field in form %}
+                    <div class="{% if field.field.widget.input_type == 'textarea' or field.widget_type == 'textarea' %}col-12{% else %}col-md-6{% endif %} mb-3">
+                        {% if field.widget_type == 'checkbox' %}<div class="form-check mt-4">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+                        {% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}{% endif %}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+                </div>
+                <button class="btn btn-primary">Save</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        {% if item %}
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Photos &amp; brochures</h5></div><div class="card-body">
+            <div class="row g-2 mb-3">
+                {% for m in media %}
+                <div class="col-6">
+                    {% if m.kind == 'photo' %}<img src="{{ m.file_key|signed }}" alt="" class="img-fluid rounded border">{% else %}<a href="{{ m.file_key|signed }}" target="_blank" rel="noopener" class="d-block small text-truncate border rounded p-2">{{ m.file_name }}</a>{% endif %}
+                    <form method="post" class="mt-1">{% csrf_token %}<input type="hidden" name="op" value="remove_media"><input type="hidden" name="media" value="{{ m.pk }}">
+                        <button class="btn btn-sm btn-link text-danger p-0">Remove</button></form>
+                </div>
+                {% empty %}<p class="text-muted small mb-0">No files yet.</p>{% endfor %}
+            </div>
+            <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="op" value="media">
+                <select name="kind" class="form-select form-select-sm mb-2" aria-label="Kind"><option value="photo">Photos</option><option value="brochure">Brochure (PDF)</option></select>
+                <input type="file" name="files" multiple class="form-control form-control-sm mb-2" aria-label="Files">
+                <button class="btn btn-sm btn-light w-100">Upload</button></form>
+        </div></div>
+        <div class="card border-danger"><div class="card-body">
+            <form method="post">{% csrf_token %}<input type="hidden" name="op" value="delete"><button class="btn btn-sm btn-outline-danger w-100">Delete this {{ ctype.item_label|default:"item"|lower }}</button></form>
+        </div></div>
+        {% else %}<div class="card"><div class="card-body text-muted small">Save first, then add photos and brochures.</div></div>{% endif %}
+    </div>
+</div>
+{% endblock page_content %}

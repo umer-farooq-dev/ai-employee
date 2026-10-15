@@ -49,3 +49,11 @@ def bs(field):
 def person(user):
     """User → full name, else email, else '' (safe for empty assignees)."""
     return (user.full_name or user.email) if user else ""
+
+
+@register.filter
+def signed(file_key):
+    """Private file key → short-lived signed link (TEN-03)."""
+    from apps.core.storage import signed_url
+
+    return signed_url(file_key) if file_key else ""

@@ -1,0 +1,32 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Import {{ ctype.name|lower }}{% endblock title %}
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">Import {{ ctype.name|lower }}</h4>
+    <a class="btn btn-sm btn-light" href="{{ back }}">Back</a>
+</div>
+{% if not imp %}
+<div class="card"><div class="card-body">
+    <p class="text-muted">Upload a CSV or Excel (.xlsx) file; the first row holds the column names. Prices can be written as 70,00,000 or 70 lakh or 1.2 Cr.</p>
+    <p class="small">Columns you can use: {% for d in defs %}<code>{{ d.label }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="file" name="file" accept=".csv,.xlsx" class="form-control mb-3" required aria-label="File">
+        <button class="btn btn-primary">Upload and map columns</button></form>
+</div></div>
+{% elif imp.status == 'pending' %}
+<div class="card"><div class="card-header"><h5 class="card-title mb-0">{{ imp.file_name }} · {{ imp.total }} rows</h5></div><div class="card-body">
+    <form method="post">{% csrf_token %}
+        <table class="table align-middle"><thead class="table-light"><tr><th>Column in your file</th><th>Save as</th></tr></thead><tbody>
+        {% for i, header in columns %}<tr><td>{{ header }}</td><td><select name="map_{{ i }}" class="form-select form-select-sm" aria-label="Target for {{ header }}"><option value="">Ignore</option>
+            {% for d in defs %}<option value="{{ d.key }}" {% for h, k in imp.mapping.items %}{% if h == header and k == d.key %}selected{% endif %}{% endfor %}>{{ d.label }}</option>{% endfor %}</select></td></tr>{% endfor %}
+        </tbody></table>
+        <button class="btn btn-primary">Import</button></form>
+</div></div>
+{% else %}
+<div class="card"><div class="card-body">
+    <h5>{{ imp.created }} created · {{ imp.failed }} with errors</h5>
+    {% if imp.errors %}<table class="table table-sm small"><thead><tr><th>Row</th><th>Reason</th></tr></thead><tbody>
+        {% for e in imp.errors|slice:":50" %}<tr><td>{{ e.row }}</td><td>{{ e.reason }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+    <a class="btn btn-primary" href="{{ back }}">View {{ ctype.name|lower }}</a>
+</div></div>
+{% endif %}
+{% endblock page_content %}

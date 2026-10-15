@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.industries",
     "apps.roles_tools",
     "apps.crm",
+    "apps.catalog",
     "apps.cms",
     "apps.notifications",
     "apps.superadmin",

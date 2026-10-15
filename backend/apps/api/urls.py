@@ -4,6 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
+from . import views_catalog as catapi
 from . import views_company as company
 from . import views_crm as crmapi
 from . import views_templates as tpl
@@ -43,6 +44,10 @@ crm_router.register("fields", crmapi.CompanyFieldViewSet, basename="crm-fields")
 crm_router.register("scoring-rules", crmapi.CompanyScoringRuleViewSet, basename="crm-scoring-rules")
 crm_router.register("assignment-rules", crmapi.AssignmentRuleViewSet, basename="crm-assignment-rules")
 
+catalog_router = DefaultRouter(trailing_slash=True)
+catalog_router.register("items", catapi.CatalogItemViewSet, basename="catalog-items")
+catalog_router.register("collections", catapi.CollectionViewSet, basename="catalog-collections")
+
 public = DefaultRouter(trailing_slash=True)
 public.register("industries", company.PublicIndustryViewSet, basename="public-industries")
 
@@ -59,6 +64,10 @@ api_v1 = [
     path("crm/imports/", crmapi.LeadImportView.as_view(), name="crm-import"),
     path("crm/imports/<uuid:pk>/", crmapi.LeadImportView.as_view(), name="crm-import-run"),
     path("crm/", include(crm_router.urls)),
+    path("catalog/types/", catapi.CatalogTypesView.as_view(), name="catalog-types"),
+    path("catalog/imports/", catapi.CatalogImportView.as_view(), name="catalog-import"),
+    path("catalog/imports/<uuid:pk>/", catapi.CatalogImportView.as_view(), name="catalog-import-run"),
+    path("catalog/", include(catalog_router.urls)),
     path("admin/settings/<str:screen>/", views.SettingsView.as_view(), name="admin-settings"),
     path("admin/uploads/", views.UploadView.as_view(), name="admin-uploads"),
     path("admin/sessions/", views.SessionsView.as_view(), name="admin-sessions"),

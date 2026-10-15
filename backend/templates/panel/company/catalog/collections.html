@@ -1,0 +1,14 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}{{ ctype.name }} collections{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">{{ ctype.name }} · Collections</h4><span class="text-muted small">Named sets used by campaigns and WhatsApp follow-ups.</span></div>
+    <div class="d-flex gap-2"><a class="btn btn-sm btn-light" href="{% url 'panel:catalog_list' ctype.key %}">Back</a>
+        {% if can_manage %}<a class="btn btn-sm btn-primary" href="{% url 'panel:catalog_collection_create' ctype.key %}">New collection</a>{% endif %}</div>
+</div>
+<div class="card"><div class="card-body p-0"><table class="table mb-0 align-middle"><tbody>
+    {% for c in collections %}<tr><td>{% if can_manage %}<a href="{% url 'panel:catalog_collection_edit' ctype.key c.pk %}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}<div class="text-muted small">{{ c.description }}</div></td>
+        <td>{{ c.get_mode_display }}</td><td>{% if c.mode == 'manual' %}{{ c.entries.count }} item{{ c.entries.count|pluralize }}{% else %}<code class="small">{{ c.filter|default:"all" }}</code>{% endif %}</td></tr>
+    {% empty %}<tr><td class="text-center text-muted py-5">No collections yet.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock page_content %}
