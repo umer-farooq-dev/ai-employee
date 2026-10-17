@@ -309,7 +309,8 @@ def reply(conv, text, now=None):
     tools = toolkit.enabled(employee)
     defs = toolkit.definitions(ctx, tools)
     messages = [{"role": "system", "content": system_prompt(conv, chunks, now)}] + _history(conv)
-    facts = [text] + [c.text for c in chunks] + [_lead_context(conv)]
+    facts = list(conv.messages.filter(role="customer").values_list("content", flat=True))  # all customer turns
+    facts += [c.text for c in chunks] + [_lead_context(conv)]
     calls_log, fallback_hit, answer, meta = [], None, "", {}
     max_calls = setting("ai.max_tool_calls_per_turn")
     task = _task_for(conv)

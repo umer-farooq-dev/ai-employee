@@ -197,6 +197,15 @@ def test_invented_price_is_blocked_and_logged(ctx_a, sara, monkeypatch):
 
 
 @pytest.mark.django_db
+def test_budget_from_an_earlier_customer_turn_is_not_blocked(ctx_a, sara, monkeypatch):
+    FakeLLM(monkeypatch, [{"text": "Noted."}, {"text": "Looking within your ₹85 lakh budget."}])
+    conv = runtime.start(sara)
+    runtime.reply(conv, "My budget is 85 lakh")
+    msg = runtime.reply(conv, "Anything near Sector 150?")
+    assert "grounding_blocked" not in msg.meta and "85 lakh" in msg.content
+
+
+@pytest.mark.django_db
 def test_price_from_approved_knowledge_passes_with_citation(ctx_a, sara, monkeypatch):
     approved_text(ctx_a, "Price list", "Green Valley 2BHK price is ₹85 lakh. Booking amount 10% of the price.")
     fake = FakeLLM(monkeypatch, [{"text": "Green Valley 2BHK is ₹85 lakh [K1]."}])
