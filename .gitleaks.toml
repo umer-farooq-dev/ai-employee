@@ -10,3 +10,5 @@ paths = [
   '''backend/static/panel/js/vendors\.js''',
   '''backend/static/website/js/.*\.min\.js''',
 ]
+# 82a7fb7: false positive on the UsageEvent.meter help text ("ai_input_tokens, … embedding_tokens"), not a secret
+commits = ["82a7fb7e1591cda299331245dc95c260d2826c89"]
