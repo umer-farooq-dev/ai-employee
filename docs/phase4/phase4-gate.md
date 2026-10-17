@@ -67,5 +67,5 @@ Scope from PRD-01 Phase 4. **Done** = built and tested; **Done (base)** = the Ph
 - [x] Company isolation for every new endpoint; RLS on all new company tables
 - [x] Lint, migrations check, all tests green locally
 - [ ] **AI evaluation on the real production model**: `python backend/manage.py run_ai_eval` after a provider key is added in Super Admin → AI Settings (thresholds in System Settings → AI)
-- [ ] GitHub CI green on the pushed commit
+- [x] GitHub CI green on the pushed commit
 - [ ] Client sign-off
