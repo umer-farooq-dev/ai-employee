@@ -312,7 +312,11 @@ def settings_form(group_keys, initial, data=None, files=None):
             form.registry.append(s)
             continue
         elif s.type == "color":
-            field = forms.CharField(required=False, initial=value, widget=forms.TextInput(attrs={"type": "color"}))
+            field = forms.CharField(
+                required=False,
+                initial=value,
+                widget=forms.TextInput(attrs={"type": "color", "class": "form-control form-control-color"}),
+            )
         else:
             field = forms.CharField(required=False, initial=value)
         field.label = s.label

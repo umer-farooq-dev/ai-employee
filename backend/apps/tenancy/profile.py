@@ -86,28 +86,49 @@ def set_hours(company, business_hours=None, holidays=None, request=None):
 
 
 # ------------------------------------------------------------------ onboarding (AUTH-10)
-# Steps are completed automatically (profile, team) or by the feature that owns them in its phase via mark_done().
+# Every step is worked out from the company's own data, so it ticks itself the moment the feature is used.
 STEPS = [
     ("profile", "Complete your company profile and business hours", "panel:company_settings"),
     ("team", "Invite your team (optional)", "panel:team"),
-    ("ai_employee", "Your AI Employee is ready", None),
-    ("knowledge", "Add your business knowledge", None),
-    ("catalogue", "Add your properties, packages or courses", None),
-    ("channel", "Connect your phone, WhatsApp or website chat", None),
-    ("test", "Test your AI Employee", None),
-    ("activate", "Activate your AI Employee", None),
+    ("ai_employee", "Your AI Employee is ready", "panel:ai_list"),
+    ("knowledge", "Add your business knowledge", "panel:kb"),
+    ("catalogue", "Add your properties, packages or courses", "panel:catalog_home"),
+    ("channel", "Connect your phone, WhatsApp or website chat", "panel:calling_settings"),
+    ("test", "Test your AI Employee", "panel:ai_list"),
+    ("activate", "Activate your AI Employee", "panel:ai_list"),
 ]
 
 
 def _auto_done(company, key):
-    if key == "profile":
-        return bool(company.address and company.email and company.phone and company.business_hours)
-    if key == "team":
-        with platform_context():
+    from apps.agents.models import AIEmployee
+    from apps.catalog.models import CatalogItem
+    from apps.knowledge.models import FAQ, Source
+    from apps.voice.models import PhoneNumber
+
+    employees = AIEmployee.all_companies.filter(company=company).exclude(status=AIEmployee.ARCHIVED)
+    with platform_context():
+        if key == "profile":
+            return bool(company.address and company.email and company.phone and company.business_hours)
+        if key == "team":
             return (
                 Membership.all_companies.filter(company=company).count() > 1
                 or Invitation.all_companies.filter(company=company).exists()
             )
+        if key == "ai_employee":
+            return employees.exists()
+        if key == "knowledge":
+            return (
+                Source.all_companies.filter(company=company, approval=Source.APPROVED).exists()
+                or FAQ.all_companies.filter(company=company, approval=Source.APPROVED).exists()
+            )
+        if key == "catalogue":
+            return CatalogItem.all_companies.filter(company=company).exists()
+        if key == "channel":  # phone now; WhatsApp and website chat join in Phase 6
+            return PhoneNumber.objects.filter(company=company, employee__isnull=False, status="active").exists()
+        if key == "test":
+            return any(e.test_passed for e in employees)
+        if key == "activate":
+            return employees.filter(status=AIEmployee.ACTIVE).exists()
     return False
 
 

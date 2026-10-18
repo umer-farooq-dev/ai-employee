@@ -1,4 +1,4 @@
-{% load static i18n %}
+{% load static i18n admin_tags %}
 <!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}" {% block html_attribute %}{% endblock html_attribute %}>
@@ -14,7 +14,7 @@
         <link href="{% static 'panel/css/icons.min.css' %}" rel="stylesheet" type="text/css"/>
         <link href="{% static 'panel/css/app.min.css' %}" rel="stylesheet" type="text/css"/>
         {# Brand colours from General Settings (SA-22) #}
-        <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }}}
+        <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }};--bs-link-color-rgb:{{ platform.color_primary|rgb }};--bs-link-hover-color-rgb:{{ platform.color_primary|rgb }}}
         .btn-primary{background-color:var(--brand-primary);border-color:var(--brand-primary)}
         .text-brand{color:var(--brand-primary)!important}
         .page-wrapper .page-content{min-width:0}{# wide boards / tables scroll inside the page instead of widening it #}

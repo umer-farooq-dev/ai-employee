@@ -35,6 +35,18 @@ def routes(described):
 
 
 @register.filter
+def rgb(hex_colour):
+    """'#6534F4' → '101,52,244' for Bootstrap's *-rgb variables (brand colours from General Settings)."""
+    h = str(hex_colour or "").lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    try:
+        return ",".join(str(int(h[i : i + 2], 16)) for i in (0, 2, 4))
+    except ValueError:
+        return "34,197,94"
+
+
+@register.filter
 def get(mapping, key):
     return (mapping or {}).get(key)
 

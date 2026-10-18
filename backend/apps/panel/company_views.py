@@ -3,6 +3,7 @@
 The company always comes from request.company (the signed-in user's membership), never from the URL or form data.
 """
 
+import datetime
 from functools import wraps
 
 from django.contrib import messages
@@ -62,8 +63,36 @@ def dashboard(request):
             "trial_days_left": days_left,
             "template_update": templates.update_available(company),
             "can_manage": has_perm(request.user, "company.manage", company),
+            "stats": _dashboard_stats(request.user, company),
         },
     )
+
+
+def _dashboard_stats(user, company):
+    """A few live numbers, each shown only to people who may open the page it links to."""
+    from apps.crm.models import Lead
+    from apps.scheduling.models import Appointment
+    from apps.voice.models import Call
+
+    now = timezone.now()
+    today = timezone.localtime(now).replace(hour=0, minute=0, second=0, microsecond=0)
+    cards = []
+    if has_perm(user, "leads.view", company):
+        leads = Lead.objects.filter(company=company, deleted_at__isnull=True)
+        week = leads.filter(created_at__gte=now - datetime.timedelta(days=7)).count()
+        cards.append(("Leads", leads.count(), f"{week} new this week", "iconoir-group", "panel:lead_list", ""))
+        hot = leads.filter(score_label=Lead.HOT).count()
+        cards.append(("Hot leads", hot, "ready to close", "iconoir-fire-flame", "panel:lead_list", "?score=hot"))
+    if has_perm(user, "calls.view", company):
+        calls = Call.objects.filter(company=company, queued_at__gte=today).exclude(reason__in=Call.TEST_REASONS)
+        answered = calls.filter(answered_at__isnull=False).count()
+        cards.append(("Calls today", calls.count(), f"{answered} answered", "iconoir-phone", "panel:calls", ""))
+    if has_perm(user, "calendar.view", company):
+        upcoming = Appointment.objects.filter(company=company, starts_at__gte=now, status__in=Appointment.ACTIVE)
+        nxt = upcoming.order_by("starts_at").first()
+        hint = f"next {timezone.localtime(nxt.starts_at):%d %b %H:%M}" if nxt else "none booked"
+        cards.append(("Upcoming appointments", upcoming.count(), hint, "iconoir-calendar", "panel:calendar", ""))
+    return [dict(zip(("label", "value", "hint", "icon", "url", "query"), c)) for c in cards]
 
 
 @require_POST

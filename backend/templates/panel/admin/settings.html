@@ -18,7 +18,7 @@
                     {% else %}
                         <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {% with current=images|get:field.name %}{% if field.name in images %}
-                            <div class="mb-2">{% if current %}<img src="{{ current }}" alt="" style="max-height:48px" class="border rounded p-1 bg-light">{% else %}<span class="text-muted small">Not set</span>{% endif %}</div>
+                            <div class="mb-2">{% if current %}<img src="{{ current }}" alt="" class="border rounded p-1" style="max-height:48px;background:{% if field.name == 'general.logo_light' %}var(--brand-secondary){% else %}#f6f8fb{% endif %}">{% else %}<span class="text-muted small">Not set</span>{% endif %}</div>
                         {% endif %}{% endwith %}
                         {{ field }}
                     {% endif %}

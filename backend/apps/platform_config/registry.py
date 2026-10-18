@@ -44,6 +44,13 @@ GROUPS = {
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
 
 
+def plan_choices():
+    """Plans come from Super Admin → Plans & Pricing."""
+    from apps.billing.models import Plan
+
+    return [(p.key, p.name) for p in Plan.objects.order_by("sort_order", "name")]
+
+
 def language_choices():
     """Languages come from Super Admin → Languages & Voices (data, not code)."""
     from apps.providers.languages import choices
@@ -196,7 +203,9 @@ SETTINGS = [
     Setting("registration.otp_max_attempts", "number", 5, "Wrong OTP attempts allowed", "registration", min=1, max=20),
     Setting("registration.trial_enabled", "boolean", True, "Free trial", "registration"),
     Setting("registration.trial_days", "number", 14, "Trial days", "registration", min=0, max=365),
-    Setting("registration.default_plan", "text", "starter", "Default plan key", "registration"),
+    Setting(
+        "registration.default_plan", "choice", "starter", "Plan for new companies", "registration", choices=plan_choices
+    ),
     Setting(
         "registration.business_sizes",
         "list",
