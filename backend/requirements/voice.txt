@@ -1,0 +1,4 @@
+# Voice Gateway (Phase 5): Pipecat with the speech vendors seeded in Super Admin → Voice Settings.
+# Google / Azure speech need their extras too when the client picks them: pipecat-ai[google,azure]
+pipecat-ai[websocket,silero,deepgram,elevenlabs,cartesia,sarvam]==1.12.0
+uvicorn[standard]==0.38.0

@@ -20,6 +20,11 @@ python backend/manage.py runserver
 - Free LLM gateway (testing only): `docker compose --profile ai up -d`, then Super Admin → AI Settings → FreeLLMAPI (test only, blocked in production)
 - AI Employees need an AI provider: Super Admin → AI Settings → add a key, load models, switch it on, choose the model per task
 - Upload virus scan (optional locally): `docker compose --profile scan up -d` and `CLAMAV_ADDRESS=127.0.0.1:3310` in `.env`
+- Voice calls: `python backend/manage.py run_voice_gateway` (second process, `VOICE_GATEWAY_BIND`). Providers and keys:
+  Super Admin → Voice Settings; who speaks each language: Languages & Voices; numbers: Phone Numbers.
+  Free local testing (no keys): `pip install -r backend/requirements/voice-local.txt`, switch on Whisper (local) and
+  Kokoro (local), set them as the routes of a language, then use **Voice test** in the AI Employee's test console.
+  Real phone calls need public addresses for the webhooks and the gateway (`PUBLIC_BASE_URL`, `VOICE_GATEWAY_URL`, e.g. a tunnel).
 
 ## Database role and backups (any server)
 
@@ -36,6 +41,7 @@ python backend/manage.py runserver
   - `python backend/manage.py send_task_reminders --base-url https://<domain>` — follow-up reminder emails (CRM-16)
   - `python backend/manage.py process_knowledge` — queued knowledge, website re-syncs, re-embedding (KB-01, KB-07)
   - `python backend/manage.py end_idle_conversations` — closes idle AI conversations so summary, CRM and score update
+  - every minute: `python backend/manage.py dial_due_calls` — call retries (busy / no answer / voicemail) and follow-up calls
 - AI quality gate (ENG-12): `python backend/manage.py run_ai_eval [--only real-estate] [--output report.json]` on the
   production model (keys in Super Admin); exit code 1 when the thresholds in AI settings are not met.
 

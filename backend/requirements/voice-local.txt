@@ -1,0 +1,4 @@
+# Free local speech engines for development / testing only (test-only providers, blocked in production):
+# Whisper speech-to-text and Kokoro voices run inside the Voice Gateway, no key needed.
+-r voice.txt
+pipecat-ai[whisper,kokoro]==1.12.0

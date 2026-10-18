@@ -26,6 +26,15 @@ def decrypt(token: str) -> str:
     return _fernet().decrypt(token.encode()).decode()
 
 
+def encrypt_bytes(data: bytes) -> bytes:
+    """Files at rest, e.g. call recordings (VOICE-12)."""
+    return _fernet().encrypt(data)
+
+
+def decrypt_bytes(data: bytes) -> bytes:
+    return _fernet().decrypt(data)
+
+
 class EncryptedTextField(models.TextField):
     """Stores ciphertext in the database, gives plaintext to Python code."""
 

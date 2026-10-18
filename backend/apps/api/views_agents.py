@@ -284,6 +284,20 @@ class AIEmployeeViewSet(TenantContextMixin, viewsets.ModelViewSet):
         conv = _errors(runtime.start, self.get_object(), "test", request.data.get("customer") or {}, request.user)
         return Response(ConversationDetailSerializer(conv).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="voice-test")
+    def voice_test(self, request, pk=None):
+        """VOICE-19 / EMP-10: browser voice test → the signed Voice Gateway address to open with the microphone."""
+        from apps.voice import services as voice
+
+        call, url = _errors(
+            voice.start_browser_test,
+            self.get_object(),
+            request.data.get("language", ""),
+            request.user,
+            request._request,
+        )
+        return Response({"call": str(call.pk), "url": url, "language": call.language}, status=status.HTTP_201_CREATED)
+
 
 # ------------------------------------------------------------- company: conversations (transcripts, KB-11, TOOL-14)
 class ConversationViewSet(

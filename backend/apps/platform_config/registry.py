@@ -441,6 +441,15 @@ SETTINGS = [
     ),
     # Voice conversation tuning (VOICE-04 … 06, 22)
     Setting(
+        "voice.reply_style",
+        "textarea",
+        "You are speaking on the phone. Answer in one or two short spoken sentences. Never use lists, bullet "
+        "points, markdown, emojis or links. Say numbers the way people say them (85 lakh, 2 BHK). Ask one "
+        "question at a time and keep it natural.",
+        "Spoken reply style (added to the AI prompt on calls)",
+        "voice",
+    ),
+    Setting(
         "voice.end_of_speech_ms",
         "number",
         500,

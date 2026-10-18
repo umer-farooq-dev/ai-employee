@@ -363,6 +363,33 @@ def _dial(call):
         finish(call)
 
 
+def start_browser_test(employee, language="", user=None, request=None):
+    """VOICE-19 / EMP-10: a test call from the browser (no telephony). → (call, signed gateway address)."""
+    from apps.providers import languages as langs
+    from apps.providers.services import speech_chain
+
+    language = language if language in (employee.languages or []) else employee.primary_language
+    for kind, label in (("stt", "speech-to-text"), ("tts", "a voice")):
+        if not speech_chain(language, kind):
+            name = langs.names().get(language, language)
+            raise ValidationError(
+                f"{name}: the platform team has not set {label} yet (Super Admin → Languages & Voices)."
+            )
+    call = Call.objects.create(
+        company=employee.company,
+        employee=employee,
+        direction="outbound",
+        reason="browser_test",
+        status=Call.RINGING,
+        language=language,
+        requested_by=user if user and user.is_authenticated else None,
+        events=[_event(Call.RINGING, "browser test")],
+    )
+    record(request, "call.browser_test", "call", str(call.pk), user=user, company=call.company)
+    query = urllib.parse.urlencode({"call": call.pk, "sig": media_token(call.pk)})
+    return call, f"{settings.VOICE_GATEWAY_URL}/browser?{query}"
+
+
 def employee_max_minutes(employee):
     own = (employee.rules or {}).get("max_call_minutes")
     platform = setting("calling.max_call_minutes")
