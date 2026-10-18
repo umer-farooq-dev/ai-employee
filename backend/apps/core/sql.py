@@ -3,7 +3,7 @@
 from django.db import migrations
 
 TENANT_CONDITION = (
-    "current_setting('app.bypass_rls', true) = 'on' " "OR company_id::text = current_setting('app.company_id', true)"
+    "current_setting('app.bypass_rls', true) = 'on' OR company_id::text = current_setting('app.company_id', true)"
 )
 
 

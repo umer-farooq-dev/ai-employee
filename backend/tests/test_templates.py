@@ -329,8 +329,7 @@ def test_company_rows_are_isolated_and_platform_rows_read_only(company_a, compan
             assert cur.fetchone()[0] == 0
             with pytest.raises(DatabaseError), transaction.atomic():
                 cur.execute(
-                    "UPDATE industries_fielddefinition SET label = 'hack' WHERE template_version_id = %s "
-                    "RETURNING id",
+                    "UPDATE industries_fielddefinition SET label = 'hack' WHERE template_version_id = %s RETURNING id",
                     [str(version.id)],
                 )
                 assert cur.fetchone() is None

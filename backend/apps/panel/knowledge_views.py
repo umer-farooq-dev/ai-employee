@@ -79,6 +79,7 @@ def index(request):
         Source.objects.filter(company=request.company)
         .prefetch_related("employees")
         .annotate(n_chunks=Count("chunks", distinct=True), n_faqs=Count("faqs", distinct=True))
+        .order_by(*Source._meta.ordering)
     )
     for key in ("type", "approval", "status"):
         if request.GET.get(key):
@@ -169,7 +170,7 @@ def source_detail(request, pk):
             "types": Source.TYPES,
             "employees": AIEmployee.objects.filter(company=request.company).exclude(status=AIEmployee.ARCHIVED),
             "selected": [str(e.pk) for e in source.employees.all()],
-            "documents": source.documents.annotate(n=Count("chunks"))[:200],
+            "documents": source.documents.annotate(n=Count("chunks")).order_by("created_at")[:200],
             "faqs": source.faqs.all() if source.type == Source.FAQ else [],
             "languages": languages.choices(),
             "crawl_max_pages": setting("knowledge.crawl_max_pages"),

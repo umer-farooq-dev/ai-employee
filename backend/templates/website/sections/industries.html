@@ -11,7 +11,7 @@
       <div class="col-lg-4 col-md-6 mb-4">
         <div class="pricing-box h-100" data-aos="fade-up" data-aos-duration="{% cycle 800 1000 1200 %}">
           <div class="pricing-box-single h-100">
-            {% if item.icon %}<img src="{{ item.icon }}" alt="" loading="lazy" style="max-height:56px" class="mb-3">{% endif %}
+            <div class="mb-3" style="height:56px">{% if item.icon %}<img src="{{ item.icon }}" alt="" loading="lazy" style="max-height:56px">{% endif %}</div>
             <h3 class="h4"><a href="{% url 'website:industry' item.key %}">{{ item.name }}</a></h3>
             <p class="pera">{{ item.short_description }}</p>
             {% if c.link_label %}<a href="{% url 'website:industry' item.key %}" class="theme-btn2 mt-3">{{ c.link_label }}<span class="visually-hidden"> — {{ item.name }}</span></a>{% endif %}

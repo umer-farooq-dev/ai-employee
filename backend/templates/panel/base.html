@@ -17,7 +17,10 @@
         <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }}}
         .btn-primary{background-color:var(--brand-primary);border-color:var(--brand-primary)}
         .text-brand{color:var(--brand-primary)!important}
-        .page-wrapper .page-content{min-width:0}{# wide boards / tables scroll inside the page instead of widening it #}</style>
+        .page-wrapper .page-content{min-width:0}{# wide boards / tables scroll inside the page instead of widening it #}
+        {# the full logo already carries the icon: the small logo shows only while the sidebar is collapsed #}
+        .startbar .brand .logo-lg{height:34px;width:auto}
+        body:not([data-sidebar-size=collapsed]) .startbar .brand .logo-sm,.startbar:hover .brand .logo-sm{display:none}</style>
         {% block brand_override %}{% endblock brand_override %}
     {% endblock css %}
 </head>

@@ -146,9 +146,7 @@ LOGIN_REDIRECT_URL = "panel:home"
 # allauth headless = the login / 2FA / password API for the future Flutter app (API-02): Bearer JWT tokens
 HEADLESS_CLIENTS = ("browser", "app")
 HEADLESS_ONLY = False
-HEADLESS_TOKEN_STRATEGY = (
-    "allauth.headless.tokens.strategies.jwt.JWTTokenStrategy"  # nosec B105 (class path, not a secret)
-)
+HEADLESS_TOKEN_STRATEGY = "allauth.headless.tokens.strategies.jwt.JWTTokenStrategy"  # nosec B105 (class path, not a secret)
 HEADLESS_JWT_ALGORITHM = "HS256"
 HEADLESS_JWT_PRIVATE_KEY = env("JWT_SIGNING_KEY", default=SECRET_KEY)
 HEADLESS_JWT_ACCESS_TOKEN_EXPIRES_IN = env.int("JWT_ACCESS_SECONDS", default=300)
@@ -157,6 +155,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 
 FORMS_URLFIELD_ASSUME_HTTPS = True
 LANGUAGE_CODE = "en-in"
+FORMAT_MODULE_PATH = ["config.formats"]
 TIME_ZONE = "UTC"  # storage; the display timezone is activated per request from settings / user / company
 USE_I18N = True
 USE_TZ = True

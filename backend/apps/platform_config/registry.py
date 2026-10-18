@@ -74,18 +74,16 @@ SETTINGS = [
     Setting("general.platform_name", "text", "AI Employee", "Platform name", "branding"),
     Setting("general.short_name", "text", "AIE", "Short name", "branding"),
     Setting("general.tagline", "text", "Hire an AI Employee for your business", "Tagline", "branding"),
-    Setting(
-        "general.logo_light", "image", "/static/panel/images/logo-light.png", "Logo (for dark backgrounds)", "branding"
-    ),
+    Setting("general.logo_light", "image", "/static/brand/logo-light.svg", "Logo (for dark backgrounds)", "branding"),
     Setting(
         "general.logo_dark",
         "image",
-        "/static/website/img/logo/header-logo2.png",
+        "/static/brand/logo-dark.svg",
         "Logo (for light backgrounds)",
         "branding",
     ),
-    Setting("general.logo_small", "image", "/static/panel/images/logo-sm.png", "Small logo / icon", "branding"),
-    Setting("general.favicon", "image", "/static/panel/images/favicon.ico", "Favicon", "branding"),
+    Setting("general.logo_small", "image", "/static/brand/logo-sm.svg", "Small logo / icon", "branding"),
+    Setting("general.favicon", "image", "/static/brand/favicon.svg", "Favicon", "branding"),
     Setting("general.app_icon", "image", "", "App / PWA icon", "branding"),
     Setting("general.login_image", "image", "", "Login page image", "branding"),
     Setting("general.color_primary", "color", "#6534F4", "Primary colour", "branding"),

@@ -106,8 +106,9 @@ class CatalogTypeForm(BootstrapMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         d = self.instance.display or {}
-        self.fields["title_field"].initial, self.fields["price_field"].initial = d.get("title_field"), d.get(
-            "price_field"
+        self.fields["title_field"].initial, self.fields["price_field"].initial = (
+            d.get("title_field"),
+            d.get("price_field"),
         )
         self.fields["match_rules_json"].initial = json.dumps(self.instance.match_rules or {}, indent=1)
 

@@ -54,9 +54,9 @@
           <div class="logo"><a href="{% url 'website:home' %}"><img src="{{ platform.logo_dark }}" alt="{{ platform.platform_name }}" loading="lazy"></a></div>
         </div>
         <div class="col-md-7">
-          <div class="coppyright text-right">
+          <div class="coppyright text-md-end d-flex flex-wrap justify-content-md-end align-items-center gap-3">
             <span>{{ platform.copyright }}</span>
-            {% for l in c.bottom_links %}<a href="{{ l.url }}">{{ l.label }}</a>{% endfor %}
+            {% for l in c.bottom_links %}<a href="{{ l.url }}" class="ms-0">{{ l.label }}</a>{% endfor %}
           </div>
         </div>
       </div>

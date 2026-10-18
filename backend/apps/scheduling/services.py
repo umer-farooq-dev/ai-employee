@@ -238,7 +238,7 @@ def book(
         crm.log(
             lead,
             "appointment",
-            f"{appt_type.name} booked for {timezone.localtime(start):%d %b %Y %H:%M} " f"with {resource.name}",
+            f"{appt_type.name} booked for {timezone.localtime(start):%d %b %Y %H:%M} with {resource.name}",
             user,
             actor_type=created_by_type,
             appointment=str(appt.pk),

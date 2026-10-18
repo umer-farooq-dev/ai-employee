@@ -85,7 +85,7 @@ def industry_templates(request, pk):
         except ValidationError as exc:
             _errors(request, exc)
         return redirect("superadmin:industry_templates", pk=pk)
-    versions = industry.versions.annotate(company_count=Count("companies"))
+    versions = industry.versions.annotate(company_count=Count("companies")).order_by(*TemplateVersion._meta.ordering)
     return render(
         request,
         "panel/admin/industries/templates.html",

@@ -230,6 +230,10 @@ def _chain(task):
     return usable
 
 
+def has_route(task):
+    return bool(_chain(task))
+
+
 def _call(task, fn):
     errors = []
     for route in _chain(task):

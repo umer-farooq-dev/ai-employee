@@ -305,6 +305,7 @@ def test_rule_triggers_on_calls(monkeypatch, live_call, sara, realty, set_settin
         fake = FakeLLM(monkeypatch, [{"text": "Okay."}])
         runtime.reply(conv, "hello")
         assert "upset" not in fake.calls[0]["messages"][0]["content"]
+        assert fake.calls[0]["task"] == "chat_dialog"  # no voice route set: calls use the chat route
         employees.update_employee(sara, {"rules": {**sara.rules, "handoff_on_upset": True}})
         conv = Conversation.objects.get(pk=conv.pk)  # fresh employee, as on the next call turn
         fake = FakeLLM(

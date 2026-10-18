@@ -89,7 +89,7 @@ class Require2FAMiddleware:
                         {
                             "error": {
                                 "code": "mfa_required",
-                                "message": "Set up two-factor " "authentication to continue.",
+                                "message": "Set up two-factor authentication to continue.",
                             }
                         },
                         status=403,

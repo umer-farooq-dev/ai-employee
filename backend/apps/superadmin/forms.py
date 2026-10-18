@@ -23,6 +23,13 @@ class BootstrapMixin:
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             widget = field.widget
+            # Django's "---------" blank option reads like a glitch; say what to do instead
+            if getattr(field, "empty_label", None) == "---------":
+                field.empty_label = "Choose…"
+            elif isinstance(field, forms.ChoiceField) and not isinstance(field, forms.ModelChoiceField):
+                field.choices = [
+                    (v, "Choose…" if v == "" and label == "---------" else label) for v, label in field.choices
+                ]
             if isinstance(widget, (forms.CheckboxInput, forms.CheckboxSelectMultiple)):
                 widget.attrs.setdefault("class", "form-check-input")
             elif isinstance(widget, forms.Select):

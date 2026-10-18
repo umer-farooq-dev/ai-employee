@@ -490,7 +490,9 @@
                 return '<span class="badge ' + (p.is_active ? "bg-primary-subtle text-primary" : "bg-light text-muted") + ' me-1 mb-1">' + (i + 1) + ". " + esc(p.name) + " / " + esc(r.model) + (p.is_active ? "" : " (off)") + "</span>";
             }).join('<i class="iconoir-arrow-right text-muted me-1"></i>');
             return "<tr><td><div class=\"fw-medium\">" + esc(t.label) + '</div><div class="small text-muted">' + esc(D.capabilities[t.capability]) + "</div></td>" +
-                '<td class="route-chain">' + (chain || '<span class="text-warning small">Not set</span>') + "</td>" +
+                '<td class="route-chain">' + (chain || (t.capability === "chat" && t.task !== "chat_dialog"
+                    ? '<span class="text-muted small">Not set — uses Chat conversations</span>'
+                    : '<span class="text-warning small">Not set</span>')) + "</td>" +
                 '<td class="text-end"><button type="button" class="btn btn-sm btn-light" data-task="' + t.task + '">Edit</button></td></tr>';
         }).join("");
     }

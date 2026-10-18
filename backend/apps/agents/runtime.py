@@ -291,7 +291,9 @@ def ungrounded(reply, facts):
 
 # ------------------------------------------------------------------ one turn (ENG-01 … ENG-04, ENG-10, ENG-11)
 def _task_for(conv):
-    return "voice_dialog" if conv.channel == "voice" else "chat_dialog"
+    """Calls (and the browser voice test) use the fast voice route; without one they use the chat route."""
+    voice = conv.channel == "voice" or (conv.state or {}).get("voice")
+    return "voice_dialog" if voice and gateway.has_route("voice_dialog") else "chat_dialog"
 
 
 def reply(conv, text, now=None):

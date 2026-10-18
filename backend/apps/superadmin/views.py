@@ -350,7 +350,7 @@ def plan_list(request):
         request,
         "panel/admin/plans/list.html",
         {
-            "plans": Plan.objects.annotate(companies_count=Count("companies")),
+            "plans": Plan.objects.annotate(companies_count=Count("companies")).order_by(*Plan._meta.ordering),
             "can_manage": has_perm(request.user, "plans.manage"),
         },
     )
@@ -405,7 +405,9 @@ def system_settings(request):
 @staff_perm("cms.view")
 def cms_pages(request):
     return render(
-        request, "panel/admin/cms/pages.html", {"pages": Page.objects.annotate(section_count=Count("sections"))}
+        request,
+        "panel/admin/cms/pages.html",
+        {"pages": Page.objects.annotate(section_count=Count("sections")).order_by(*Page._meta.ordering)},
     )
 
 
@@ -560,7 +562,7 @@ def industry_list(request):
     return render(
         request,
         "panel/admin/industries/list.html",
-        {"industries": Industry.objects.annotate(company_count=Count("companies"))},
+        {"industries": Industry.objects.annotate(company_count=Count("companies")).order_by(*Industry._meta.ordering)},
     )
 
 

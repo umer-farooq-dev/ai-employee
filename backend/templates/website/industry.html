@@ -9,6 +9,7 @@
     <div class="row align-items-center">
       <div class="col-lg-6">
         <div class="main-headding">
+          {% if industry.icon %}<img src="{{ industry.icon }}" alt="" style="max-height:56px" class="mb-3">{% endif %}
           <h1>{{ industry.name }}</h1>
           {% if industry.short_description %}<p>{{ industry.short_description }}</p>{% endif %}
           {% if site.header.cta.label %}<div class="space30"></div>
@@ -16,7 +17,7 @@
         </div>
       </div>
       <div class="col-lg-6">
-        {% if industry.image or industry.icon %}<div class="hero-image shape-animaiton3"><img src="{% firstof industry.image industry.icon %}" alt=""></div>{% endif %}
+        {% if industry.image %}<div class="hero-image shape-animaiton3"><img src="{{ industry.image }}" alt=""></div>{% endif %}
       </div>
     </div>
   </div>

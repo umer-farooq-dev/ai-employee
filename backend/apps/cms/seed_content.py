@@ -6,7 +6,7 @@ testimonials section starts hidden and empty until real ones are added.
 """
 
 IMG = "/static/website/img/"
-BADGE = IMG + "logo/span9.svg"
+BADGE = "/static/brand/badge.svg"
 REGISTER = {"label": "Get Started", "url": "/accounts/signup/"}
 DEMO = {"label": "Book a Demo", "url": "/contact/"}
 
@@ -489,6 +489,6 @@ INDUSTRIES = [
         "Guide students and book counselling sessions.",
         "<p>Your AI Employee explains courses, fees and admissions, qualifies students and books counselling "
         "sessions.</p>",
-        IMG + "icons/features-icon3.png",
+        IMG + "icons/service3-icon5.png",
     ),
 ]
