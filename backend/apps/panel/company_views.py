@@ -92,7 +92,7 @@ def _dashboard_stats(user, company):
         nxt = upcoming.order_by("starts_at").first()
         hint = f"next {timezone.localtime(nxt.starts_at):%d %b %H:%M}" if nxt else "none booked"
         cards.append(("Upcoming appointments", upcoming.count(), hint, "iconoir-calendar", "panel:calendar", ""))
-    return [dict(zip(("label", "value", "hint", "icon", "url", "query"), c)) for c in cards]
+    return [dict(zip(("label", "value", "hint", "icon", "url", "query"), c, strict=True)) for c in cards]
 
 
 @require_POST
