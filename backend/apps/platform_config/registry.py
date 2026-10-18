@@ -11,12 +11,12 @@ from dataclasses import dataclass, field
 class Setting:
     key: str
     type: str  # text | textarea | rich | image | color | email | phone | url | number | boolean | choice | list | links
-    # | translations ({language: text})
+    # | translations ({language: text}) | time (HH:MM)
     default: object
     label: str
     group: str
     help: str = ""
-    choices: tuple = field(default_factory=tuple)
+    choices: tuple | object = field(default_factory=tuple)  # or a callable returning the choices (data-driven)
     min: int | None = None
     max: int | None = None
 
@@ -35,10 +35,20 @@ GROUPS = {
     "calendar": ("system", "Calendar"),
     "ai": ("system", "AI"),
     "knowledge": ("system", "Knowledge base"),
+    "calling": ("system", "Calling"),
+    "voice": ("system", "Voice conversations"),
+    "retention": ("system", "Data retention"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
-LANGUAGES = (("en", "English"), ("hi", "Hindi"), ("bn", "Bengali"))
+
+
+def language_choices():
+    """Languages come from Super Admin → Languages & Voices (data, not code)."""
+    from apps.providers.languages import choices
+
+    return choices()
+
 
 GUARDRAILS = (
     "You are an AI assistant working for the company described below, talking to its customers.\n"
@@ -122,7 +132,7 @@ SETTINGS = [
         "locale",
         choices=(("indian", "Indian (12,34,567 · lakh / crore)"), ("international", "International (1,234,567)")),
     ),
-    Setting("locale.default_language", "choice", "en", "Default language", "locale", choices=LANGUAGES),
+    Setting("locale.default_language", "choice", "en", "Default language", "locale", choices=language_choices),
     Setting(
         "locale.default_phone_country",
         "text",
@@ -350,6 +360,149 @@ SETTINGS = [
     Setting("knowledge.chunk_chars", "number", 1200, "Chunk size (characters)", "knowledge", min=200, max=8000),
     Setting("knowledge.chunk_overlap", "number", 150, "Chunk overlap (characters)", "knowledge", min=0, max=2000),
     Setting("knowledge.user_agent", "text", "AIEmployeeBot/1.0", "Website crawler name (User-Agent)", "knowledge"),
+    # E. Calling (Phase 5: VOICE-02, 12, 17, 18, COMP-04). Companies may tighten these, never exceed them (CP-06).
+    Setting(
+        "calling.window_start",
+        "time",
+        "09:00",
+        "Outbound calls allowed from",
+        "calling",
+        help="Customer's local time. Companies can choose a narrower window.",
+    ),
+    Setting("calling.window_end", "time", "21:00", "Outbound calls allowed until", "calling"),
+    Setting(
+        "calling.max_attempts_per_lead_per_day",
+        "number",
+        2,
+        "Call attempts per lead per day (max)",
+        "calling",
+        min=1,
+        max=20,
+    ),
+    Setting(
+        "calling.max_attempts_per_lead", "number", 3, "Call attempts per lead in total (max)", "calling", min=1, max=50
+    ),
+    Setting(
+        "calling.retry_gap_minutes",
+        "number",
+        60,
+        "Wait before retrying a busy / unanswered call (minutes)",
+        "calling",
+        min=5,
+        max=10080,
+    ),
+    Setting(
+        "calling.retry_outcomes",
+        "list",
+        ["busy", "no_answer", "voicemail"],
+        "Retry these call outcomes",
+        "calling",
+        help="busy, no_answer, voicemail, failed",
+    ),
+    Setting(
+        "calling.voicemail_action",
+        "choice",
+        "message",
+        "When a voicemail answers (outbound)",
+        "calling",
+        choices=(("message", "Leave the voicemail message, then hang up"), ("hangup", "Hang up")),
+    ),
+    Setting(
+        "calling.ring_timeout_seconds", "number", 30, "Ring time before no answer (seconds)", "calling", min=10, max=120
+    ),
+    Setting("calling.max_call_minutes", "number", 15, "Longest call (minutes)", "calling", min=1, max=120),
+    Setting(
+        "calling.max_calls_per_day",
+        "number",
+        500,
+        "Calls per company per day (max)",
+        "calling",
+        help="The plan can set a lower monthly number and concurrent calls.",
+        min=1,
+        max=100000,
+    ),
+    Setting(
+        "calling.allowed_country_codes",
+        "list",
+        ["+91"],
+        "Countries that may be called",
+        "calling",
+        help="Dialling codes, e.g. +91. Protects against toll fraud.",
+    ),
+    Setting("calling.dnd_check_enabled", "boolean", True, "Check opt-out / DND before every outbound call", "calling"),
+    Setting("calling.recording_enabled_default", "boolean", True, "Record calls by default", "calling"),
+    Setting(
+        "calling.recording_mode",
+        "choice",
+        "gateway",
+        "Record calls in",
+        "calling",
+        choices=(("gateway", "Our Voice Gateway (both sides, stored by us)"), ("provider", "The telephony provider")),
+    ),
+    # Voice conversation tuning (VOICE-04 … 06, 22)
+    Setting(
+        "voice.end_of_speech_ms",
+        "number",
+        500,
+        "Silence that ends the caller's turn (ms)",
+        "voice",
+        help="Lower = faster replies, but the AI may cut in on slow speakers.",
+        min=150,
+        max=3000,
+    ),
+    Setting("voice.barge_in_enabled", "boolean", True, "Caller can interrupt the AI (barge-in)", "voice"),
+    Setting(
+        "voice.filler_after_ms",
+        "number",
+        700,
+        "Say a filler when a tool takes longer than (ms)",
+        "voice",
+        help='e.g. "ek second, main check karti hoon" — texts per language in Languages & Voices',
+        min=0,
+        max=10000,
+    ),
+    Setting(
+        "voice.silence_prompt_seconds",
+        "number",
+        8,
+        "Ask again after the caller is silent for (seconds)",
+        "voice",
+        min=3,
+        max=60,
+    ),
+    Setting(
+        "voice.silence_hangup_seconds", "number", 25, "Hang up after silence of (seconds)", "voice", min=5, max=300
+    ),
+    Setting(
+        "voice.stt_min_confidence_percent",
+        "number",
+        50,
+        "Ask the caller to repeat below this recognition confidence (%)",
+        "voice",
+        min=0,
+        max=100,
+    ),
+    Setting(
+        "voice.latency_alert_p50_ms",
+        "number",
+        1200,
+        "Alert when median reply time exceeds (ms)",
+        "voice",
+        min=200,
+        max=10000,
+    ),
+    Setting(
+        "voice.latency_alert_p95_ms",
+        "number",
+        2000,
+        "Alert when 95th-percentile reply time exceeds (ms)",
+        "voice",
+        min=200,
+        max=20000,
+    ),
+    # D. Retention (REC-03, COMP-06). Companies may choose shorter.
+    Setting("retention.recordings_days", "number", 90, "Keep call recordings (days)", "retention", min=1, max=3650),
+    Setting("retention.transcripts_days", "number", 365, "Keep transcripts (days)", "retention", min=1, max=3650),
     # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
     Setting(
         "sms.provider",

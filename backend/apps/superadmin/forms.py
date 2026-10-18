@@ -6,7 +6,8 @@ from apps.billing.models import ENTITLEMENTS, Plan
 from apps.core.uploads import save_public
 from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
-from apps.platform_config.registry import LANGUAGES, SETTINGS
+from apps.platform_config.registry import SETTINGS
+from apps.providers import languages
 from apps.rbac.catalog import PERMISSIONS
 from apps.rbac.models import Role
 from apps.tenancy.models import Company
@@ -88,10 +89,8 @@ class IndustryForm(BootstrapMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from apps.platform_config.registry import LANGUAGES
-
         self.fields["supported_languages"] = forms.MultipleChoiceField(
-            choices=LANGUAGES, required=False, widget=forms.CheckboxSelectMultiple, label="Supported languages"
+            choices=languages.choices, required=False, widget=forms.CheckboxSelectMultiple, label="Supported languages"
         )
 
     def clean(self):
@@ -290,14 +289,16 @@ def settings_form(group_keys, initial, data=None, files=None):
         elif s.type == "image":
             field = forms.FileField(required=False)
             help_text = "Upload to replace."
+        elif s.type == "time":
+            field = forms.CharField(initial=value, widget=forms.TimeInput(attrs={"type": "time"}))
         elif s.type == "translations":
             # one textarea per language: <key>__<lang>
-            for code, name in LANGUAGES:
+            for i, (code, name) in enumerate(languages.choices()):
                 sub = forms.CharField(
                     required=False,
                     initial=(value or {}).get(code, ""),
                     label=f"{s.label} — {name}",
-                    help_text=help_text if code == LANGUAGES[0][0] else "",
+                    help_text=help_text if i == 0 else "",
                     widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
                 )
                 form.fields[f"{s.key}__{code}"] = sub
@@ -325,7 +326,7 @@ def settings_values(form):
                 values[s.key] = save_public(value, "branding")
             continue
         if s.type == "translations":
-            values[s.key] = {code: form.cleaned_data.get(f"{s.key}__{code}", "") for code, _ in LANGUAGES}
+            values[s.key] = {code: form.cleaned_data.get(f"{s.key}__{code}", "") for code in languages.codes()}
             continue
         if s.type == "links":
             rows = []

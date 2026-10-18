@@ -22,6 +22,7 @@ from apps.industries import fields as field_engine
 from apps.industries import services as templates
 from apps.knowledge import services as knowledge
 from apps.platform_config.services import get as setting
+from apps.providers import languages
 from apps.providers import services as gateway
 from apps.scheduling.models import Appointment
 
@@ -29,7 +30,6 @@ from . import tools as toolkit
 from . import usage
 from .models import Conversation, Message
 
-LANGUAGE_NAMES = {"en": "English", "hi": "Hindi", "bn": "Bengali"}
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 
@@ -50,17 +50,19 @@ def _pick(texts, language, fallback_language="en"):
 
 # ------------------------------------------------------------------ texts the runtime itself says
 def disclosure(employee, language):
-    """COMP-01 / ENG-05: employee override → industry template → empty."""
+    """COMP-01 / ENG-05 / VOICE-10: employee override → industry template → language default (SA-11)."""
     own = (employee.rules or {}).get("disclosure") or {}
     version = employee.template_version
     texts = own or (version.disclosure_texts if version else {})
-    return _render(_pick(texts, language, employee.primary_language), employee)
+    text = _pick(texts, language, employee.primary_language) or languages.text(language, "disclosure")
+    return _render(text, employee)
 
 
 def greeting(employee, language):
     version = employee.template_version
     texts = employee.greetings or (version.greetings if version else {})
-    return _render(_pick(texts, language, employee.primary_language), employee)
+    text = _pick(texts, language, employee.primary_language) or languages.text(language, "greeting")
+    return _render(text, employee)
 
 
 def fallback_text(employee, language):
@@ -208,12 +210,13 @@ def system_prompt(conv, chunks, now=None):
     layers.append("## Company\n" + "\n".join(profile))
     # 5 employee settings
     persona = employee.persona or {}
-    langs = ", ".join(LANGUAGE_NAMES.get(code, code) for code in employee.languages or [employee.primary_language])
+    names = languages.names()
+    langs = ", ".join(names.get(code, code) for code in employee.languages or [employee.primary_language])
     me = [
         f"Your name: {employee.name}. Tone: {persona.get('tone') or 'friendly'}.",
         persona.get("description", ""),
         f"Languages you speak: {langs}. Reply in the customer's language; if they use another language reply in "
-        f"{LANGUAGE_NAMES.get(employee.primary_language, employee.primary_language)}.",
+        f"{names.get(employee.primary_language, employee.primary_language)}.",
     ]
     if rules.get("escalation_triggers"):
         me.append(

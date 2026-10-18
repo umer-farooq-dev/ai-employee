@@ -8,8 +8,8 @@ from django.utils import timezone
 from apps.audit.services import record
 from apps.billing import limits
 from apps.industries.models import Industry
-from apps.platform_config.registry import LANGUAGES
 from apps.platform_config.services import get as setting
+from apps.providers import languages
 from apps.roles_tools.models import EmployeeRole
 from apps.scheduling.models import Appointment, Resource
 from apps.tenancy.context import company_context
@@ -17,7 +17,6 @@ from apps.tenancy.context import company_context
 from . import tools as toolkit
 from .models import AIEmployee, ConfigVersion, Conversation
 
-LANGUAGE_CODES = [code for code, _ in LANGUAGES]
 CONFIG_FIELDS = [
     "name",
     "industry_id",
@@ -81,7 +80,8 @@ def _texts(value, label):
         return {}
     if not isinstance(value, dict):
         raise ValidationError(f"{label}: give a text per language.")
-    return {k: str(v).strip() for k, v in value.items() if k in LANGUAGE_CODES and str(v or "").strip()}
+    codes = languages.codes()
+    return {k: str(v).strip() for k, v in value.items() if k in codes and str(v or "").strip()}
 
 
 def _lines(value):
@@ -173,6 +173,7 @@ def _clean(employee, data):
         }
     if "greetings" in data:
         employee.greetings = _texts(data["greetings"], "Greeting")
+    codes = languages.codes()
     if "voices" in data:
         v = data["voices"] or {}
         try:
@@ -180,14 +181,14 @@ def _clean(employee, data):
         except (TypeError, ValueError):
             raise ValidationError("Speaking speed must be a number.") from None
         employee.voices = {
-            **{k: str(x) for k, x in v.items() if k in LANGUAGE_CODES},
+            **{k: str(x) for k, x in v.items() if k in codes},
             "speed": max(0.5, min(speed, 2.0)),
         }
     if "languages" in data or "primary_language" in data:
-        langs = [c for c in (data.get("languages") or employee.languages or []) if c in LANGUAGE_CODES]
+        langs = [c for c in (data.get("languages") or employee.languages or []) if c in codes]
         primary = data.get("primary_language") or employee.primary_language
-        supported = employee.industry.supported_languages or LANGUAGE_CODES
-        if primary not in LANGUAGE_CODES:
+        supported = employee.industry.supported_languages or codes
+        if primary not in codes:
             raise ValidationError("Choose the primary language.")
         langs = list(dict.fromkeys([primary, *langs]))
         if set(langs) - set(supported):
@@ -233,7 +234,7 @@ def _plain(value):
 # ------------------------------------------------------------------ create / update (EMP-02 … EMP-12)
 def _defaults(company, industry, role):
     version = _version_for(company, industry)
-    supported = industry.supported_languages or LANGUAGE_CODES
+    supported = industry.supported_languages or languages.codes()
     primary = company.default_language or setting("locale.default_language")
     primary = primary if primary in supported else supported[0]
     return {

@@ -1,12 +1,13 @@
 """Super Admin editor for the general part of a template version (IND-02): schema ↔ stored JSON.
 
-Uses the same structured editor as the website CMS (repeatable rows). Languages come from the platform list.
+Uses the same structured editor as the website CMS (repeatable rows).
+Languages come from Super Admin → Languages & Voices; texts of switched-off languages are kept.
 """
 
 from django.core.exceptions import ValidationError
 
 from apps.cms.services import clean_content
-from apps.platform_config.registry import LANGUAGES
+from apps.providers import languages
 
 # Events the platform raises (AI events arrive in Phases 4–6); each can move a lead to a status.
 EVENTS = [
@@ -24,7 +25,7 @@ def f(key, label, type="text", **extra):
 
 
 def schema(lead_fields, statuses):
-    langs = list(LANGUAGES)
+    langs = languages.choices()
     field_choices = [(d.key, d.label) for d in lead_fields]
     return (
         [f("base_instructions", "AI persona guidelines and base instructions", "textarea")]
@@ -83,13 +84,14 @@ def schema(lead_fields, statuses):
 
 def to_content(version):
     c = {"base_instructions": version.base_instructions}
-    for code, _ in LANGUAGES:
+    codes = languages.codes()
+    for code in codes:
         c[f"greeting_{code}"] = (version.greetings or {}).get(code, "")
         c[f"disclosure_{code}"] = (version.disclosure_texts or {}).get(code, "")
     c["qualification_flow"] = [
         {
             "field": q.get("field", ""),
-            **{f"question_{code}": (q.get("question") or {}).get(code, "") for code, _ in LANGUAGES},
+            **{f"question_{code}": (q.get("question") or {}).get(code, "") for code in codes},
         }
         for q in version.qualification_flow or []
     ]
@@ -108,14 +110,21 @@ def apply_content(version, the_schema, raw, statuses):
     c = clean_content(the_schema, raw)
     errors = []
     version.base_instructions = c["base_instructions"]
-    version.greetings = {code: c[f"greeting_{code}"] for code, _ in LANGUAGES if c[f"greeting_{code}"]}
-    version.disclosure_texts = {code: c[f"disclosure_{code}"] for code, _ in LANGUAGES if c[f"disclosure_{code}"]}
+    codes = languages.codes()
+
+    def merged(old, prefix, row):  # edited languages replace, switched-off languages keep their text
+        kept = {k: v for k, v in (old or {}).items() if k not in codes}
+        return {**kept, **{code: row[f"{prefix}{code}"] for code in codes if row[f"{prefix}{code}"]}}
+
+    version.greetings = merged(version.greetings, "greeting_", c)
+    version.disclosure_texts = merged(version.disclosure_texts, "disclosure_", c)
+    old_flow = version.qualification_flow or []
     version.qualification_flow = [
         {
             "field": q["field"],
-            "question": {code: q[f"question_{code}"] for code, _ in LANGUAGES if q[f"question_{code}"]},
+            "question": merged((old_flow[i].get("question") if i < len(old_flow) else {}), "question_", q),
         }
-        for q in c["qualification_flow"]
+        for i, q in enumerate(c["qualification_flow"])
     ]
     if any(not q["field"] for q in version.qualification_flow):
         errors.append("Every qualification question needs a CRM field.")

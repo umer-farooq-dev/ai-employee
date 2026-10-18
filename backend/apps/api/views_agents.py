@@ -26,7 +26,7 @@ from apps.agents import tools as toolkit
 from apps.agents.models import AIEmployee, ConfigVersion, Conversation, Message, ToolInvocation
 from apps.audit.services import record
 from apps.industries.models import Industry
-from apps.platform_config.registry import LANGUAGES
+from apps.providers import languages
 from apps.rbac.services import has_perm
 from apps.roles_tools.models import Tool
 from apps.scheduling.models import Resource
@@ -219,7 +219,7 @@ class AIEmployeeViewSet(TenantContextMixin, viewsets.ModelViewSet):
                     }
                     for r in (employees.roles_for(company, chosen) if chosen else [])
                 ],
-                "languages": [{"code": c, "name": n} for c, n in LANGUAGES],
+                "languages": [{"code": c, "name": n} for c, n in languages.choices()],
                 "calendar_resources": [
                     {"id": str(r.pk), "name": r.name} for r in Resource.objects.filter(company=company, is_active=True)
                 ],

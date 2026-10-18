@@ -615,31 +615,80 @@ def enquiry_detail(request, pk):
 
 
 # ------------------------------------------------------------------ AI settings (SA-09)
-@staff_perm("ai_providers.manage")
-def ai_settings(request):
-    """Vendor cards, key popup, on/off toggles and model per task. The page talks to /api/v1/admin/ai-* (no reloads)."""
+def _provider_page(request, page):
+    """Vendor cards, key popup, on/off toggles (and model per task for AI). Talks to /api/v1/admin/* (no reloads)."""
     from apps.api.views_ai import ProviderSerializer
-    from apps.providers.models import CAPABILITIES, TASKS, Provider
+    from apps.providers.models import LLM_CAPABILITIES, TASKS, VOICE_CAPABILITIES, Provider
     from apps.providers.services import production, routes
+    from apps.providers.vendors import VENDORS
 
-    chains = routes()
+    caps = dict(LLM_CAPABILITIES if page == "ai" else VOICE_CAPABILITIES)
+    rows = [p for p in Provider.objects.prefetch_related("routes", "speech_routes") if set(p.capabilities) & set(caps)]
+    chains = routes() if page == "ai" else {}
     data = {
-        "providers": ProviderSerializer(Provider.objects.prefetch_related("routes"), many=True).data,
-        "tasks": [
-            {
-                "task": key,
-                "label": label,
-                "capability": cap,
-                "routes": [{"provider": str(r.provider_id), "model": r.model, "params": r.params} for r in chains[key]],
-            }
-            for key, label, cap in TASKS
-        ],
-        "capabilities": dict(CAPABILITIES),
+        "page": page,
+        "providers": ProviderSerializer(rows, many=True).data,
+        "tasks": (
+            [
+                {
+                    "task": key,
+                    "label": label,
+                    "capability": cap,
+                    "routes": [
+                        {"provider": str(r.provider_id), "model": r.model, "params": r.params} for r in chains[key]
+                    ],
+                }
+                for key, label, cap in TASKS
+            ]
+            if page == "ai"
+            else []
+        ),
+        "capabilities": caps,
         "adapters": dict(Provider.ADAPTERS),
+        "vendors": {
+            k: {
+                **v,
+                "config": [
+                    {"name": n, "label": lb, "placeholder": ph, "required": rq} for n, lb, ph, rq in v["config"]
+                ],
+            }
+            for k, v in VENDORS.items()
+        },
         "currency": config.get("locale.currency"),
         "production": production(),
     }
     return render(request, "panel/admin/ai/settings.html", {"data": data})
+
+
+@staff_perm("ai_providers.manage")
+def ai_settings(request):
+    return _provider_page(request, "ai")
+
+
+@staff_perm("voice_settings.manage")
+def voice_settings(request):
+    """SA-10: speech-to-text, text-to-speech and telephony vendors."""
+    return _provider_page(request, "voice")
+
+
+@staff_perm("voice_settings.manage")
+def languages(request):
+    """SA-11: languages (texts, speech routes with failover) and the voice catalogue. Talks to the REST API."""
+    from apps.api.views_ai import LanguageSerializer, ProviderSerializer, VoiceSerializer, language_page_data
+    from apps.providers.models import Language, Provider, Voice
+
+    speech = [
+        p for p in Provider.objects.prefetch_related("routes", "speech_routes") if {"stt", "tts"} & set(p.capabilities)
+    ]
+    data = {
+        **language_page_data(),
+        "languages": LanguageSerializer(
+            Language.objects.prefetch_related("routes__provider", "routes__voice", "voices"), many=True
+        ).data,
+        "voices": VoiceSerializer(Voice.objects.select_related("language", "provider"), many=True).data,
+        "providers": ProviderSerializer(speech, many=True).data,
+    }
+    return render(request, "panel/admin/voice/languages.html", {"data": data})
 
 
 # ------------------------------------------------------------------ AI Employees of all companies (SA-08, EMP-14)

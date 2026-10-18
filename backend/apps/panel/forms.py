@@ -4,7 +4,8 @@ from django.core.exceptions import ValidationError
 
 from apps.core.india import STATE_CHOICES, normalise_phone, validate_gstin
 from apps.core.uploads import save_public
-from apps.platform_config.registry import LANGUAGES, TIMEZONES
+from apps.platform_config.registry import TIMEZONES
+from apps.providers import languages
 from apps.rbac.models import Role
 from apps.superadmin.forms import BootstrapMixin
 from apps.tenancy.models import Company, Membership
@@ -41,7 +42,7 @@ class CompanyProfileForm(BootstrapMixin, forms.ModelForm):
             choices=[("", "Platform default")] + list(TIMEZONES), required=False
         )
         self.fields["default_language"] = forms.ChoiceField(
-            choices=[("", "Platform default")] + list(LANGUAGES), required=False
+            choices=[("", "Platform default")] + languages.choices(), required=False
         )
         for name in ("state", "timezone", "default_language"):
             self.fields[name].widget.attrs["class"] = "form-select"

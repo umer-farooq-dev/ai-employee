@@ -71,8 +71,11 @@ def clean(key, value):
             if i.get("url")
         ]
     value = "" if value is None else str(value).strip()
-    if s.type == "choice" and value not in {c[0] for c in s.choices}:
+    choices = s.choices() if callable(s.choices) else s.choices
+    if s.type == "choice" and value not in {c[0] for c in choices}:
         raise ValidationError(f"{s.label}: invalid choice.")
+    if s.type == "time" and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", value):
+        raise ValidationError(f"{s.label}: use the 24-hour format HH:MM, e.g. 09:00.")
     if s.type == "email" and value:
         validate_email(value)
     if s.type == "phone" and value:

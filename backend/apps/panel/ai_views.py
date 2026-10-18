@@ -19,7 +19,7 @@ from apps.core.uploads import save_public
 from apps.crm.services import members
 from apps.industries import services as templates
 from apps.knowledge.models import Source
-from apps.platform_config.registry import LANGUAGES
+from apps.providers import languages
 from apps.rbac.services import has_perm
 from apps.roles_tools.models import CHANNELS
 from apps.scheduling.models import Resource
@@ -55,7 +55,7 @@ def _employee(request, pk):
 
 
 def _lang_names(codes):
-    names = dict(LANGUAGES)
+    names = languages.names()
     return [(c, names.get(c, c)) for c in codes]
 
 
@@ -82,7 +82,7 @@ def employee_list(request):
         qs = qs.filter(Q(name__icontains=request.GET["q"]) | Q(role__name__icontains=request.GET["q"]))
     rows = list(qs)
     stats = employees.stats(rows)
-    names = dict(LANGUAGES)
+    names = languages.names()
     return render(
         request,
         "panel/company/ai/list.html",
@@ -257,7 +257,7 @@ def employee_step(request, pk, step):
             employee.template_version.greetings if employee.template_version else {}
         )
     elif step == "languages":
-        context["supported"] = _lang_names(employee.industry.supported_languages or [c for c, _ in LANGUAGES])
+        context["supported"] = _lang_names(employee.industry.supported_languages or languages.codes())
     elif step == "knowledge":
         sources = Source.objects.filter(company=request.company).prefetch_related("employees")
         context["sources"] = [

@@ -62,14 +62,37 @@ def normalise_phone(value: str) -> str:
 
 
 # ------------------------------------------------------------------ language, dates, masking (ENG-06, ENG-07, ENG-10)
-def detect_language(text: str, default="en") -> str:
-    """Script-based: Devanagari → hi, Bengali → bn, otherwise default (romanised Hinglish counts as the default)."""
-    counts = {"hi": 0, "bn": 0}
+# Unicode blocks of the Indian writing systems (reference data). Which language uses which script is configured in
+# Super Admin → Languages & Voices.
+SCRIPT_RANGES = {
+    "devanagari": ("ऀ", "ॿ"),
+    "bengali": ("ঀ", "৿"),
+    "gurmukhi": ("਀", "੿"),
+    "gujarati": ("઀", "૿"),
+    "oriya": ("଀", "୿"),
+    "tamil": ("஀", "௿"),
+    "telugu": ("ఀ", "౿"),
+    "kannada": ("ಀ", "೿"),
+    "malayalam": ("ഀ", "ൿ"),
+    "arabic": ("؀", "ۿ"),
+}
+
+
+def detect_language(text: str, default="en", scripts=None) -> str:
+    """Script-based: the language whose script has the most letters (≥ 2) wins, otherwise `default` (romanised
+    Hinglish counts as the default). `scripts` = {script: code}; by default the active languages."""
+    if scripts is None:
+        from apps.providers.languages import script_map
+
+        scripts = script_map()
+    counts = {}
     for ch in text or "":
-        if "\u0900" <= ch <= "\u097f":
-            counts["hi"] += 1
-        elif "\u0980" <= ch <= "\u09ff":
-            counts["bn"] += 1
+        for script, (lo, hi) in SCRIPT_RANGES.items():
+            if lo <= ch <= hi and script in scripts:
+                counts[scripts[script]] = counts.get(scripts[script], 0) + 1
+                break
+    if not counts:
+        return default
     lang = max(counts, key=counts.get)
     return lang if counts[lang] >= 2 else default
 

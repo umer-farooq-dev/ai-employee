@@ -22,6 +22,7 @@ PERMISSIONS = {
     "employee_roles.manage": (PLATFORM, "Manage AI Employee role templates"),
     "holidays.manage": (PLATFORM, "Manage platform holidays"),
     "ai_providers.manage": (PLATFORM, "Manage AI providers, keys and model per task"),
+    "voice_settings.manage": (PLATFORM, "Manage speech / telephony providers, languages and voices"),
     "tools.manage": (PLATFORM, "Manage the AI tool registry"),
     "ai_oversight.view": (PLATFORM, "View AI Employees of all companies, conversations and tool logs"),
     "ai_oversight.manage": (PLATFORM, "Pause AI Employees, create the ready-made employee for a company"),

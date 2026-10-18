@@ -1,5 +1,5 @@
 {% extends 'panel/admin/layout.html' %}
-{% block title %}AI Settings{% endblock %}
+{% block title %}{% if data.page == "voice" %}Voice Settings{% else %}AI Settings{% endif %}{% endblock %}
 {% block extra_css %}
 <style>
     .vendor-card{border:1px solid var(--bs-border-color);border-radius:16px;padding:20px;cursor:pointer;height:100%;background:#fff;transition:border-color .15s,box-shadow .15s}
@@ -9,7 +9,8 @@
     .vendor-logo img{width:100%;height:100%;object-fit:contain;padding:8px}
     .vendor-status{font-size:12px;font-weight:600;white-space:nowrap}
     .ai-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:#eef0ff;color:#4f46e5}
-    .ai-chip.embedding{background:#e9f9f1;color:#0f9f61}
+    .ai-chip.embedding,.ai-chip.tts{background:#e9f9f1;color:#0f9f61}
+    .ai-chip.telephony{background:#eaf4ff;color:#1d6fd6}
     .ai-chip.test{background:#fff6e5;color:#b26b00}
     .vendor-switch .form-check-input{width:2.8em;height:1.5em;cursor:pointer;margin:0}
     .ai-section{border:1px solid var(--bs-border-color);border-radius:14px;padding:18px;margin-bottom:16px}
@@ -21,8 +22,13 @@
 {% endblock %}
 {% block page_content %}
 <div class="mt-3 mb-3">
+    {% if data.page == "voice" %}
+    <h4 class="mb-1">Voice Settings</h4>
+    <p class="text-muted mb-0">Speech-to-text, voice and telephony providers and their keys. Which provider speaks each language is set in <a href="{% url 'superadmin:languages' %}">Languages &amp; Voices</a>.</p>
+    {% else %}
     <h4 class="mb-1">AI Settings</h4>
     <p class="text-muted mb-0">AI providers, their keys and the model the AI Employees use for each task.</p>
+    {% endif %}
 </div>
 
 <div class="card">
@@ -39,6 +45,7 @@
     </div>
 </div>
 
+{% if data.page == "ai" %}
 <div class="card">
     <div class="card-body p-4">
         <h5 class="mb-1"><i class="iconoir-git-fork me-1"></i>Model per task</h5>
@@ -51,6 +58,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts" aria-live="polite"></div>
 {{ data|json_script:"ai-data" }}
 {% endblock page_content %}
@@ -72,22 +80,25 @@
             <div class="modal-body pt-4">
                 <div class="alert py-2 small d-none" id="pm-alert" role="alert"></div>
 
-                <div class="ai-section">
-                    <label class="form-label fw-semibold" for="pm-key">API Key</label>
+                <div class="ai-section" id="pm-key-section">
+                    <label class="form-label fw-semibold" for="pm-key" id="pm-key-label">API Key</label>
                     <input type="password" class="form-control" id="pm-key" autocomplete="new-password" spellcheck="false">
+                    <textarea class="form-control d-none font-monospace small" id="pm-key-multi" rows="4" spellcheck="false" aria-labelledby="pm-key-label"></textarea>
                     <div class="small text-success mt-2 d-none" id="pm-key-note"><i class="iconoir-check-circle me-1"></i>A key is currently stored. Leave blank to keep it.</div>
                     <button type="button" class="btn btn-link text-dark px-0 mt-1 d-none" id="pm-remove-key"><i class="iconoir-trash me-1"></i>Remove key</button>
+                    <div class="row g-3 mt-0" id="pm-config"></div>
                 </div>
+                <div class="alert alert-light border small d-none" id="pm-local-note"><i class="iconoir-server me-1"></i>Runs inside our Voice Gateway on the server — no key needed. Testing only: blocked on the production server.</div>
 
-                <div class="ai-section">
+                <div class="ai-section" id="pm-models-section">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                         <h6 class="mb-0">Models</h6>
-                        <button type="button" class="btn btn-sm btn-light" id="pm-load"><i class="iconoir-refresh-double me-1"></i>Save &amp; load models from provider</button>
+                        <button type="button" class="btn btn-sm btn-light" id="pm-load"><i class="iconoir-refresh-double me-1"></i><span id="pm-load-text">Save &amp; load models from provider</span></button>
                     </div>
-                    <div class="small text-muted mb-2">Only models added here can be chosen for a task. Prices are per 1 million tokens (<span class="ai-currency"></span>), used for cost reports.</div>
+                    <div class="small text-muted mb-2" id="pm-price-help"></div>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle mb-2">
-                            <thead><tr><th>Model</th><th style="width:140px">Input price</th><th style="width:140px">Output price</th><th style="width:40px"></th></tr></thead>
+                            <thead><tr><th>Model</th><th style="width:140px" id="pm-price-in">Input price</th><th style="width:140px" class="pm-out">Output price</th><th style="width:40px"></th></tr></thead>
                             <tbody id="pm-models"></tbody>
                         </table>
                     </div>
@@ -105,7 +116,8 @@
                         <div class="col-md-6"><label class="form-label" for="pm-name">Name</label><input class="form-control" id="pm-name" required maxlength="120"></div>
                         <div class="col-md-6" id="pm-key-wrap"><label class="form-label" for="pm-slug">Key</label><input class="form-control" id="pm-slug" pattern="[a-z0-9-]+" maxlength="60" placeholder="e.g. my-gateway"><div class="form-text">Lower-case letters, numbers and dashes. Cannot be changed later.</div></div>
                         <div class="col-12"><label class="form-label" for="pm-url">Base URL</label><input class="form-control" id="pm-url" required placeholder="https://…/v1"></div>
-                        <div class="col-md-6"><label class="form-label" for="pm-adapter">API type</label><select class="form-select" id="pm-adapter"></select></div>
+                        <div class="col-md-6" id="pm-adapter-wrap"><label class="form-label" for="pm-adapter">API type</label><select class="form-select" id="pm-adapter"></select></div>
+                        <div class="col-md-6" id="pm-vendor-wrap"><label class="form-label" for="pm-vendor">Vendor</label><select class="form-select" id="pm-vendor"></select><div class="form-text">Decides how the Voice Gateway talks to this provider.</div></div>
                         <div class="col-md-6"><span class="form-label d-block">Offers</span><div id="pm-caps" class="d-flex gap-3 pt-1"></div></div>
                         <div class="col-12"><label class="form-label" for="pm-desc">Description</label><input class="form-control" id="pm-desc" maxlength="255"></div>
                         <div class="col-md-8">
@@ -215,13 +227,13 @@
         if (p.has_key) return '<span class="vendor-status text-primary">Key saved · not tested</span>';
         return '<span class="vendor-status text-muted">Not connected</span>';
     }
+    var ICONS = {chat: "iconoir-chat-lines", embedding: "iconoir-database", stt: "iconoir-microphone", tts: "iconoir-sound-high", telephony: "iconoir-phone"};
     function chips(p) {
         var out = [];
-        p.capabilities.forEach(function (cap) {
-            var n = D.tasks.filter(function (t) { return t.capability === cap; })
-                .reduce(function (sum, t) { return sum + (p.usage[t.task] || 0); }, 0);
-            var icon = cap === "embedding" ? "iconoir-database" : "iconoir-chat-lines";
-            out.push('<span class="ai-chip ' + cap + '"><i class="' + icon + '"></i>' + esc(D.capabilities[cap]) + (n ? " " + n : "") + "</span>");
+        p.capabilities.filter(function (cap) { return D.capabilities[cap]; }).forEach(function (cap) {
+            var n = D.page === "ai" ? D.tasks.filter(function (t) { return t.capability === cap; })
+                .reduce(function (sum, t) { return sum + (p.usage[t.task] || 0); }, 0) : (p.usage[cap] || 0);
+            out.push('<span class="ai-chip ' + cap + '"><i class="' + ICONS[cap] + '"></i>' + esc(D.capabilities[cap]) + (n ? " " + n : "") + "</span>");
         });
         if (p.test_only) out.push('<span class="ai-chip test"><i class="iconoir-flask"></i>Test only</span>');
         return out.join("");
@@ -278,7 +290,7 @@
         $("pm-models").innerHTML = currentModels.length ? currentModels.map(function (m, i) {
             return "<tr><td class=\"text-break\"><code>" + esc(m.id) + "</code></td>" +
                 '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="input_cost" data-i="' + i + '" value="' + (m.input_cost || 0) + '" aria-label="Input price for ' + esc(m.id) + '"></td>' +
-                '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="output_cost" data-i="' + i + '" value="' + (m.output_cost || 0) + '" aria-label="Output price for ' + esc(m.id) + '"></td>' +
+                (VOICE ? "" : '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="output_cost" data-i="' + i + '" value="' + (m.output_cost || 0) + '" aria-label="Output price for ' + esc(m.id) + '"></td>') +
                 '<td><button type="button" class="btn btn-sm btn-link text-danger p-0" data-remove="' + i + '" aria-label="Remove ' + esc(m.id) + '"><i class="iconoir-xmark"></i></button></td></tr>';
         }).join("") : '<tr><td colspan="4" class="text-muted small">No models yet. Save the key, then load the list from the provider, or type a model name.</td></tr>';
     }
@@ -300,19 +312,53 @@
     $("pm-model-add").addEventListener("click", addModel);
     $("pm-model-new").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addModel(); } });
 
+    // ---------------------------------------------------------------- vendor-specific fields (speech / telephony)
+    var VOICE = D.page === "voice";
+    function vendorSpec(v) { return D.vendors[v] || null; }
+    function keyInput() { return $("pm-key-multi").classList.contains("d-none") ? $("pm-key") : $("pm-key-multi"); }
+    function applyVendor(p, vendor) {
+        var s = vendorSpec(vendor), local = !!(s && s.local);
+        var caps = VOICE ? [].slice.call($("pm-caps").querySelectorAll("input:checked")).map(function (i) { return i.value; }) : p.capabilities;
+        $("pm-key-label").textContent = s && s.secret ? s.secret : "API Key";
+        $("pm-key-multi").classList.toggle("d-none", !(s && s.secret_multiline));
+        $("pm-key").classList.toggle("d-none", !!(s && s.secret_multiline));
+        $("pm-key-section").classList.toggle("d-none", local);
+        $("pm-local-note").classList.toggle("d-none", !local);
+        var cfg = p.config || {};
+        $("pm-config").innerHTML = (s ? s.config : []).map(function (f) {
+            return '<div class="col-md-6"><label class="form-label" for="cfg-' + f.name + '">' + esc(f.label) + (f.required ? ' <span class="text-danger">*</span>' : "") + "</label>" +
+                '<input class="form-control" id="cfg-' + f.name + '" data-config="' + f.name + '" placeholder="' + esc(f.placeholder) + '" value="' + esc(cfg[f.name] || "") + '" autocomplete="off" spellcheck="false"></div>';
+        }).join("");
+        var speech = caps.indexOf("stt") >= 0 || caps.indexOf("tts") >= 0;
+        $("pm-models-section").classList.toggle("d-none", VOICE && !speech);
+        $("pm-load-text").textContent = VOICE ? "Save & test connection" : "Save & load models from provider";
+        $("pm-price-in").textContent = VOICE ? "Price" : "Input price";
+        document.querySelectorAll(".pm-out").forEach(function (el) { el.classList.toggle("d-none", VOICE); });
+        $("pm-price-help").innerHTML = VOICE
+            ? 'Speech-to-text models: price per minute. Voice (text-to-speech) models: price per 1 million characters (<span class="ai-currency"></span>). Used for cost reports.'
+            : 'Only models added here can be chosen for a task. Prices are per 1 million tokens (<span class="ai-currency"></span>), used for cost reports.';
+        document.querySelectorAll(".ai-currency").forEach(function (el) { el.textContent = D.currency; });
+        renderModels();
+    }
+
     function openProvider(p) {
         current = p || null;
         var isNew = !p;
-        p = p || {name: "", key: "", base_url: "", adapter: "openai", capabilities: ["chat"], available_models: [], test_only: false, description: "", logo: "", sort_order: (D.providers.length + 1) * 10, has_key: false};
+        var firstVendor = Object.keys(D.vendors)[0];
+        p = p || {name: "", key: "", base_url: VOICE ? D.vendors[firstVendor].base_url : "", adapter: "openai", vendor: VOICE ? firstVendor : "", config: {}, capabilities: VOICE ? ["stt"] : ["chat"], available_models: [], test_only: false, description: "", logo: "", sort_order: (D.providers.length + 1) * 10, has_key: false};
         $("pm-title").textContent = isNew ? "Add provider" : p.name;
         setLogo($("pm-logo"), p);
-        $("pm-key").value = "";
-        $("pm-key").placeholder = p.has_key ? "•••••••••••• (saved — type to replace)" : "Paste the API key";
+        $("pm-key").value = ""; $("pm-key-multi").value = "";
+        $("pm-key").placeholder = $("pm-key-multi").placeholder = p.has_key ? "•••••••••••• (saved — type to replace)" : "Paste the key";
         $("pm-key-note").classList.toggle("d-none", !p.has_key);
         $("pm-remove-key").classList.toggle("d-none", !p.has_key);
         $("pm-name").value = p.name;
         $("pm-slug").value = p.key; $("pm-key-wrap").classList.toggle("d-none", !isNew);
         $("pm-url").value = p.base_url;
+        $("pm-adapter-wrap").classList.toggle("d-none", VOICE);
+        $("pm-vendor-wrap").classList.toggle("d-none", !VOICE);
+        $("pm-vendor").innerHTML = Object.keys(D.vendors).map(function (k) { return '<option value="' + k + '"' + (k === p.vendor ? " selected" : "") + ">" + esc(D.vendors[k].label) + "</option>"; }).join("");
+        $("pm-vendor").disabled = !isNew && !!p.vendor;
         $("pm-adapter").innerHTML = Object.keys(D.adapters).map(function (k) { return '<option value="' + k + '"' + (k === p.adapter ? " selected" : "") + ">" + esc(D.adapters[k]) + "</option>"; }).join("");
         $("pm-caps").innerHTML = Object.keys(D.capabilities).map(function (k) {
             return '<div class="form-check"><input class="form-check-input" type="checkbox" id="cap-' + k + '" value="' + k + '"' + (p.capabilities.indexOf(k) >= 0 ? " checked" : "") + '><label class="form-check-label" for="cap-' + k + '">' + esc(D.capabilities[k]) + "</label></div>";
@@ -324,32 +370,48 @@
         $("pm-delete").classList.toggle("d-none", isNew);
         currentModels = p.available_models.map(function (m) { return Object.assign({}, m); });
         $("pm-model-options").innerHTML = ""; $("pm-model-count").textContent = "";
-        renderModels();
+        applyVendor(p, p.vendor);
         healthAlert(current);
         pm.show();
     }
     $("add-provider").addEventListener("click", function () { openProvider(null); });
+    $("pm-vendor").addEventListener("change", function () {
+        var s = vendorSpec(this.value);
+        if (!current && s) { $("pm-url").value = s.base_url; if (s.local) $("pm-test-only").checked = true; }
+        applyVendor(current || {config: {}, capabilities: []}, this.value);
+    });
+    $("pm-caps").addEventListener("change", function () { if (VOICE) applyVendor(current || {config: {}, capabilities: []}, $("pm-vendor").value); });
 
     function formPayload() {
+        // capabilities of the other settings page (e.g. OpenAI chat on Voice Settings) are kept as they are
+        var shown = Object.keys(D.capabilities);
+        var others = (current ? current.capabilities : []).filter(function (c) { return shown.indexOf(c) < 0; });
         var body = {
             name: $("pm-name").value.trim(),
             base_url: $("pm-url").value.trim(),
-            adapter: $("pm-adapter").value,
-            capabilities: [].slice.call($("pm-caps").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
+            capabilities: others.concat([].slice.call($("pm-caps").querySelectorAll("input:checked")).map(function (i) { return i.value; })),
             description: $("pm-desc").value.trim(),
             logo: $("pm-logo-url").value.trim(),
             sort_order: parseInt($("pm-order").value, 10) || 0,
             test_only: $("pm-test-only").checked,
             available_models: currentModels
         };
-        if ($("pm-key").value.trim()) body.api_key = $("pm-key").value.trim();
+        if (VOICE) {
+            body.vendor = $("pm-vendor").value;
+            body.config = {};
+            $("pm-config").querySelectorAll("[data-config]").forEach(function (el) { body.config[el.dataset.config] = el.value.trim(); });
+        } else {
+            body.adapter = $("pm-adapter").value;
+        }
+        var key = keyInput().value.trim();
+        if (key) body.api_key = key;
         if (!current) body.key = $("pm-slug").value.trim();
         return body;
     }
     function saveProvider() {
         var body = formPayload();
         var req = current ? api("PATCH", API.providers + current.id + "/", body) : api("POST", API.providers, body);
-        return req.then(function (p) { current = p; replaceProvider(p); $("pm-key").value = ""; return p; });
+        return req.then(function (p) { current = p; replaceProvider(p); $("pm-key").value = ""; $("pm-key-multi").value = ""; return p; });
     }
     $("provider-form").addEventListener("submit", function (e) {
         e.preventDefault();
@@ -407,6 +469,7 @@
 
     // ---------------------------------------------------------------- model per task
     function renderRoutes() {
+        if (!$("route-rows")) return;  // Voice Settings: routes live in Languages & Voices
         $("route-rows").innerHTML = D.tasks.map(function (t) {
             var chain = t.routes.map(function (r, i) {
                 var p = byId(r.provider) || {name: "?", is_active: false};
@@ -417,7 +480,7 @@
                 '<td class="text-end"><button type="button" class="btn btn-sm btn-light" data-task="' + t.task + '">Edit</button></td></tr>';
         }).join("");
     }
-    $("route-rows").addEventListener("click", function (e) {
+    if ($("route-rows")) $("route-rows").addEventListener("click", function (e) {
         var b = e.target.closest("[data-task]");
         if (b) openRoute(D.tasks.find(function (t) { return t.task === b.dataset.task; }));
     });

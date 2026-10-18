@@ -100,21 +100,27 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `retention.audit_logs_days` | number | 730 | |
 | `retention.account_deletion_grace_days` | number | 30 | |
 
-## E. Voice & calling defaults — Phase 5/6 · screen: Settings → Calling
+## E. Voice & calling — Phase 5 · screen: System Settings → Calling / Voice conversations / Data retention
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `calling.window_start` / `calling.window_end` | time | 09:00 / 21:00 | *company may override* (narrower) |
-| `calling.max_attempts_per_lead_per_day` | number | 2 | *company may override* (lower) |
-| `calling.max_attempts_per_campaign` | number | 3 | |
-| `calling.dnd_check_enabled` | boolean | true | |
+| `calling.max_attempts_per_lead_per_day` / `calling.max_attempts_per_lead` | number | 2 / 3 | *company may override* (lower) |
+| `calling.retry_gap_minutes` / `calling.retry_outcomes` | number / list | 60 / busy, no_answer, voicemail | VOICE-17 |
+| `calling.voicemail_action` | choice | leave message | or hang up |
+| `calling.ring_timeout_seconds` / `calling.max_call_minutes` | number | 30 / 15 | |
+| `calling.max_calls_per_day` | number | 500 | per company; plan sets monthly calls / concurrent calls |
 | `calling.allowed_country_codes` | list | ["+91"] | toll-fraud protection |
-| `calling.recording_enabled_default` | boolean | true | *company may override* |
-| `calling.recording_consent_text` | text per language | — | |
-| `calling.ai_disclosure_text` | text per language | — | runtime inserts it, not the model |
-| `calling.max_call_minutes` | number | 15 | |
-| `voice.latency_alert_p95_ms` | number | 2000 | quality alerts |
-| `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | |
+| `calling.dnd_check_enabled` | boolean | true | |
+| `calling.recording_enabled_default` / `calling.recording_mode` | boolean / choice | true / gateway | *company may override* |
+| `voice.end_of_speech_ms` / `voice.barge_in_enabled` / `voice.filler_after_ms` | number / boolean / number | 500 / true / 700 | turn-taking (VOICE-05, 06) |
+| `voice.silence_prompt_seconds` / `voice.silence_hangup_seconds` | number | 8 / 25 | |
+| `voice.stt_min_confidence_percent` | number | 50 | below → ask to repeat |
+| `voice.latency_alert_p50_ms` / `voice.latency_alert_p95_ms` | number | 1200 / 2000 | quality alerts |
+| `retention.recordings_days` / `retention.transcripts_days` | number | 90 / 365 | *company may override* (shorter) |
+| `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | Phase 6 |
+
+Per-language phrases — AI disclosure, recording announcement, default greeting, fillers, transfer, no agent, voicemail, silence, goodbye — live on each language in **Languages & Voices** (a new language brings all its texts with it).
 
 ## F. AI — Phase 4 · screen: Super Admin → System Settings → AI / Knowledge base (providers: AI Settings)
 
@@ -170,5 +176,7 @@ Plan limits (Plans & Pricing): `ai_employees`, `kb_sources`, `kb_storage_mb`.
 | Lead fields, statuses, sources, scoring rules | CRM Configuration | P3 |
 | Catalogue types and fields, appointment types, holidays | Industries / Calendar | P3 |
 | Employee roles and tool registry (tool = handler + configuration, e.g. search_property = catalogue search on "property") | AI Employee Roles · AI Tools | P3/P4 |
-| Languages, voices, STT / TTS routes, telephony and WhatsApp providers | Languages & Voices / Providers | P5/P6 |
+| Speech-to-text, voice and telephony vendors (seeded: Sarvam, Deepgram, ElevenLabs, Cartesia, Google, Azure, OpenAI, Exotel, Plivo, Twilio; test-only local Whisper / Kokoro), keys and account ids | Voice Settings | P5 |
+| Languages (code, locale, script, phrases), STT / TTS routes per language with failover, voice catalogue | Languages & Voices | P5 |
+| WhatsApp providers | Providers | P6 |
 | Feature flags | Feature Flags | P7 |

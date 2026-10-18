@@ -18,6 +18,8 @@
                     {% if u|can:"ai_oversight.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:ai_employees' %}"><i class="iconoir-user-star menu-icon"></i><span>AI Employees</span></a></li>{% endif %}
                     {% if u|can:"tools.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:tools' %}"><i class="iconoir-tools menu-icon"></i><span>AI Tools</span></a></li>{% endif %}
                     {% if u|can:"ai_providers.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:ai_settings' %}"><i class="iconoir-brain-electricity menu-icon"></i><span>AI Settings</span></a></li>{% endif %}
+                    {% if u|can:"voice_settings.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:voice_settings' %}"><i class="iconoir-phone menu-icon"></i><span>Voice Settings</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'superadmin:languages' %}"><i class="iconoir-language menu-icon"></i><span>Languages &amp; Voices</span></a></li>{% endif %}
                     {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>
                     {% if u|can:"settings.general" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:general_settings' %}"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>{% endif %}

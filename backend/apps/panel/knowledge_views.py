@@ -8,8 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.agents.models import AIEmployee
 from apps.knowledge import services as kb
 from apps.knowledge.models import FAQ, Source, UnansweredQuestion
-from apps.platform_config.registry import LANGUAGES
 from apps.platform_config.services import get as setting
+from apps.providers import languages
 from apps.rbac.services import has_perm
 
 from .company_views import _errors, company_perm
@@ -171,7 +171,7 @@ def source_detail(request, pk):
             "selected": [str(e.pk) for e in source.employees.all()],
             "documents": source.documents.annotate(n=Count("chunks"))[:200],
             "faqs": source.faqs.all() if source.type == Source.FAQ else [],
-            "languages": LANGUAGES,
+            "languages": languages.choices(),
             "crawl_max_pages": setting("knowledge.crawl_max_pages"),
             "crawl_max_depth": setting("knowledge.crawl_max_depth"),
             "sync": Source.SYNC,

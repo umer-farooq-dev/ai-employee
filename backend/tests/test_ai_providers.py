@@ -73,7 +73,8 @@ def test_popular_vendors_are_seeded_off_and_without_keys():
     assert {"openai", "gemini", "anthropic", "xai", "groq", "openrouter", "freellmapi", "omniroute"} <= keys
     assert not Provider.objects.filter(is_active=True).exists()
     assert not Provider.objects.exclude(api_key="").exists()
-    assert set(Provider.objects.filter(test_only=True).values_list("key", flat=True)) == {"freellmapi", "omniroute"}
+    llm = Provider.objects.filter(vendor="")
+    assert set(llm.filter(test_only=True).values_list("key", flat=True)) == {"freellmapi", "omniroute"}
 
 
 @pytest.mark.django_db

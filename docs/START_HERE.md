@@ -140,6 +140,26 @@ _Voices (EMP-05) aur phone test (EMP-10 voice) Phase 5 mein; WhatsApp / website 
 
 ---
 
+## Phase 5 — Voice AI
+
+1. [x] **Voice providers** (SA-10): STT, TTS, telephony vendor cards (AI Settings jaisa — toggle, key popup, test, health), keys encrypted, test-only (free / local) production mein blocked
+2. [x] **Languages & Voices** (SA-11, VOICE-07..09, 20, 21): languages table (code, naam, STT / TTS route + fallback order, greeting / disclosure / consent texts), voice catalogue (gender, style, sample), naya language bina code
+3. [x] **Calling settings** (registry E): calling window, attempt caps, retry, max call minutes, allowed country codes, recording default, voice turn-taking, latency alert thresholds, retention _(company ka "sirf tighten" screen CP-06 panels ke saath, item 9)_
+4. [ ] **Phone numbers & telephony** (VOICE-16, SEC-13): number pool, AI Employee ko assign, inbound routing, webhooks signature check; adapters Exotel / Plivo / Twilio
+5. [ ] **Calls** (VOICE-01, 02, 17, 18, COMP-02): inbound, authorised outbound ("Call now", follow-up) with consent / opt-out / calling-hour checks, call state machine, voicemail / busy / no-answer retry, concurrent / daily / duration limits, consent records
+6. [ ] **Voice Gateway** (VOICE-03..06, 10, 21, 22): Pipecat pipeline — VAD, streaming STT, turn detection, same AI runtime, streaming TTS, barge-in, filler jab tool chale, AI disclosure + recording consent, language follow, provider failover, per-stage latency metrics
+7. [ ] **Transfer & handoff** (TOOL-08, VOICE-11, HO-01..05): triggers, routing (assigned → round robin → available → fallback), agent screen pop + notification, no agent → message + callback task, handoff log
+8. [ ] **Recording, transcript, post-call** (VOICE-12..14, REC-01, REC-03, COMP-06): recording on / off, consent announcement, retention auto-delete, signed-link playback, listen / download permissions, access audit; speaker-labelled transcript; summary / extraction / score / sentiment
+9. [ ] **Panels**: wizard voice step (EMP-05 preview), phone step (EMP-08), browser test call (VOICE-19, EMP-10), call logs (VOICE-15), lead timeline calls + recordings (CRM-11), Super Admin Calls (SA-15), usage: voice minutes / calls / STT / TTS (USE-01)
+10. [ ] Monitoring alerts (ENGR-05), concurrent-call load test script (ENGR-07)
+11. [ ] Har feature ki REST API + tests
+
+**Phase 5 gate:** latency P50 / P95 per language asli test calls par · 50+ scripted calls per language (code-mixed bhi) · barge-in, transfer (warm / cold / no agent), voicemail tests · provider failover test · concurrent-call load test · CI green · client sign-off
+
+_Telephony aur STT / TTS provider client ka faisla — development mein test account, launch par client ka account (sirf configuration)._
+
+---
+
 ## Har phase ke rules (kabhi miss nahi karne)
 
 - **No hard-coding** — har business value Super Admin / database se

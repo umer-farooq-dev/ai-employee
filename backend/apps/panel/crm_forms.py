@@ -7,7 +7,7 @@ from apps.crm.models import AssignmentRule, Task
 from apps.industries import fields as field_engine
 from apps.industries import services as templates
 from apps.industries.models import FieldDefinition, LeadSource
-from apps.platform_config.registry import LANGUAGES
+from apps.providers import languages
 from apps.superadmin.forms import BootstrapMixin
 from apps.superadmin.template_forms import FieldDefinitionForm, ScoringRuleForm
 
@@ -29,7 +29,7 @@ class LeadForm(BootstrapMixin, forms.Form):
     status = forms.ChoiceField()
     source = forms.ChoiceField(required=False)
     assigned_user = forms.ChoiceField(required=False, label="Assigned to")
-    preferred_language = forms.ChoiceField(required=False, choices=[("", "—")] + list(LANGUAGES))
+    preferred_language = forms.ChoiceField(required=False, choices=lambda: [("", "—")] + languages.choices())
     tags = forms.CharField(required=False, help_text="Comma separated")
     follow_up_at = forms.DateTimeField(
         required=False, label="Follow-up", widget=forms.DateTimeInput(attrs={"type": "datetime-local"})

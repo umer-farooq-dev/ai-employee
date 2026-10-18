@@ -1,0 +1,488 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Languages &amp; Voices{% endblock %}
+{% block extra_css %}
+<style>
+    .lang-badge{font-weight:500}
+    .route-chain .badge{font-weight:500}
+    .lv-switch .form-check-input{width:2.6em;height:1.4em;cursor:pointer;margin:0}
+    .lv-section{border:1px solid var(--bs-border-color);border-radius:14px;padding:18px;margin-bottom:16px}
+    .lv-section h6{font-size:14px;margin-bottom:12px}
+    #voice-table audio{height:32px;max-width:220px}
+    #language-modal .nav-link{font-size:14px}
+</style>
+{% endblock %}
+{% block page_content %}
+<div class="mt-3 mb-3">
+    <h4 class="mb-1">Languages &amp; Voices</h4>
+    <p class="text-muted mb-0">The languages AI Employees speak, which provider listens and speaks in each language (with automatic failover), the phrases said on calls and the voice catalogue. Keys are set in <a href="{% url 'superadmin:voice_settings' %}">Voice Settings</a>.</p>
+</div>
+
+<div class="card">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h5 class="mb-1"><i class="iconoir-language me-1"></i>Languages</h5>
+                <div class="text-muted small">A new language needs no code: add it, set its speech providers, voices and phrases, then test it.</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-language"><i class="iconoir-plus me-1"></i>Add language</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Language</th><th>Speech-to-text</th><th>Voice (text-to-speech)</th><th class="text-center">Voices</th><th class="text-center">On</th><th></th></tr></thead>
+                <tbody id="language-rows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h5 class="mb-1"><i class="iconoir-sound-high me-1"></i>Voice catalogue</h5>
+                <div class="text-muted small">Voices companies can choose for their AI Employees, per language.</div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <select class="form-select form-select-sm" id="voice-filter" aria-label="Filter by language" style="width:auto"></select>
+                <button type="button" class="btn btn-sm btn-light" id="import-voices"><i class="iconoir-download me-1"></i>Import from provider</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="add-voice"><i class="iconoir-plus me-1"></i>Add voice</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0" id="voice-table">
+                <thead class="table-light"><tr><th>Voice</th><th>Language</th><th>Provider</th><th>Sample</th><th class="text-center">On</th><th></th></tr></thead>
+                <tbody id="voice-rows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts" aria-live="polite"></div>
+{{ data|json_script:"lv-data" }}
+{% endblock page_content %}
+
+{% block modal %}
+<div class="modal fade" id="language-modal" tabindex="-1" aria-labelledby="lm-title" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <form class="modal-content" id="language-form" novalidate autocomplete="off">
+            <div class="modal-header">
+                <h5 class="modal-title" id="lm-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 small d-none" id="lm-alert" role="alert"></div>
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#lm-basics" type="button" role="tab">Basics</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lm-stt" type="button" role="tab">Speech-to-text</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lm-tts" type="button" role="tab">Voice</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lm-texts" type="button" role="tab">Phrases</button></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="lm-basics" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-4"><label class="form-label" for="lm-name">Name</label><input class="form-control" id="lm-name" required maxlength="60" placeholder="e.g. Tamil"></div>
+                            <div class="col-md-4"><label class="form-label" for="lm-native">Native name</label><input class="form-control" id="lm-native" maxlength="60" placeholder="e.g. தமிழ்"></div>
+                            <div class="col-md-4"><label class="form-label" for="lm-code">Code</label><input class="form-control" id="lm-code" required maxlength="10" pattern="[a-z0-9-]+" placeholder="e.g. ta"><div class="form-text">Short code used everywhere. Cannot be changed later.</div></div>
+                            <div class="col-md-4"><label class="form-label" for="lm-locale">Speech locale</label><input class="form-control" id="lm-locale" required maxlength="20" placeholder="e.g. ta-IN"><div class="form-text">BCP-47 code the speech providers use.</div></div>
+                            <div class="col-md-4"><label class="form-label" for="lm-script">Writing system</label><select class="form-select" id="lm-script"></select><div class="form-text">Used to recognise the language in messages.</div></div>
+                            <div class="col-md-2"><label class="form-label" for="lm-order">Order</label><input type="number" min="0" class="form-control" id="lm-order"></div>
+                            <div class="col-md-2 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="lm-active"><label class="form-check-label" for="lm-active">On</label></div></div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="lm-stt" role="tabpanel">
+                        <p class="small text-muted">The first row listens to callers; when it fails, the next row takes over automatically during the call.</p>
+                        <div id="lm-stt-rows"></div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-add="stt"><i class="iconoir-plus me-1"></i>Add provider</button>
+                    </div>
+                    <div class="tab-pane fade" id="lm-tts" role="tabpanel">
+                        <p class="small text-muted">The first row speaks; the next rows are fallbacks. The voice is the default — companies can pick another voice of the same provider.</p>
+                        <div id="lm-tts-rows"></div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-add="tts"><i class="iconoir-plus me-1"></i>Add provider</button>
+                    </div>
+                    <div class="tab-pane fade" id="lm-texts" role="tabpanel">
+                        <p class="small text-muted">Said by the platform, not invented by the AI. Variables: <code>{% templatetag openvariable %} employee_name {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} company_name {% templatetag closevariable %}</code>. An industry template or an AI Employee may override the disclosure and greeting.</p>
+                        <div class="row g-3" id="lm-text-fields"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-link text-danger px-0" id="lm-delete">Delete language</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="lm-save">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="voice-modal" tabindex="-1" aria-labelledby="vm-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="voice-form" novalidate autocomplete="off">
+            <div class="modal-header">
+                <h5 class="modal-title" id="vm-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 small d-none" id="vm-alert" role="alert"></div>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label" for="vm-language">Language</label><select class="form-select" id="vm-language"></select></div>
+                    <div class="col-md-6"><label class="form-label" for="vm-provider">Provider</label><select class="form-select" id="vm-provider"></select></div>
+                    <div class="col-md-6"><label class="form-label" for="vm-name">Display name</label><input class="form-control" id="vm-name" required maxlength="80"></div>
+                    <div class="col-md-6"><label class="form-label" for="vm-vid">Provider voice ID</label><input class="form-control" id="vm-vid" required maxlength="200" spellcheck="false"></div>
+                    <div class="col-md-6"><label class="form-label" for="vm-gender">Gender</label><select class="form-select" id="vm-gender"></select></div>
+                    <div class="col-md-6"><label class="form-label" for="vm-style">Style</label><input class="form-control" id="vm-style" maxlength="80" placeholder="warm, professional …"></div>
+                    <div class="col-12"><label class="form-label" for="vm-sample">Sample audio URL</label><input class="form-control" id="vm-sample" maxlength="500" placeholder="https://…/sample.mp3"></div>
+                    <div class="col-md-6"><label class="form-label" for="vm-order">Order</label><input type="number" min="0" class="form-control" id="vm-order"></div>
+                    <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="vm-active"><label class="form-check-label" for="vm-active">On</label></div></div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-link text-danger px-0" id="vm-delete">Delete voice</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="vm-save">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="import-modal" tabindex="-1" aria-labelledby="im-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title mb-1" id="im-title">Import voices from a provider</h5><div class="text-muted small">The provider's key must be saved in Voice Settings.</div></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert py-2 small d-none" id="im-alert" role="alert"></div>
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-md-5"><label class="form-label small" for="im-provider">Provider</label><select class="form-select form-select-sm" id="im-provider"></select></div>
+                    <div class="col-md-4"><label class="form-label small" for="im-language">Language</label><select class="form-select form-select-sm" id="im-language"></select></div>
+                    <div class="col-md-3"><button type="button" class="btn btn-sm btn-primary w-100" id="im-load">Load voices</button></div>
+                </div>
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody id="im-rows"></tbody></table></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="im-add" disabled>Add selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock modal %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+    "use strict";
+    var D = JSON.parse(document.getElementById("lv-data").textContent);
+    var API = {
+        languages: "{% url 'api:admin-languages-list' %}",
+        voices: "{% url 'api:admin-voices-list' %}",
+        providers: "{% url 'api:admin-ai-providers-list' %}"
+    };
+    var TOKEN = "{{ csrf_token }}";
+    var lm = new bootstrap.Modal(document.getElementById("language-modal"));
+    var vm = new bootstrap.Modal(document.getElementById("voice-modal"));
+    var im = new bootstrap.Modal(document.getElementById("import-modal"));
+    var currentLang = null, currentVoice = null, draft = {stt: [], tts: []}, imported = [];
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function errorText(j) {
+        var e = (j && j.error) || {}, d = e.details;
+        if (Array.isArray(d) && d.length) return d.join(" ");
+        if (d && typeof d === "object" && Object.keys(d).length) return Object.keys(d).map(function (k) { return k + ": " + [].concat(d[k]).join(" "); }).join(" ");
+        return e.message || "Something went wrong.";
+    }
+    function api(method, url, body) {
+        var opts = {method: method, headers: {"X-CSRFToken": TOKEN, "Accept": "application/json"}, credentials: "same-origin"};
+        if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+        return fetch(url, opts).then(function (r) {
+            if (r.status === 204) return null;
+            return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(errorText(j)); return j; });
+        });
+    }
+    function toast(text, ok) {
+        var el = document.createElement("div");
+        el.className = "toast align-items-center border-0 text-white " + (ok === false ? "bg-danger" : "bg-success");
+        el.setAttribute("role", ok === false ? "alert" : "status");
+        el.innerHTML = '<div class="d-flex"><div class="toast-body">' + esc(text) + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+        $("toasts").appendChild(el);
+        var t = new bootstrap.Toast(el, {delay: ok === false ? 6000 : 2500});
+        el.addEventListener("hidden.bs.toast", function () { el.remove(); });
+        t.show();
+    }
+    function busy(btn, on) { btn.disabled = on; btn.classList.toggle("opacity-75", on); }
+    function alertIn(id, text, kind) { var a = $(id); a.className = "alert py-2 small alert-" + (kind || "danger"); a.textContent = text; }
+    function hide(id) { $(id).className = "alert py-2 small d-none"; }
+    function provider(id) { return D.providers.find(function (p) { return p.id === id || p.key === id; }); }
+    function offers(cap) { return D.providers.filter(function (p) { return p.capabilities.indexOf(cap) >= 0; }); }
+    function langName(code) { var l = D.languages.find(function (x) { return x.code === code; }); return l ? l.name : code; }
+
+    // ---------------------------------------------------------------- languages table
+    function chain(lang, kind) {
+        var rows = lang.routes.filter(function (r) { return r.kind === kind; });
+        if (!rows.length) return '<span class="text-warning small">Not set</span>';
+        return rows.map(function (r, i) {
+            var label = (i + 1) + ". " + r.provider_name + (kind === "tts" && r.voice_name ? " · " + r.voice_name : "");
+            return '<span class="badge ' + (r.provider_active ? "bg-primary-subtle text-primary" : "bg-light text-muted") + ' me-1 mb-1">' + esc(label) + (r.provider_active ? "" : " (off)") + "</span>";
+        }).join('<i class="iconoir-arrow-right text-muted me-1"></i>');
+    }
+    function renderLanguages() {
+        $("language-rows").innerHTML = D.languages.map(function (l) {
+            return "<tr><td><div class=\"fw-medium\">" + esc(l.name) + (l.native_name && l.native_name !== l.name ? ' <span class="text-muted">' + esc(l.native_name) + "</span>" : "") + "</div>" +
+                '<div class="small text-muted"><code>' + esc(l.code) + "</code> · " + esc(l.locale) + "</div></td>" +
+                '<td class="route-chain">' + chain(l, "stt") + '</td><td class="route-chain">' + chain(l, "tts") + "</td>" +
+                '<td class="text-center">' + l.voice_count + "</td>" +
+                '<td class="text-center"><div class="form-check form-switch lv-switch d-inline-block"><input class="form-check-input" type="checkbox" role="switch" data-lang-toggle="' + l.id + '"' + (l.is_active ? " checked" : "") + ' aria-label="' + esc(l.name) + ' on or off"></div></td>' +
+                '<td class="text-end"><button type="button" class="btn btn-sm btn-light" data-lang="' + l.id + '">Edit</button></td></tr>';
+        }).join("");
+        var opts = '<option value="">All languages</option>' + D.languages.map(function (l) { return '<option value="' + esc(l.code) + '">' + esc(l.name) + "</option>"; }).join("");
+        var keep = $("voice-filter").value;
+        $("voice-filter").innerHTML = opts; $("voice-filter").value = keep;
+    }
+    function replaceLanguage(l) {
+        var i = D.languages.findIndex(function (x) { return x.id === l.id; });
+        if (i < 0) D.languages.push(l); else D.languages[i] = l;
+        D.languages.sort(function (a, b) { return a.sort_order - b.sort_order || a.name.localeCompare(b.name); });
+        renderLanguages();
+    }
+    $("language-rows").addEventListener("change", function (e) {
+        var input = e.target.closest("[data-lang-toggle]"); if (!input) return;
+        var on = input.checked; input.disabled = true;
+        api("PATCH", API.languages + input.dataset.langToggle + "/", {is_active: on})
+            .then(function (l) { replaceLanguage(l); toast(l.name + (on ? " switched on" : " switched off")); })
+            .catch(function (err) { input.checked = !on; input.disabled = false; toast(err.message, false); });
+    });
+    $("language-rows").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-lang]");
+        if (b) openLanguage(D.languages.find(function (l) { return l.id === b.dataset.lang; }));
+    });
+
+    // ---------------------------------------------------------------- language popup
+    function routeRows(kind) {
+        var host = $("lm-" + kind + "-rows");
+        host.innerHTML = draft[kind].map(function (r, i) {
+            var p = provider(r.provider);
+            var models = p ? p.available_models : [];
+            var voices = kind === "tts" ? D.voices.filter(function (v) { return p && v.provider === p.key && currentLang && v.language === currentLang.code; }) : [];
+            return '<div class="row g-2 align-items-end mb-3 pb-3 border-bottom" data-row="' + i + '" data-kind="' + kind + '">' +
+                '<div class="col-12 small fw-semibold">' + (i === 0 ? "1. Primary" : (i + 1) + ". Fallback") + "</div>" +
+                '<div class="col-md-' + (kind === "tts" ? 3 : 4) + '"><label class="form-label small" for="' + kind + "p" + i + '">Provider</label><select class="form-select form-select-sm" id="' + kind + "p" + i + '" data-f="provider"><option value="">Choose…</option>' +
+                offers(kind).map(function (o) { return '<option value="' + o.id + '"' + (p && o.id === p.id ? " selected" : "") + ">" + esc(o.name) + (o.is_active ? "" : " (off)") + "</option>"; }).join("") + "</select></div>" +
+                '<div class="col-md-3"><label class="form-label small" for="' + kind + "m" + i + '">Model</label><select class="form-select form-select-sm" id="' + kind + "m" + i + '" data-f="model">' +
+                (models.length ? models.map(function (m) { return '<option value="' + esc(m.id) + '"' + (m.id === r.model ? " selected" : "") + ">" + esc(m.id) + "</option>"; }).join("") : '<option value="">—</option>') + "</select></div>" +
+                (kind === "tts" ? '<div class="col-md-3"><label class="form-label small" for="ttsv' + i + '">Voice</label><select class="form-select form-select-sm" id="ttsv' + i + '" data-f="voice">' +
+                    (voices.length ? voices.map(function (v) { return '<option value="' + v.id + '"' + (v.id === r.voice ? " selected" : "") + ">" + esc(v.name) + " (" + esc(v.gender) + ")</option>"; }).join("") : '<option value="">Add a voice for this provider first</option>') + "</select></div>" : "") +
+                '<div class="col-md-' + (kind === "tts" ? 2 : 4) + '"><label class="form-label small" for="' + kind + "j" + i + '">Parameters (JSON)</label><input class="form-control form-control-sm" id="' + kind + "j" + i + '" data-f="params" value="' + esc(Object.keys(r.params || {}).length ? JSON.stringify(r.params) : "") + '" placeholder="{}"></div>' +
+                '<div class="col-md-1 d-flex gap-1 justify-content-end"><button type="button" class="btn btn-sm btn-light" data-move aria-label="Move up"' + (i === 0 ? " disabled" : "") + '><i class="iconoir-arrow-up"></i></button>' +
+                '<button type="button" class="btn btn-sm btn-light text-danger" data-del aria-label="Remove"><i class="iconoir-trash"></i></button></div></div>';
+        }).join("") || '<p class="text-muted small">No provider yet — calls in this language cannot be answered until one is set.</p>';
+    }
+    ["stt", "tts"].forEach(function (kind) {
+        var host = $("lm-" + kind + "-rows");
+        host.addEventListener("change", function (e) {
+            var row = e.target.closest("[data-row]"); if (!row) return;
+            var r = draft[kind][+row.dataset.row], f = e.target.dataset.f;
+            if (f === "provider") {
+                r.provider = e.target.value;
+                var p = provider(r.provider);
+                r.model = p && p.available_models.length ? p.available_models[0].id : "";
+                var v = D.voices.find(function (x) { return p && x.provider === p.key && x.language === currentLang.code; });
+                r.voice = v ? v.id : "";
+                routeRows(kind);
+            } else if (f === "model" || f === "voice") { r[f] = e.target.value; }
+        });
+        host.addEventListener("input", function (e) {
+            var row = e.target.closest("[data-row]");
+            if (row && e.target.dataset.f === "params") draft[kind][+row.dataset.row].paramsText = e.target.value;
+        });
+        host.addEventListener("click", function (e) {
+            var row = e.target.closest("[data-row]"); if (!row) return;
+            var i = +row.dataset.row, list = draft[kind];
+            if (e.target.closest("[data-del]")) { list.splice(i, 1); routeRows(kind); }
+            if (e.target.closest("[data-move]") && i > 0) { var t = list[i - 1]; list[i - 1] = list[i]; list[i] = t; routeRows(kind); }
+        });
+    });
+    document.querySelectorAll("[data-add]").forEach(function (b) {
+        b.addEventListener("click", function () { draft[b.dataset.add].push({provider: "", model: "", voice: "", params: {}}); routeRows(b.dataset.add); });
+    });
+
+    function openLanguage(l) {
+        currentLang = l || null;
+        var isNew = !l;
+        l = l || {code: "", name: "", native_name: "", locale: "", script: "latin", texts: {}, is_active: true, sort_order: (D.languages.length + 1) * 10, routes: []};
+        hide("lm-alert");
+        $("lm-title").textContent = isNew ? "Add language" : l.name;
+        $("lm-name").value = l.name; $("lm-native").value = l.native_name; $("lm-code").value = l.code; $("lm-code").disabled = !isNew;
+        $("lm-locale").value = l.locale; $("lm-order").value = l.sort_order; $("lm-active").checked = l.is_active;
+        $("lm-script").innerHTML = D.scripts.map(function (s) { return '<option value="' + s.key + '"' + (s.key === l.script ? " selected" : "") + ">" + esc(s.label) + "</option>"; }).join("");
+        $("lm-text-fields").innerHTML = D.texts.map(function (t) {
+            var v = l.texts[t.key] || (t.key === "fillers" ? [] : "");
+            return '<div class="col-md-6"><label class="form-label small" for="txt-' + t.key + '">' + esc(t.label) + '</label><textarea class="form-control" rows="' + (t.key === "fillers" ? 3 : 2) + '" id="txt-' + t.key + '" data-text="' + t.key + '">' + esc(Array.isArray(v) ? v.join("\n") : v) + "</textarea></div>";
+        }).join("");
+        ["stt", "tts"].forEach(function (kind) {
+            draft[kind] = l.routes.filter(function (r) { return r.kind === kind; }).map(function (r) { return {provider: r.provider, model: r.model, voice: r.voice || "", params: r.params}; });
+            routeRows(kind);
+        });
+        $("lm-delete").classList.toggle("d-none", isNew);
+        bootstrap.Tab.getOrCreateInstance(document.querySelector('#language-modal [data-bs-target="#lm-basics"]')).show();
+        lm.show();
+    }
+    $("add-language").addEventListener("click", function () { openLanguage(null); });
+
+    function routesPayload(kind) {
+        return draft[kind].filter(function (r) { return r.provider; }).map(function (r) {
+            var text = r.paramsText != null ? r.paramsText.trim() : null;
+            return {provider: r.provider, model: r.model, voice: r.voice || null, params: text == null ? (r.params || {}) : (text ? JSON.parse(text) : {})};
+        });
+    }
+    $("language-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var stt, tts;
+        try { stt = routesPayload("stt"); tts = routesPayload("tts"); }
+        catch (err) { return alertIn("lm-alert", "Parameters must be valid JSON, e.g. {\"speed\": 1.1}"); }
+        var texts = {};
+        document.querySelectorAll("[data-text]").forEach(function (el) {
+            texts[el.dataset.text] = el.dataset.text === "fillers" ? el.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean) : el.value.trim();
+        });
+        var body = {name: $("lm-name").value.trim(), native_name: $("lm-native").value.trim(), locale: $("lm-locale").value.trim(), script: $("lm-script").value,
+            sort_order: parseInt($("lm-order").value, 10) || 0, is_active: $("lm-active").checked, texts: texts};
+        if (!currentLang) body.code = $("lm-code").value.trim();
+        var btn = $("lm-save"); busy(btn, true);
+        (currentLang ? api("PATCH", API.languages + currentLang.id + "/", body) : api("POST", API.languages, body))
+            .then(function (l) { currentLang = l; return api("PUT", API.languages + l.id + "/routes/", {kind: "stt", routes: stt}); })
+            .then(function (l) { return api("PUT", API.languages + l.id + "/routes/", {kind: "tts", routes: tts}); })
+            .then(function (l) { replaceLanguage(l); lm.hide(); toast(l.name + " saved"); })
+            .catch(function (err) { if (currentLang) replaceLanguage(currentLang); alertIn("lm-alert", err.message); })
+            .finally(function () { busy(btn, false); });
+    });
+    $("lm-delete").addEventListener("click", function () {
+        if (!currentLang || !window.confirm("Delete " + currentLang.name + "? Its voices and routes are removed too.")) return;
+        api("DELETE", API.languages + currentLang.id + "/")
+            .then(function () {
+                var code = currentLang.code;
+                D.languages = D.languages.filter(function (l) { return l.id !== currentLang.id; });
+                D.voices = D.voices.filter(function (v) { return v.language !== code; });
+                renderLanguages(); renderVoices(); lm.hide(); toast("Language deleted");
+            })
+            .catch(function (err) { alertIn("lm-alert", err.message); });
+    });
+
+    // ---------------------------------------------------------------- voice catalogue
+    function renderVoices() {
+        var f = $("voice-filter").value;
+        var rows = D.voices.filter(function (v) { return !f || v.language === f; });
+        $("voice-rows").innerHTML = rows.map(function (v) {
+            return "<tr><td><div class=\"fw-medium\">" + esc(v.name) + '</div><div class="small text-muted text-capitalize">' + esc(v.gender) + (v.style ? " · " + esc(v.style) : "") + "</div></td>" +
+                "<td>" + esc(langName(v.language)) + "</td><td>" + esc(v.provider_name) + '<div class="small text-muted"><code>' + esc(v.provider_voice_id) + "</code></div></td>" +
+                "<td>" + (v.sample ? '<audio controls preload="none" src="' + esc(v.sample) + '"></audio>' : '<span class="text-muted small">—</span>') + "</td>" +
+                '<td class="text-center"><div class="form-check form-switch lv-switch d-inline-block"><input class="form-check-input" type="checkbox" role="switch" data-voice-toggle="' + v.id + '"' + (v.is_active ? " checked" : "") + ' aria-label="' + esc(v.name) + ' on or off"></div></td>' +
+                '<td class="text-end"><button type="button" class="btn btn-sm btn-light" data-voice="' + v.id + '">Edit</button></td></tr>';
+        }).join("") || '<tr><td colspan="6" class="text-muted small">No voices yet.</td></tr>';
+    }
+    function refreshVoices() {
+        D.languages.forEach(function (l) { l.voice_count = D.voices.filter(function (x) { return x.language === l.code && x.is_active; }).length; });
+        renderVoices(); renderLanguages();
+    }
+    function replaceVoice(v) {
+        var i = D.voices.findIndex(function (x) { return x.id === v.id; });
+        if (i < 0) D.voices.push(v); else D.voices[i] = v;
+        refreshVoices();
+    }
+    $("voice-filter").addEventListener("change", renderVoices);
+    $("voice-rows").addEventListener("change", function (e) {
+        var input = e.target.closest("[data-voice-toggle]"); if (!input) return;
+        var on = input.checked; input.disabled = true;
+        api("PATCH", API.voices + input.dataset.voiceToggle + "/", {is_active: on})
+            .then(function (v) { replaceVoice(v); toast(v.name + (on ? " switched on" : " switched off")); })
+            .catch(function (err) { input.checked = !on; input.disabled = false; toast(err.message, false); });
+    });
+    $("voice-rows").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-voice]");
+        if (b) openVoice(D.voices.find(function (v) { return v.id === b.dataset.voice; }));
+    });
+    function langOptions(selected) { return D.languages.map(function (l) { return '<option value="' + esc(l.code) + '"' + (l.code === selected ? " selected" : "") + ">" + esc(l.name) + "</option>"; }).join(""); }
+    function openVoice(v) {
+        currentVoice = v || null;
+        var tts = offers("tts");
+        v = v || {language: $("voice-filter").value || (D.languages[0] || {}).code, provider: (tts[0] || {}).key, provider_voice_id: "", name: "", gender: "female", style: "", sample: "", is_active: true, sort_order: (D.voices.length + 1) * 10};
+        hide("vm-alert");
+        $("vm-title").textContent = currentVoice ? v.name : "Add voice";
+        $("vm-language").innerHTML = langOptions(v.language);
+        $("vm-provider").innerHTML = tts.map(function (p) { return '<option value="' + esc(p.key) + '"' + (p.key === v.provider ? " selected" : "") + ">" + esc(p.name) + "</option>"; }).join("");
+        $("vm-gender").innerHTML = D.genders.map(function (g) { return '<option value="' + g.key + '"' + (g.key === v.gender ? " selected" : "") + ">" + esc(g.label) + "</option>"; }).join("");
+        $("vm-name").value = v.name; $("vm-vid").value = v.provider_voice_id; $("vm-style").value = v.style; $("vm-sample").value = v.sample;
+        $("vm-order").value = v.sort_order; $("vm-active").checked = v.is_active;
+        $("vm-delete").classList.toggle("d-none", !currentVoice);
+        vm.show();
+    }
+    $("add-voice").addEventListener("click", function () { openVoice(null); });
+    $("voice-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var body = {language: $("vm-language").value, provider: $("vm-provider").value, name: $("vm-name").value.trim(), provider_voice_id: $("vm-vid").value.trim(),
+            gender: $("vm-gender").value, style: $("vm-style").value.trim(), sample: $("vm-sample").value.trim(), sort_order: parseInt($("vm-order").value, 10) || 0, is_active: $("vm-active").checked};
+        var btn = $("vm-save"); busy(btn, true);
+        (currentVoice ? api("PATCH", API.voices + currentVoice.id + "/", body) : api("POST", API.voices, body))
+            .then(function (v) { replaceVoice(v); vm.hide(); toast(v.name + " saved"); })
+            .catch(function (err) { alertIn("vm-alert", err.message); })
+            .finally(function () { busy(btn, false); });
+    });
+    $("vm-delete").addEventListener("click", function () {
+        if (!currentVoice || !window.confirm("Delete the voice " + currentVoice.name + "?")) return;
+        api("DELETE", API.voices + currentVoice.id + "/")
+            .then(function () { D.voices = D.voices.filter(function (v) { return v.id !== currentVoice.id; }); refreshVoices(); vm.hide(); toast("Voice deleted"); })
+            .catch(function (err) { alertIn("vm-alert", err.message); });
+    });
+
+    // ---------------------------------------------------------------- import from provider
+    var IMPORTABLE = ["elevenlabs", "cartesia", "azure", "google"];
+    $("import-voices").addEventListener("click", function () {
+        var list = offers("tts").filter(function (p) { return IMPORTABLE.indexOf(p.vendor) >= 0; });
+        $("im-provider").innerHTML = list.map(function (p) { return '<option value="' + p.id + '">' + esc(p.name) + (p.has_key ? "" : " (no key)") + "</option>"; }).join("") || '<option value="">No provider with a voice list</option>';
+        $("im-language").innerHTML = langOptions($("voice-filter").value);
+        $("im-rows").innerHTML = ""; imported = []; $("im-add").disabled = true; hide("im-alert");
+        im.show();
+    });
+    $("im-load").addEventListener("click", function () {
+        var p = provider($("im-provider").value), lang = D.languages.find(function (l) { return l.code === $("im-language").value; });
+        if (!p || !lang) return;
+        var btn = this; busy(btn, true); alertIn("im-alert", "Loading voices…", "info");
+        api("GET", API.providers + p.id + "/voices/?locale=" + encodeURIComponent(lang.locale))
+            .then(function (rows) {
+                imported = rows;
+                var have = D.voices.filter(function (v) { return v.provider === p.key && v.language === lang.code; }).map(function (v) { return v.provider_voice_id; });
+                $("im-rows").innerHTML = rows.map(function (r, i) {
+                    var exists = have.indexOf(r.id) >= 0;
+                    return '<tr><td style="width:32px"><input class="form-check-input" type="checkbox" data-pick="' + i + '"' + (exists ? " disabled" : "") + ' aria-label="Select ' + esc(r.name) + '"></td>' +
+                        "<td><div class=\"fw-medium\">" + esc(r.name) + '</div><div class="small text-muted text-capitalize">' + esc(r.gender) + (r.style ? " · " + esc(r.style) : "") + (r.locale ? " · " + esc(r.locale) : "") + "</div></td>" +
+                        "<td>" + (r.sample ? '<audio controls preload="none" src="' + esc(r.sample) + '"></audio>' : "") + "</td><td class=\"small text-muted\">" + (exists ? "Already added" : "") + "</td></tr>";
+                }).join("") || '<tr><td class="text-muted small">This provider has no voices for ' + esc(lang.name) + ".</td></tr>";
+                hide("im-alert"); $("im-add").disabled = !rows.length;
+            })
+            .catch(function (err) { alertIn("im-alert", err.message); })
+            .finally(function () { busy(btn, false); });
+    });
+    $("im-add").addEventListener("click", function () {
+        var p = provider($("im-provider").value), code = $("im-language").value;
+        var picks = [].slice.call(document.querySelectorAll("[data-pick]:checked")).map(function (c) { return imported[+c.dataset.pick]; });
+        if (!picks.length) return;
+        var btn = this; busy(btn, true);
+        picks.reduce(function (chain, r) {
+            return chain.then(function () {
+                return api("POST", API.voices, {language: code, provider: p.key, provider_voice_id: r.id, name: r.name.slice(0, 80), gender: r.gender, style: (r.style || "").slice(0, 80), sample: r.sample || ""})
+                    .then(replaceVoice);
+            });
+        }, Promise.resolve())
+            .then(function () { im.hide(); toast(picks.length + " voice(s) added"); })
+            .catch(function (err) { alertIn("im-alert", err.message); })
+            .finally(function () { busy(btn, false); });
+    });
+
+    renderLanguages();
+    renderVoices();
+})();
+</script>
+{% endblock %}
