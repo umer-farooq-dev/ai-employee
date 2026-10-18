@@ -16,8 +16,8 @@
         <div class="card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h4 class="card-title mb-0">Test {{ employee.name }} <span class="badge bg-light text-dark">version {{ employee.config_version }}</span></h4>
-                <div class="d-flex gap-2 align-items-center">
-                    <input id="t-phone" class="form-control form-control-sm" style="width:170px" placeholder="Customer phone (optional)" aria-label="Customer phone to test returning-customer memory">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <input id="t-phone" class="form-control form-control-sm" style="width:170px;max-width:100%" placeholder="Customer phone (optional)" aria-label="Customer phone to test returning-customer memory">
                     <select id="t-lang" class="form-select form-select-sm" style="width:auto" aria-label="Language">{% for code, name in languages %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select>
                     <button class="btn btn-sm btn-primary" id="t-start" type="button">New test chat</button>
                     {% if can_manage %}<button class="btn btn-sm btn-outline-primary" id="v-start" type="button"><i class="iconoir-microphone me-1"></i>Voice test</button>
