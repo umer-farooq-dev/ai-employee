@@ -610,7 +610,7 @@ def merge(primary, others, user=None, request=None):
 def bulk(company, leads, action, value=None, user=None, request=None):
     leads = list(leads)
     if action == "add_to_campaign":
-        raise ValidationError("Campaigns are added in Phase 6.")
+        raise ValidationError("Campaigns are not available yet.")
     with transaction.atomic():
         for lead in leads:
             if action == "assign":

@@ -14,9 +14,14 @@
         <link href="{% static 'panel/css/icons.min.css' %}" rel="stylesheet" type="text/css"/>
         <link href="{% static 'panel/css/app.min.css' %}" rel="stylesheet" type="text/css"/>
         {# Brand colours from General Settings (SA-22) #}
-        <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }};--bs-link-color-rgb:{{ platform.color_primary|rgb }};--bs-link-hover-color-rgb:{{ platform.color_primary|rgb }}}
+        <style>:root{--brand-primary:{{ platform.color_primary }};--brand-secondary:{{ platform.color_secondary }};--bs-primary:{{ platform.color_primary }};--bs-primary-rgb:{{ platform.color_primary|rgb }};--bs-link-color-rgb:{{ platform.color_primary|rgb }};--bs-link-hover-color-rgb:{{ platform.color_primary|rgb }}}
         .btn-primary{background-color:var(--brand-primary);border-color:var(--brand-primary)}
         .text-brand{color:var(--brand-primary)!important}
+        {# the template hard-codes its own green on these: follow the brand colour instead #}
+        .nav-tabs .nav-link.active{border-bottom-color:var(--brand-primary)!important;color:var(--brand-primary)}
+        .startbar .startbar-menu .navbar-nav .nav-item .nav-link.active{color:var(--brand-primary)}
+        .startbar .startbar-menu .navbar-nav .nav-item .nav-link.active:before,.startbar .startbar-menu .navbar-nav .nav-item .nav-link:hover:before{background-color:var(--brand-primary)!important;border-color:var(--brand-primary)!important}
+        .form-check-input:checked{background-color:var(--brand-primary);border-color:var(--brand-primary)}
         .page-wrapper .page-content{min-width:0}{# wide boards / tables scroll inside the page instead of widening it #}
         {# the full logo already carries the icon: the small logo shows only while the sidebar is collapsed #}
         .startbar .brand .logo-lg{height:34px;width:auto}

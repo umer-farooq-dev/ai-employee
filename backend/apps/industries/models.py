@@ -55,7 +55,7 @@ class TemplateVersion(BaseModel):
     disclosure_texts = models.JSONField(default=dict, blank=True, help_text="{language: AI-disclosure text}")
     default_faqs = models.JSONField(default=list, blank=True)
     whatsapp_templates = models.JSONField(default=list, blank=True, help_text="Default WhatsApp templates")
-    enabled_tools = models.JSONField(default=list, blank=True, help_text="Tool keys (tool registry in Phase 4)")
+    enabled_tools = models.JSONField(default=list, blank=True, help_text="Tool keys from Super Admin → AI Tools")
     status_transitions = models.JSONField(
         default=dict, blank=True, help_text="{event: lead status key}, e.g. appointment_booked → appointment"
     )
@@ -147,7 +147,9 @@ class CatalogType(TemplateChild):
     key = models.SlugField(max_length=60)
     name = models.CharField(max_length=120)
     item_label = models.CharField(max_length=60, blank=True, help_text="One item, e.g. Property")
-    match_rules = models.JSONField(default=dict, blank=True, help_text="Used by AI matching (Phase 4)")
+    match_rules = models.JSONField(
+        default=dict, blank=True, help_text="How the AI matches catalogue items to a lead's requirement"
+    )
     display = models.JSONField(default=dict, blank=True)
 
     def __str__(self):

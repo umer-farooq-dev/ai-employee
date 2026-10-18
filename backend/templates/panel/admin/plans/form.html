@@ -21,7 +21,7 @@
         <table class="table mb-0"><thead class="table-light"><tr><th>Limit</th><th>Value</th><th>Overage price (₹)</th></tr></thead><tbody>
         {% for label, limit, overage in form.entitlement_rows %}<tr><td>{{ label }}</td><td>{{ limit }}{% for e in limit.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td><td>{{ overage }}</td></tr>{% endfor %}
         </tbody></table>
-        <p class="text-muted small p-3 mb-0">Empty value = not set (no limit). Enforcement is added with usage metering in Phase 7.</p>
+        <p class="text-muted small p-3 mb-0">Empty value = no limit.</p>
     </div></div></div>
 </div>
 </form>

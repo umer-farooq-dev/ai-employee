@@ -372,6 +372,7 @@
 
         // page-progress
         var progressPath = document.querySelector(".progress-wrap path");
+        if (progressPath) {  // pages without the back-to-top button (e.g. sign-up) skip it
         var pathLength = progressPath.getTotalLength();
         progressPath.style.transition = progressPath.style.WebkitTransition =
           "none";
@@ -402,6 +403,7 @@
           jQuery("html, body").animate({ scrollTop: 0 }, duration);
           return false;
         });
+        }
         
 
 

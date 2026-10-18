@@ -1,6 +1,6 @@
 {% extends 'panel/layout-vertical.html' %}
 {% load admin_tags %}
 {# CP-01: same Rizz template as Super Admin, own menu and accent colour (General Settings → company panel colour). #}
-{% block brand_override %}<style>:root{--brand-primary:{{ platform.color_company_panel }};--bs-primary:{{ platform.color_company_panel }};--bs-link-color-rgb:{{ platform.color_company_panel|rgb }};--bs-link-hover-color-rgb:{{ platform.color_company_panel|rgb }}}
+{% block brand_override %}<style>:root{--brand-primary:{{ platform.color_company_panel }};--bs-primary:{{ platform.color_company_panel }};--bs-primary-rgb:{{ platform.color_company_panel|rgb }};--bs-link-color-rgb:{{ platform.color_company_panel|rgb }};--bs-link-hover-color-rgb:{{ platform.color_company_panel|rgb }}}
 .startbar .navbar-nav .nav-link.active,.startbar .navbar-nav .nav-link:hover{color:var(--brand-primary)}</style>{% endblock %}
 {% block sidebar %}{% include 'panel/partials/sidebar-company.html' %}{% endblock sidebar %}

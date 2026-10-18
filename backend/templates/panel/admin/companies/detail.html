@@ -47,7 +47,7 @@
                 {% if company.approved_at %}<dt class="col-5">Approved</dt><dd class="col-7">{{ company.approved_at }} · {{ company.approved_by.email|default:"" }}</dd>{% endif %}
                 {% if company.suspended_at %}<dt class="col-5">Suspended</dt><dd class="col-7">{{ company.suspended_at }} — {{ company.suspended_reason }}</dd>{% endif %}
             </dl>
-            <p class="text-muted small mt-3 mb-0">Usage figures appear here when usage metering is built (Phase 7).</p></div>
+            <p class="text-muted small mt-3 mb-0">Usage figures appear here once billing and usage reports are switched on.</p></div>
         </div>
         {% if company.industry %}
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Industry template</h5></div><div class="card-body">

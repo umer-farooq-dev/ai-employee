@@ -63,7 +63,7 @@ def schema(lead_fields, statuses):
             ),
             f(
                 "enabled_tools",
-                "Enabled tools (tool keys; tool registry in Phase 4)",
+                "Enabled tools (tool keys from Super Admin → AI Tools)",
                 "list",
                 fields=[f("key", "Tool key")],
             ),

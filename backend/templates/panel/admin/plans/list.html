@@ -15,6 +15,6 @@
             <td>{{ p.price_yearly_paise|inr }}</td><td>{{ p.is_public|yesno:"Yes,No" }}</td><td>{{ p.get_status_display }}</td><td>{{ p.companies_count }}</td>
         </tr>{% endfor %}</tbody>
     </table></div>
-    <div class="card-footer text-muted small">Prices and limits are only edited here. Payments (Razorpay) are added in Phase 7.</div>
+    <div class="card-footer text-muted small">Prices and limits are edited here only; the website and the company panels read them live.</div>
 </div>
 {% endblock %}

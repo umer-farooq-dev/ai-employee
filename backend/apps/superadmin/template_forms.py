@@ -97,7 +97,9 @@ class FieldDefinitionForm(BootstrapMixin, forms.ModelForm):
 class CatalogTypeForm(BootstrapMixin, forms.ModelForm):
     title_field = forms.CharField(required=False, help_text="Field key used as the item title, e.g. project_name")
     price_field = forms.CharField(required=False, help_text="Currency field key used as the item price")
-    match_rules_json = _json_field("Matching rules (JSON)", "Used by AI matching in Phase 4")
+    match_rules_json = _json_field(
+        "Matching rules (JSON)", "How the AI matches catalogue items to a lead's requirement"
+    )
 
     class Meta:
         model = CatalogType

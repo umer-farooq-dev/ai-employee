@@ -19,7 +19,7 @@ class EmployeeRole(BaseModel):
     icon = models.CharField(max_length=500, blank=True, help_text="Image URL")
     instructions = models.TextField(blank=True, help_text="Role instructions added to the industry instructions")
     allowed_channels = models.JSONField(default=list, blank=True)
-    allowed_tools = models.JSONField(default=list, blank=True, help_text="Tool keys (tool registry in Phase 4)")
+    allowed_tools = models.JSONField(default=list, blank=True, help_text="Tool keys from Super Admin → AI Tools")
     default_rules = models.JSONField(default=dict, blank=True)
     plan_keys = models.JSONField(default=list, blank=True, help_text="Plans that may use this role; empty = all plans")
     industries = models.ManyToManyField("industries.Industry", blank=True, help_text="Empty = every industry")

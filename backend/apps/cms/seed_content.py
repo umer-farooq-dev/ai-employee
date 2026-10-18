@@ -465,6 +465,84 @@ CONTENT = {
 # Sections that start hidden until the platform team adds real content.
 HIDDEN = {("home", "testimonials")}
 
+# Screenshots of the product itself (static/website/img/product, demo data) in place of the template's sample images.
+# (page, section type, path inside the content, template image, product image); "" hides an optional image.
+P = "/static/website/img/product/"
+PRODUCT_IMAGES = [
+    ("home", "hero", ("main_image",), IMG + "hero/hero9-main.png", P + "dashboard.webp"),
+    *[("home", "hero", ("floating_images", i, "image"), IMG + f"hero/hero9-img{i + 1}.png", "") for i in range(5)],
+    *[
+        ("home", "work", ("cards", i, "image"), IMG + f"work/work2-img{i % 3 + 1}.png", P + shot)
+        for i, shot in enumerate(
+            [
+                f"{s}.webp"
+                for s in (
+                    "calls",
+                    "lead",
+                    "call",
+                    "conversations",
+                    "catalogue",
+                    "tasks",
+                    "conversations",
+                    "leads",
+                    "calendar",
+                )
+            ]
+        )
+    ],
+    *[
+        ("home", "features", ("cards", i, "image"), IMG + f"work/work-prosses7-img{i + 1}.png", P + shot)
+        for i, shot in enumerate(["lead.webp", "calendar.webp", "leads.webp", "tasks.webp", "call.webp"])
+    ],
+    ("home", "benefits", ("centre_image",), IMG + "others/system9-img1.png", P + "dashboard.webp"),
+    ("home", "benefits", ("secondary_image",), IMG + "others/system9-img2.png", ""),
+    ("home", "solution", ("image",), IMG + "others/hr-solution-img.png", P + "employee.webp"),
+    ("about", "solution", ("image",), IMG + "about/about-page-img1.png", P + "calls.webp"),
+    ("site", "cta", ("image",), IMG + "others/cta2-main-img.png", P + "leads.webp"),
+    *[
+        (page, "page_hero", ("image",), IMG + "about/about-main-img.png", P + shot)
+        for page, shot in [
+            ("how-it-works", "employees.webp"),
+            ("ai-employees", "employee.webp"),
+            ("industries", "catalogue.webp"),
+            ("features", "lead.webp"),
+            ("pricing", "dashboard.webp"),
+            ("about", "calls.webp"),
+            ("faq", "knowledge.webp"),
+        ]
+    ],
+    *[
+        ("how-it-works", "steps", ("items", i, "image"), IMG + f"features/features-page-stapes{i % 2 + 1}.png", P + s)
+        for i, s in enumerate(["dashboard.webp", "employee.webp", "knowledge.webp", "calling.webp", "calls.webp"])
+    ],
+    *[
+        ("features", "steps", ("items", i, "image"), IMG + f"features/features-page-stapes{i % 2 + 1}.png", P + s)
+        for i, s in enumerate(
+            ["call.webp", "conversations.webp", "conversations.webp", "calendar.webp", "dashboard.webp"]
+        )
+    ],
+]
+
+
+def apply_product_images(page, section_type, content):
+    """Swap template sample images for product screenshots where the content still has the sample image."""
+    for p_key, s_key, path, old, new in PRODUCT_IMAGES:
+        if (p_key, s_key) != (page, section_type):
+            continue
+        node = content
+        try:
+            for step in path[:-1]:
+                node = node[step]
+            if node[path[-1]] == old:
+                node[path[-1]] = new
+        except (KeyError, IndexError, TypeError):
+            continue
+    return content
+
+
+for (_page, _type), _content in CONTENT.items():
+    apply_product_images(_page, _type, _content)
+
 # SEED industries (MVP: real estate, travel, education). More are added in Super Admin.
 INDUSTRIES = [
     (

@@ -354,7 +354,7 @@ def mark_tested(employee, user=None, request=None):
 
 
 def readiness(employee):
-    """EMP-11 checklist. Channels arrive in Phase 5 (phone) and 6 (WhatsApp, website chat)."""
+    """EMP-11 checklist. Channels: phone now; WhatsApp and website chat join in Phase 6."""
     from apps.knowledge.services import usable_chunks
 
     company = employee.company
@@ -388,9 +388,9 @@ def readiness(employee):
         {
             "key": "channel",
             "label": "Channel connected (phone, WhatsApp or website chat)",
-            "ok": False,
+            "ok": employee.phone_numbers.filter(status="active").exists(),
             "required": False,
-            "help": "Phone numbers arrive in Phase 5, WhatsApp and the website chat widget in Phase 6.",
+            "help": "Connect a phone number in step 7 (Tools). WhatsApp and the website chat widget are coming soon.",
         },
     ]
 

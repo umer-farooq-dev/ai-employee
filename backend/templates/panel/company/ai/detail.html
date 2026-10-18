@@ -36,7 +36,7 @@
             <div class="d-flex justify-content-between"><span>AI credits</span><strong>{{ usage.ai_credits|default:0|floatformat:1 }}</strong></div>
             <div class="d-flex justify-content-between"><span>Input tokens</span><span>{{ usage.ai_input_tokens|default:0|floatformat:0 }}</span></div>
             <div class="d-flex justify-content-between"><span>Output tokens</span><span>{{ usage.ai_output_tokens|default:0|floatformat:0 }}</span></div>
-            <div class="text-muted mt-2">Billing and plan usage arrive in Phase 7.</div>
+            <div class="text-muted mt-2">Billing and plan usage will appear here.</div>
         </div></div>
         <div class="card"><div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">Knowledge</h4><a class="small" href="{% url 'panel:ai_step' employee.pk 'knowledge' %}">Manage</a></div>
             <ul class="list-group list-group-flush small">{% for s in knowledge %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'panel:kb_source' s.pk %}">{{ s.title }}</a><span class="badge {% if s.approval == 'approved' %}bg-success{% else %}bg-light text-dark{% endif %}">{{ s.get_approval_display }}</span></li>{% empty %}<li class="list-group-item text-muted">No knowledge yet.</li>{% endfor %}</ul>

@@ -34,7 +34,7 @@
                 {% for n in numbers %}<option value="{{ n.pk }}" {% if n.employee_id == employee.pk %}selected{% endif %}>{{ n.e164 }}{% if n.label %} · {{ n.label }}{% endif %}{% if n.employee_id and n.employee_id != employee.pk %} (now: {{ n.employee.name }}){% endif %}</option>{% endfor %}
             </select>
             <p class="small text-muted mb-0">Choosing a number that another AI Employee uses moves it to {{ employee.name }}.</p>
-            {% else %}<p class="small text-muted mb-0">Your company has no phone number yet — ask the platform team. WhatsApp and the website chat widget arrive in Phase 6.</p>{% endif %}
+            {% else %}<p class="small text-muted mb-0">Your company has no phone number yet — ask the platform team. WhatsApp and the website chat widget are coming soon.</p>{% endif %}
         </div></div>
     </div>
 </div>
