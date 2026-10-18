@@ -120,3 +120,13 @@ def test_public_endpoints_and_api_log(client):
     assert [p["key"] for p in plans] == ["starter", "business", "pro", "enterprise"]
     assert plans[0]["price_monthly_paise"] == 299900
     assert ApiRequestLog.objects.filter(path="/public/v1/plans/", status=200).exists()
+
+
+@pytest.mark.django_db
+def test_account_phone_endpoint_uses_the_profile_phone(client, owner_a):
+    """allauth's headless phone endpoint used to raise NotImplementedError (500) — the adapter maps User.phone."""
+    owner_a.phone = "+919876543210"
+    owner_a.save()
+    client.force_login(owner_a)
+    r = client.get("/api/v1/auth/browser/v1/account/phone")
+    assert r.status_code == 200 and r.json()["data"] == [{"phone": "+919876543210", "verified": False}]

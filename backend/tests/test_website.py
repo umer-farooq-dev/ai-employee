@@ -143,6 +143,21 @@ def test_seo_robots_sitemap_and_structured_data(client, set_setting):
 
 
 @pytest.mark.django_db
+def test_not_found_page_comes_from_the_cms(client, settings):
+    settings.DEBUG = False
+    from apps.cms.models import Section
+
+    r = client.get("/no-such-page/")
+    assert r.status_code == 404 and "Page not found" in r.content.decode() and "Back to home" in r.content.decode()
+    hero = Section.objects.get(page__key="not-found")
+    hero.content = {**hero.content, "heading": "Lost your way?"}
+    hero.save()
+    assert "Lost your way?" in client.get("/no-such-page/").content.decode()
+    assert client.get("/api/v1/nothing-here/").json()["error"]["code"] == "not_found"
+    assert "/not-found/" not in client.get("/sitemap.xml").content.decode()
+
+
+@pytest.mark.django_db
 def test_accessibility_basics(client):
     html = client.get("/").content.decode()
     assert 'href="#main"' in html and 'id="main"' in html and "prefers-reduced-motion" in html

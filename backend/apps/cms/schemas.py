@@ -332,4 +332,5 @@ SEED_PAGES = [
     ("about", "about", "About", ["page_hero", "solution", "counters", "card_grid"]),
     ("contact", "contact", "Contact / Book a Demo", ["contact"]),
     ("faq", "faq", "FAQ", ["page_hero", "faq"]),
+    ("not-found", "not-found", "Page not found (404)", ["page_hero"]),
 ]

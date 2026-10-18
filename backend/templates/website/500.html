@@ -1,10 +1,24 @@
-{% extends 'website/base.html' %}
-
-{% block title %}Server Error{% endblock title %}
-{% block content %}
-  <h1>Ooops!!! 500</h1>
-  <h3>Looks like something went wrong!</h3>
-  <p>
-    We track these errors automatically, but if the problem persists feel free to contact us. In the meantime, try refreshing.
-  </p>
-{% endblock content %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Something went wrong</title>
+{# Self-contained on purpose: no database, no CMS — this page shows when something failed #}
+<style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f8fb;
+         font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1d2433;padding:16px;box-sizing:border-box}
+    .box{max-width:460px;text-align:center;background:#fff;border-radius:16px;padding:40px 32px;box-shadow:0 10px 30px rgba(20,30,60,.08)}
+    h1{font-size:24px;margin:0 0 12px}
+    p{color:#5b6475;line-height:1.6;margin:0 0 24px}
+    a{display:inline-block;background:#0f9b8e;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="box">
+    <h1>Something went wrong</h1>
+    <p>We have been notified and are looking into it. Please try again in a moment.</p>
+    <a href="/">Back to home</a>
+</div>
+</body>
+</html>

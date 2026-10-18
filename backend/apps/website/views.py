@@ -36,6 +36,27 @@ def page(request, slug=""):
     return _render(request, "website/page.html", context)
 
 
+NOT_FOUND_PAGE = "not-found"
+
+
+def not_found(request, exception=None):
+    """handler404: the "Page not found" CMS page (Super Admin → Website), with the site header and footer."""
+    if request.path.startswith(("/api/", "/public/")):
+        from django.http import JsonResponse
+
+        return JsonResponse({"error": {"code": "not_found", "message": "Not found."}}, status=404)
+    try:
+        context = services.page_context(NOT_FOUND_PAGE)
+    except Page.DoesNotExist:
+        return HttpResponse("Page not found", status=404, content_type="text/plain")
+    return _render(request, "website/page.html", context, status=404)
+
+
+def server_error(request):
+    """handler500: a self-contained page — the database may be the thing that failed."""
+    return render(request, "website/500.html", status=500)
+
+
 def industry(request, key):
     item = get_object_or_404(Industry, key=key, is_active=True)
     return _render(request, "website/industry.html", {"industry": item})
@@ -72,6 +93,6 @@ def robots(request):
 def sitemap(request):
     urls = [
         request.build_absolute_uri(reverse("website:page", args=[p.slug]) if p.slug else "/")
-        for p in Page.objects.exclude(slug=services.SITE_PAGE)
+        for p in Page.objects.exclude(slug__in=[services.SITE_PAGE, NOT_FOUND_PAGE])
     ] + [request.build_absolute_uri(reverse("website:industry", args=[i.key])) for i in services.active_industries()]
     return render(request, "website/sitemap.xml", {"urls": urls}, content_type="application/xml")

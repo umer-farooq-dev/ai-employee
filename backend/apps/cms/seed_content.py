@@ -229,6 +229,13 @@ CONTENT = {
         )
     },
     # ---------------------------------------------------------------- inner pages
+    ("not-found", "page_hero"): {
+        "heading": "Page not found",
+        "paragraph": "The page you are looking for has moved or does not exist.",
+        "button": {"label": "Back to home", "url": "/"},
+        "button2": DEMO,
+        "image": "",
+    },
     ("how-it-works", "page_hero"): {
         "heading": "How It Works",
         "paragraph": "From registration to a working AI Employee in a few simple steps.",

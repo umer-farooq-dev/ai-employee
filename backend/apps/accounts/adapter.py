@@ -56,6 +56,24 @@ class AccountAdapter(DefaultAccountAdapter):
             return redirect("account_login")
         return super().pre_login(request, user, **kwargs)
 
+    # allauth phone hooks (headless account/phone endpoint) mapped onto User.phone / phone_verified_at
+    def get_phone(self, user):
+        return (user.phone, user.phone_verified_at is not None) if user.phone else None
+
+    def set_phone(self, user, phone, verified):
+        from django.utils import timezone
+
+        user.phone, user.phone_verified_at = phone, timezone.now() if verified else None
+        user.save(update_fields=["phone", "phone_verified_at"])
+
+    def set_phone_verified(self, user, phone):
+        self.set_phone(user, phone, True)
+
+    def get_user_by_phone(self, phone):
+        from apps.accounts.models import User
+
+        return User.objects.filter(phone=phone).order_by("-phone_verified_at").first()
+
     def get_from_email(self):
         return mail.from_email()
 

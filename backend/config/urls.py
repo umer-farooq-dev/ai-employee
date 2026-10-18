@@ -19,6 +19,9 @@ urlpatterns = [
     path("", include("apps.website.urls")),  # last: CMS pages are matched by slug
 ]
 
+handler404 = "apps.website.views.not_found"
+handler500 = "apps.website.views.server_error"
+
 if settings.DEBUG:
     from django.conf.urls.static import static
 
