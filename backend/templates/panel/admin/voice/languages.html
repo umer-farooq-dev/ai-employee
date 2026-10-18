@@ -9,6 +9,8 @@
     .lv-section h6{font-size:14px;margin-bottom:12px}
     #voice-table audio{height:32px;max-width:220px}
     #language-modal .nav-link{font-size:14px}
+    #language-modal .modal-header,#voice-modal .modal-header,#import-modal .modal-header{background:#fff}
+    #language-modal .modal-title,#voice-modal .modal-title,#import-modal .modal-title{color:var(--bs-heading-color,#101537)}
 </style>
 {% endblock %}
 {% block page_content %}
@@ -219,6 +221,7 @@
     function hide(id) { $(id).className = "alert py-2 small d-none"; }
     function provider(id) { return D.providers.find(function (p) { return p.id === id || p.key === id; }); }
     function offers(cap) { return D.providers.filter(function (p) { return p.capabilities.indexOf(cap) >= 0; }); }
+    function modelsFor(p, kind) { return p.available_models.filter(function (m) { return !m.kind || m.kind === kind; }); }
     function langName(code) { var l = D.languages.find(function (x) { return x.code === code; }); return l ? l.name : code; }
 
     // ---------------------------------------------------------------- languages table
@@ -266,7 +269,7 @@
         var host = $("lm-" + kind + "-rows");
         host.innerHTML = draft[kind].map(function (r, i) {
             var p = provider(r.provider);
-            var models = p ? p.available_models : [];
+            var models = p ? modelsFor(p, kind) : [];
             var voices = kind === "tts" ? D.voices.filter(function (v) { return p && v.provider === p.key && currentLang && v.language === currentLang.code; }) : [];
             return '<div class="row g-2 align-items-end mb-3 pb-3 border-bottom" data-row="' + i + '" data-kind="' + kind + '">' +
                 '<div class="col-12 small fw-semibold">' + (i === 0 ? "1. Primary" : (i + 1) + ". Fallback") + "</div>" +
@@ -288,8 +291,8 @@
             var r = draft[kind][+row.dataset.row], f = e.target.dataset.f;
             if (f === "provider") {
                 r.provider = e.target.value;
-                var p = provider(r.provider);
-                r.model = p && p.available_models.length ? p.available_models[0].id : "";
+                var p = provider(r.provider), usable = p ? modelsFor(p, kind) : [];
+                r.model = usable.length ? usable[0].id : "";
                 var v = D.voices.find(function (x) { return p && x.provider === p.key && x.language === currentLang.code; });
                 r.voice = v ? v.id : "";
                 routeRows(kind);

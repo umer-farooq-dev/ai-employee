@@ -249,6 +249,12 @@ def test_speech_routes_validate_capability_voice_and_fail_over_in_order(admin_cl
     )
     assert r.status_code == 400 and "voice" in r.json()["error"]["details"][0]
     anushka = Voice.objects.get(provider__key="sarvam", language=hi, provider_voice_id="anushka")
+    r = admin_client.put(
+        url,
+        {"kind": "tts", "routes": [{"provider": "sarvam", "model": "saarika:v2.5", "voice": str(anushka.pk)}]},
+        "application/json",
+    )
+    assert r.status_code == 400 and "text-to-speech model" in r.json()["error"]["details"][0]  # an STT model
     kokoro_en = Voice.objects.get(provider__key="kokoro-local", language__code="en")
     r = admin_client.put(
         url,

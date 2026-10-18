@@ -72,7 +72,7 @@
                     <div class="vendor-logo" id="pm-logo"></div>
                     <div>
                         <h5 class="modal-title mb-1" id="pm-title"></h5>
-                        <div class="text-muted small">Configure the API key and models for this vendor.</div>
+                        <div class="text-muted small" id="pm-subtitle">Configure the API key and models for this vendor.</div>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -178,7 +178,7 @@
     var grid = document.getElementById("vendor-grid");
     var pmEl = document.getElementById("provider-modal"), rmEl = document.getElementById("route-modal");
     var pm = new bootstrap.Modal(pmEl), rm = new bootstrap.Modal(rmEl);
-    var current = null, currentModels = [], currentTask = null;
+    var current = null, currentModels = [], hiddenModels = [], currentTask = null;
 
     function $(id) { return document.getElementById(id); }
     function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
@@ -290,13 +290,22 @@
         $("pm-models").innerHTML = currentModels.length ? currentModels.map(function (m, i) {
             return "<tr><td class=\"text-break\"><code>" + esc(m.id) + "</code></td>" +
                 '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="input_cost" data-i="' + i + '" value="' + (m.input_cost || 0) + '" aria-label="Input price for ' + esc(m.id) + '"></td>' +
-                (VOICE ? "" : '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="output_cost" data-i="' + i + '" value="' + (m.output_cost || 0) + '" aria-label="Output price for ' + esc(m.id) + '"></td>') +
+                (VOICE
+                    ? '<td><select class="form-select form-select-sm" data-kind="' + i + '" aria-label="Type of ' + esc(m.id) + '">' +
+                        [["", "Both"], ["stt", "STT"], ["tts", "TTS"]].map(function (o) { return '<option value="' + o[0] + '"' + ((m.kind || "") === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></td>"
+                    : '<td><input type="number" min="0" step="any" class="form-control form-control-sm" data-cost="output_cost" data-i="' + i + '" value="' + (m.output_cost || 0) + '" aria-label="Output price for ' + esc(m.id) + '"></td>') +
                 '<td><button type="button" class="btn btn-sm btn-link text-danger p-0" data-remove="' + i + '" aria-label="Remove ' + esc(m.id) + '"><i class="iconoir-xmark"></i></button></td></tr>';
         }).join("") : '<tr><td colspan="4" class="text-muted small">No models yet. Save the key, then load the list from the provider, or type a model name.</td></tr>';
     }
     $("pm-models").addEventListener("input", function (e) {
         var el = e.target.closest("[data-cost]");
         if (el) currentModels[+el.dataset.i][el.dataset.cost] = parseFloat(el.value) || 0;
+    });
+    $("pm-models").addEventListener("change", function (e) {
+        var el = e.target.closest("[data-kind]");
+        if (!el) return;
+        var m = currentModels[+el.dataset.kind];
+        if (el.value) m.kind = el.value; else delete m.kind;
     });
     $("pm-models").addEventListener("click", function (e) {
         var b = e.target.closest("[data-remove]");
@@ -332,8 +341,9 @@
         var speech = caps.indexOf("stt") >= 0 || caps.indexOf("tts") >= 0;
         $("pm-models-section").classList.toggle("d-none", VOICE && !speech);
         $("pm-load-text").textContent = VOICE ? "Save & test connection" : "Save & load models from provider";
+        $("pm-subtitle").textContent = VOICE ? "Configure the key, account details and models for this vendor." : "Configure the API key and models for this vendor.";
         $("pm-price-in").textContent = VOICE ? "Price" : "Input price";
-        document.querySelectorAll(".pm-out").forEach(function (el) { el.classList.toggle("d-none", VOICE); });
+        document.querySelectorAll(".pm-out").forEach(function (el) { el.textContent = VOICE ? "Type" : "Output price"; });
         $("pm-price-help").innerHTML = VOICE
             ? 'Speech-to-text models: price per minute. Voice (text-to-speech) models: price per 1 million characters (<span class="ai-currency"></span>). Used for cost reports.'
             : 'Only models added here can be chosen for a task. Prices are per 1 million tokens (<span class="ai-currency"></span>), used for cost reports.';
@@ -368,7 +378,11 @@
         $("pm-order").value = p.sort_order;
         $("pm-test-only").checked = p.test_only;
         $("pm-delete").classList.toggle("d-none", isNew);
-        currentModels = p.available_models.map(function (m) { return Object.assign({}, m); });
+        // each page edits its own models (LLM here, speech on Voice Settings); the others are kept as they are
+        var llm = p.capabilities.some(function (c) { return c === "chat" || c === "embedding"; });
+        var mine = function (m) { return VOICE ? (!!m.kind || !llm) : !m.kind; };
+        currentModels = p.available_models.filter(mine).map(function (m) { return Object.assign({}, m); });
+        hiddenModels = p.available_models.filter(function (m) { return !mine(m); });
         $("pm-model-options").innerHTML = ""; $("pm-model-count").textContent = "";
         applyVendor(p, p.vendor);
         healthAlert(current);
@@ -394,7 +408,7 @@
             logo: $("pm-logo-url").value.trim(),
             sort_order: parseInt($("pm-order").value, 10) || 0,
             test_only: $("pm-test-only").checked,
-            available_models: currentModels
+            available_models: hiddenModels.concat(currentModels)
         };
         if (VOICE) {
             body.vendor = $("pm-vendor").value;
@@ -494,8 +508,9 @@
     function modelOptions(providerId, selected) {
         var p = byId(providerId);
         if (!p) return '<option value="">—</option>';
-        if (!p.available_models.length) return '<option value="">Add models to ' + esc(p.name) + " first</option>";
-        return p.available_models.map(function (m) { return '<option value="' + esc(m.id) + '"' + (m.id === selected ? " selected" : "") + ">" + esc(m.id) + "</option>"; }).join("");
+        var llmModels = p.available_models.filter(function (m) { return !m.kind; });
+        if (!llmModels.length) return '<option value="">Add models to ' + esc(p.name) + " first</option>";
+        return llmModels.map(function (m) { return '<option value="' + esc(m.id) + '"' + (m.id === selected ? " selected" : "") + ">" + esc(m.id) + "</option>"; }).join("");
     }
     function renderDraft() {
         $("rm-rows").innerHTML = draft.map(function (r, i) {
@@ -524,7 +539,8 @@
         if (f === "provider") {
             r.provider = e.target.value;
             var p = byId(r.provider);
-            r.model = p && p.available_models.length ? p.available_models[0].id : "";
+            var first = p ? p.available_models.filter(function (m) { return !m.kind; })[0] : null;
+            r.model = first ? first.id : "";
             renderDraft();
         } else if (f === "model") { r.model = e.target.value; }
     });

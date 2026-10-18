@@ -60,6 +60,7 @@ class AIModelSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=200)
     input_cost = serializers.FloatField(min_value=0, required=False, default=0)
     output_cost = serializers.FloatField(min_value=0, required=False, default=0)
+    kind = serializers.ChoiceField(choices=["stt", "tts"], required=False)
 
 
 class ProviderSerializer(serializers.ModelSerializer):

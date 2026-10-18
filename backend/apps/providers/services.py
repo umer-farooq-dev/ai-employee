@@ -49,7 +49,7 @@ def _adapter(provider):
 
 
 def _clean_models(rows):
-    """[{"id", "input_cost", "output_cost"}], ids unique, costs ≥ 0."""
+    """[{"id", "input_cost", "output_cost"[, "kind"]}], ids unique, costs ≥ 0; kind = stt / tts for speech models."""
     out, seen = [], set()
     for row in rows or []:
         row = row if isinstance(row, dict) else {"id": row}
@@ -61,7 +61,8 @@ def _clean_models(rows):
             costs = {k: max(float(row.get(k) or 0), 0.0) for k in ("input_cost", "output_cost")}
         except (TypeError, ValueError):
             raise ValidationError(f"{model_id}: prices must be numbers.") from None
-        out.append({"id": model_id, **costs})
+        kind = {"kind": row["kind"]} if row.get("kind") in ("stt", "tts") else {}
+        out.append({"id": model_id, **costs, **kind})
     return out
 
 
@@ -85,7 +86,8 @@ def _validate(provider):
     if production() and provider.test_only and provider.is_active:
         raise ValidationError("Test-only providers cannot be switched on in production.")
     if provider.is_active and not provider.api_key and not local and vendors.needs_key(provider):
-        raise ValidationError("Add the API key before switching this provider on.")
+        label = (vendors.spec(provider) or {}).get("secret") or "API key"
+        raise ValidationError(f"Add the {label} before switching this provider on.")
     if provider.is_active and vendors.missing_config(provider):
         raise ValidationError(f"Fill in {', '.join(vendors.missing_config(provider))} before switching on.")
 
@@ -186,7 +188,7 @@ def save_routes(task, rows, user=None, request=None):
         if need not in provider.capabilities:
             raise ValidationError(f"Row {i}: {provider.name} does not offer {dict(CAPABILITIES)[need].lower()}.")
         model = str(row.get("model", "")).strip()
-        if model not in provider.model_ids:
+        if model not in [m["id"] for m in provider.available_models if not m.get("kind")]:  # speech models excluded
             raise ValidationError(f"Row {i}: add the model {model or '(empty)'} to {provider.name} first.")
         params = row.get("params") or {}
         if not isinstance(params, dict):
@@ -353,8 +355,10 @@ def save_speech_routes(language, kind, rows, user=None, request=None):
         except ValidationError as exc:
             raise ValidationError(f"Row {i}: {exc.messages[0]}") from None
         model = str(row.get("model", "")).strip()
-        if provider.available_models and model not in provider.model_ids:
-            raise ValidationError(f"Row {i}: add the model {model or '(empty)'} to {provider.name} first.")
+        usable = [m["id"] for m in provider.available_models if m.get("kind", kind) == kind]
+        if provider.available_models and model not in usable:
+            label = dict(SpeechRoute.KINDS)[kind].lower()
+            raise ValidationError(f"Row {i}: add the {label} model {model or '(empty)'} to {provider.name} first.")
         voice = None
         if kind == "tts":
             voice = Voice.objects.filter(pk=_uuid(str(row.get("voice") or "")), provider=provider).first()
