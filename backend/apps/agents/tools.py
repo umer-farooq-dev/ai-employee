@@ -275,6 +275,20 @@ def assign_salesperson(ctx, tool, args):
     return {"assigned": True, "salesperson": person.split(" ")[0]}
 
 
+def transfer_call(ctx, tool, args):
+    """TOOL-08 / VOICE-11: hand the live call to a person. The Voice Gateway connects the caller after the AI's
+    sentence (warm transfer); routing, no-agent handling and the log are in apps.voice.handoff."""
+    if not (ctx.conversation.state or {}).get("voice"):
+        raise ToolError("Transfers work on phone calls only; use assign_salesperson in chats.")
+    reason = str(args.get("reason") or "").strip()[:200] or "Customer asked for a person"
+    ctx.conversation.state = {
+        **(ctx.conversation.state or {}),
+        "transfer": {"reason": "customer_request", "detail": reason},
+    }
+    ctx.conversation.save(update_fields=["state", "updated_at"])
+    return {"transferring": True, "say": "Tell the customer in one short sentence that you are connecting them now."}
+
+
 def schedule_callback(ctx, tool, args):
     lead = _need_lead(ctx)
     when = None
@@ -667,6 +681,7 @@ HANDLERS = {
         lambda ctx, t: _s({"appointment_number": {"type": "string"}, "reason": {"type": "string"}}, ["reason"]),
     ),
     "assign_salesperson": (assign_salesperson, lambda ctx, t: _s({"reason": {"type": "string"}}, ["reason"])),
+    "transfer_call": (transfer_call, lambda ctx, t: _s({"reason": {"type": "string"}}, ["reason"])),
     "schedule_callback": (
         schedule_callback,
         lambda ctx, t: _s({"when": {"type": "string"}, "message": {"type": "string"}}, ["message"]),
@@ -726,7 +741,10 @@ def enabled(employee):
 def definitions(ctx, tools):
     """What the model sees (layer 8 of the prompt)."""
     out = []
+    voice = bool((ctx.conversation.state or {}).get("voice"))
     for tool in tools:
+        if tool.handler == "transfer_call" and not voice:  # only offered on calls
+            continue
         schema = _schema_or_none(ctx, tool)
         if schema is not None:
             out.append({"name": tool.key, "description": tool.description, "parameters": schema})

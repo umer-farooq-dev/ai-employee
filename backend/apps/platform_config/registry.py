@@ -37,6 +37,7 @@ GROUPS = {
     "knowledge": ("system", "Knowledge base"),
     "calling": ("system", "Calling"),
     "voice": ("system", "Voice conversations"),
+    "handoff": ("system", "Human handoff"),
     "retention": ("system", "Data retention"),
 }
 
@@ -508,6 +509,36 @@ SETTINGS = [
         "voice",
         min=200,
         max=20000,
+    ),
+    # Human handoff (HO-01 … HO-04)
+    Setting(
+        "handoff.agent_ring_seconds",
+        "number",
+        25,
+        "Ring an agent for (seconds) before trying the next",
+        "handoff",
+        min=5,
+        max=120,
+    ),
+    Setting("handoff.max_agents", "number", 3, "Agents tried per handoff (max)", "handoff", min=1, max=10),
+    Setting(
+        "handoff.repeat_failures",
+        "number",
+        2,
+        "Hand over after the AI could not answer this many times in a row",
+        "handoff",
+        help="0 = off",
+        min=0,
+        max=10,
+    ),
+    Setting(
+        "handoff.callback_minutes",
+        "number",
+        30,
+        "No agent free: callback task due in (minutes)",
+        "handoff",
+        min=0,
+        max=10080,
     ),
     # D. Retention (REC-03, COMP-06). Companies may choose shorter.
     Setting("retention.recordings_days", "number", 90, "Keep call recordings (days)", "retention", min=1, max=3650),

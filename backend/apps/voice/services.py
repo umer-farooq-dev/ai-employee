@@ -390,6 +390,55 @@ def start_browser_test(employee, language="", user=None, request=None):
     return call, f"{settings.VOICE_GATEWAY_URL}/browser?{query}"
 
 
+RECORDING_SALT = "call-recording"
+
+
+def recording_link(call, user, download=False, request=None, platform=False):
+    """VOICE-12 / REC-03: listen / download link for an allowed user; every access is audited."""
+    from django.core import signing
+    from django.urls import reverse
+
+    if call.recording_status != "stored":
+        raise ValidationError("This call has no stored recording (not recorded, or deleted by the retention rule).")
+    action = "recording.download" if download else "recording.listen"
+    record(
+        request, action, "call", str(call.pk), {"platform": platform}, user, company=call.company, category="security"
+    )
+    token = signing.dumps({"c": str(call.pk), "d": bool(download)}, salt=RECORDING_SALT)
+    return reverse("voice:recording", args=[token])
+
+
+def apply_retention(now=None):
+    """REC-03 / COMP-06 (cron, daily): recordings and transcripts older than the company's retention days are
+    deleted (the summary, extracted fields and score stay)."""
+    from apps.agents.models import Message
+    from apps.core.storage import private_storage
+    from apps.tenancy.models import Company
+
+    now = now or timezone.now()
+    removed = {"recordings": 0, "transcripts": 0}
+    with platform_context():
+        companies = list(Company.objects.filter(deleted_at__isnull=True))
+    for company in companies:
+        rules = policy(company)
+        with company_context(company.id):
+            old = Call.objects.filter(
+                company=company, recording_status="stored", ended_at__lt=now - timedelta(days=rules["recordings_days"])
+            )
+            for call in old:
+                if call.recording_key and private_storage.exists(call.recording_key):
+                    private_storage.delete(call.recording_key)
+                call.recording_key, call.recording_status = "", "deleted"
+                call.save(update_fields=["recording_key", "recording_status", "updated_at"])
+                removed["recordings"] += 1
+            cutoff = now - timedelta(days=rules["transcripts_days"])
+            n, _ = Message.objects.filter(
+                company=company, conversation__channel="voice", conversation__ended_at__lt=cutoff
+            ).delete()
+            removed["transcripts"] += n
+    return removed
+
+
 def employee_max_minutes(employee):
     own = (employee.rules or {}).get("max_call_minutes")
     platform = setting("calling.max_call_minutes")

@@ -1,0 +1,73 @@
+{# HO-03: agent availability (topbar) and the live handoff screen pop — polled from /api/v1/handoffs/live/. #}
+<li class="dropdown topbar-item">
+    <a class="nav-link dropdown-toggle arrow-none nav-icon" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false" title="Your availability for handoffs" id="hp-avail-btn">
+        <span class="d-inline-flex align-items-center gap-1 small fw-medium"><i class="hp-dot" id="hp-dot"></i><span id="hp-avail-label" class="d-none d-md-inline"></span></span>
+    </a>
+    <div class="dropdown-menu dropdown-menu-end py-1" aria-labelledby="hp-avail-btn">
+        <h6 class="dropdown-header">Receive live handoffs</h6>
+        <button class="dropdown-item" type="button" data-avail="online"><i class="hp-dot online me-2"></i>Online</button>
+        <button class="dropdown-item" type="button" data-avail="away"><i class="hp-dot away me-2"></i>Away</button>
+        <button class="dropdown-item" type="button" data-avail="offline"><i class="hp-dot offline me-2"></i>Offline</button>
+        <div class="dropdown-divider"></div>
+        <span class="dropdown-item-text small text-muted" style="max-width:240px">Calls are transferred to the phone number in your profile.</span>
+    </div>
+</li>
+<style>
+    .hp-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#adb5bd}
+    .hp-dot.online{background:#22c55e}.hp-dot.away{background:#f59e0b}.hp-dot.offline{background:#adb5bd}
+    #hp-pop{position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 32px);z-index:1080}
+    #hp-pop .card{border-radius:14px;box-shadow:0 12px 32px rgba(16,21,55,.18);border:1px solid var(--bs-border-color)}
+</style>
+<div id="hp-pop" class="d-none" role="alertdialog" aria-live="assertive" aria-labelledby="hp-title"></div>
+<script>
+(function () {
+    "use strict";
+    var TOKEN = "{{ csrf_token }}", ME = "{% url 'api:me' %}", LIVE = "{% url 'api:handoffs-live' %}", BASE = "{% url 'api:handoffs-list' %}";
+    var LEAD = "{% url 'panel:lead_list' %}", LABELS = {online: "Online", away: "Away", offline: "Offline"};
+    var current = "{{ request.user.availability }}", shown = {};
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function req(method, url, body) {
+        return fetch(url, {method: method, credentials: "same-origin", headers: {"X-CSRFToken": TOKEN, "Content-Type": "application/json", "Accept": "application/json"},
+            body: body ? JSON.stringify(body) : undefined}).then(function (r) { return r.ok ? r.json() : Promise.reject(r); });
+    }
+    function paint() {
+        document.getElementById("hp-dot").className = "hp-dot " + current;
+        document.getElementById("hp-avail-label").textContent = LABELS[current] || "";
+    }
+    document.querySelectorAll("[data-avail]").forEach(function (b) {
+        b.addEventListener("click", function () {
+            var v = b.dataset.avail;
+            req("PATCH", ME, {availability: v}).then(function () { current = v; paint(); });
+        });
+    });
+    function pop(h) {
+        var score = h.lead_score && h.lead_score.label ? " · " + esc(h.lead_score.label.toUpperCase()) + " " + esc(h.lead_score.value) : "";
+        var req2 = Object.keys(h.requirement || {}).slice(0, 4).map(function (k) { return esc(k.replace(/_/g, " ")) + ": " + esc(h.requirement[k]); }).join("<br>");
+        var el = document.getElementById("hp-pop");
+        el.innerHTML = '<div class="card"><div class="card-body">' +
+            '<div class="d-flex justify-content-between align-items-start mb-2"><div><span class="badge bg-danger-subtle text-danger mb-1"><i class="iconoir-phone-income"></i> Live handoff</span>' +
+            '<h6 class="mb-0" id="hp-title">' + esc(h.lead_name || "Customer") + (h.lead_reference ? ' <span class="text-muted small">' + esc(h.lead_reference) + "</span>" : "") + score + "</h6>" +
+            '<div class="small text-muted">from ' + esc(h.employee_name) + " · " + esc(h.reason_label) + "</div></div>" +
+            '<button type="button" class="btn-close" aria-label="Hide" data-hide></button></div>' +
+            '<p class="small mb-2">' + esc(h.summary) + "</p>" + (req2 ? '<p class="small text-muted mb-2">' + req2 + "</p>" : "") +
+            '<div class="d-flex gap-2">' + (h.lead ? '<a class="btn btn-sm btn-light" href="' + LEAD + h.lead + '/">Open lead</a>' : "") +
+            '<button class="btn btn-sm btn-primary" type="button" data-accept="' + h.id + '">' + (h.status === "ringing" ? "I've got it" : "OK") + "</button></div></div></div>";
+        el.classList.remove("d-none");
+    }
+    document.getElementById("hp-pop").addEventListener("click", function (e) {
+        var a = e.target.closest("[data-accept]");
+        if (a) req("POST", BASE + a.dataset.accept + "/accept/").finally(function () { document.getElementById("hp-pop").classList.add("d-none"); });
+        if (e.target.closest("[data-hide]")) document.getElementById("hp-pop").classList.add("d-none");
+    });
+    function poll() {
+        if (document.hidden || current === "offline") return;
+        req("GET", LIVE).then(function (rows) {
+            var fresh = rows.find(function (h) { return !shown[h.id]; });
+            if (fresh) { shown[fresh.id] = true; pop(fresh); }
+        }).catch(function () { /* signed out or offline */ });
+    }
+    paint();
+    setInterval(poll, 5000);
+    poll();
+})();
+</script>

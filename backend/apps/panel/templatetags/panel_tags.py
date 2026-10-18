@@ -6,6 +6,16 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
+def company_can(context, key):
+    """{% company_can "handoffs.receive" as allowed %} — a company permission of the signed-in user."""
+    from apps.rbac.services import has_perm
+
+    request = context["request"]
+    company = getattr(request, "company", None)
+    return bool(company and has_perm(request.user, key, company))
+
+
+@register.simple_tag(takes_context=True)
 def company_menu(context):
     """{% company_menu as items %} — sidebar items for the signed-in user's role and plan (CP-02)."""
     request = context["request"]

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static panel_tags %}
 <div class="topbar d-print-none">
     <div class="container-xxl">
         <nav class="topbar-custom d-flex justify-content-between" id="topbar-custom">
@@ -23,6 +23,7 @@
                     </form>
                 </li>
                 {% endif %}
+                {% if request.company and not request.user.is_staff %}{% company_can "handoffs.receive" as receives %}{% if receives %}{% include 'panel/partials/handoff_pop.html' %}{% endif %}{% endif %}
                 <li class="dropdown topbar-item">
                     <a class="nav-link dropdown-toggle arrow-none nav-icon" data-bs-toggle="dropdown" href="#" role="button"
                        aria-haspopup="false" aria-expanded="false">

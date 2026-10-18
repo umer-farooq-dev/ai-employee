@@ -98,6 +98,17 @@ TOOLS = [
         "Hand the lead to a human salesperson using the company's assignment rules (hot or escalated leads).",
     ),
     (
+        "transfer_call",
+        "Transfer call",
+        LEAD,
+        "transfer_call",
+        "external",
+        {},
+        [],
+        "On a phone call, connect the customer to a human agent when they ask for a person or you cannot help. "
+        "Say one short sentence first (e.g. you are connecting them).",
+    ),
+    (
         "schedule_callback",
         "Schedule callback",
         LEAD,
@@ -210,6 +221,7 @@ GENERIC = [
     "reschedule_appointment",
     "cancel_appointment",
     "assign_salesperson",
+    "transfer_call",
     "schedule_callback",
     "send_email",
 ]

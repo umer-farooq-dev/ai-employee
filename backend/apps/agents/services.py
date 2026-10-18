@@ -113,6 +113,11 @@ def clean_rules(company, rules):
             raise ValidationError("Maximum call duration must be a number of minutes.") from None
     if "recording" in rules:
         out["recording"] = bool(rules["recording"])
+    for key in ("handoff_on_knowledge_gap", "handoff_on_hot_lead"):  # HO-01 configurable triggers
+        if key in rules:
+            out[key] = bool(rules[key])
+    if "handoff_keywords" in rules:
+        out["handoff_keywords"] = _lines(rules["handoff_keywords"])[:30]
     if "working_hours" in rules:
         from apps.tenancy.profile import clean_business_hours
 

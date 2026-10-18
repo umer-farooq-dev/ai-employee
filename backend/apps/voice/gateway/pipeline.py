@@ -122,6 +122,7 @@ class AgentBrain(FrameProcessor):
         self.language = s.language
         self.parts, self.pending, self.stale = [], None, set()
         self.closing = False
+        self.after_speech = None
 
     def phrase(self, key):
         texts = self.s.phrases.get(self.language) or next(iter(self.s.phrases.values()))
@@ -160,6 +161,9 @@ class AgentBrain(FrameProcessor):
             self.stats.bot_started()
         elif isinstance(frame, BotStoppedSpeakingFrame):
             self.stats.bot_speaking = False
+            if self.after_speech:  # e.g. connect the agent once the caller heard "connecting you"
+                action, self.after_speech = self.after_speech, None
+                self.create_task(action())
         elif isinstance(frame, ErrorFrame) and direction == FrameDirection.UPSTREAM:
             self.stats.errors.append({"stage": getattr(frame.processor, "name", ""), "error": str(frame.error)[:200]})
         if isinstance(frame, UserStartedSpeakingFrame) and direction == FrameDirection.DOWNSTREAM:
@@ -194,8 +198,29 @@ class AgentBrain(FrameProcessor):
             return
         self.stats.mark("llm_ms", (time.monotonic() - t0) * 1000)
         await self.speak(result["text"], result.get("language"))
-        if result.get("ended"):
+        if result.get("transfer"):
+            await self.transfer(result["transfer"])
+        elif result.get("ended"):
             await self.end_call("ai", goodbye=False)
+
+    async def transfer(self, request):
+        """TOOL-08 / VOICE-11 / HO-04: route to an agent; connect after the current sentence, or say no agent."""
+        from .. import handoff
+
+        out = await sync_to_async(handoff.start_transfer, thread_sensitive=False)(
+            self.s.call_id, request.get("reason", "customer_request"), request.get("detail", "")
+        )
+        if out["status"] == "no_agent":
+            await self.say_and_note("no_agent")
+            return
+        if request.get("reason") != "customer_request":  # a rule triggered it: the AI did not announce it
+            await self.say_and_note("transfer")
+        if out["status"] == "simulated":
+            await self.show("system", "Test call: the agent was alerted; a real call would be connected now.")
+            await self.end_call("ai", goodbye=False)
+            return
+        url, call_id = out["transfer_url"], self.s.call_id
+        self.after_speech = lambda: sync_to_async(handoff.redirect, thread_sensitive=False)(call_id, url)
 
     async def _filler(self):
         await asyncio.sleep(self.tuning["filler_after_ms"] / 1000)

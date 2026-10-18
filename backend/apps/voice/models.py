@@ -143,6 +143,64 @@ class Call(TenantModel):
         return self.to_e164 if self.direction == "outbound" else self.from_e164
 
 
+class Handoff(TenantModel):
+    """HO-01 … HO-05: the AI hands a live conversation to a person — why, who was tried, how fast, the outcome."""
+
+    PENDING, RINGING, ACCEPTED, MISSED, NO_AGENT, COMPLETED, FAILED = (
+        "pending",
+        "ringing",
+        "accepted",
+        "missed",
+        "no_agent",
+        "completed",
+        "failed",
+    )
+    STATUSES = [
+        (PENDING, "Waiting for an agent"),
+        (RINGING, "Ringing the agent"),
+        (ACCEPTED, "Agent joined"),
+        (MISSED, "Agent did not answer"),
+        (NO_AGENT, "No agent available"),
+        (COMPLETED, "Completed"),
+        (FAILED, "Failed"),
+    ]
+    REASONS = [
+        ("customer_request", "Customer asked for a person"),
+        ("knowledge_gap", "Question outside approved knowledge"),
+        ("hot_lead", "Hot lead"),
+        ("keyword", "Keyword said"),
+        ("repeated_failure", "AI did not understand repeatedly"),
+        ("ai_decision", "AI escalated"),
+    ]
+
+    conversation = models.ForeignKey("agents.Conversation", on_delete=models.CASCADE, related_name="handoffs")
+    call = models.ForeignKey(Call, null=True, blank=True, on_delete=models.SET_NULL, related_name="handoffs")
+    lead = models.ForeignKey("crm.Lead", null=True, blank=True, on_delete=models.SET_NULL, related_name="handoffs")
+    channel = models.CharField(max_length=10, default="voice")
+    mode = models.CharField(max_length=5, default="warm", help_text="warm (agent hears a summary first) / cold")
+    reason = models.CharField(max_length=20, choices=REASONS, default="customer_request")
+    detail = models.CharField(max_length=300, blank=True)
+    summary = models.TextField(blank=True, help_text="HO-03 what the agent sees / hears at the moment of transfer")
+    status = models.CharField(max_length=10, choices=STATUSES, default=PENDING, db_index=True)
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="handoffs"
+    )
+    tried_user_ids = models.JSONField(default=list, blank=True)
+    candidates = models.JSONField(default=list, blank=True, help_text="Agents in routing order (user ids)")
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    seen_at = models.DateTimeField(null=True, blank=True, help_text="Screen pop shown to the agent")
+    callback_task = models.ForeignKey("crm.Task", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["company", "assigned_user", "status"])]
+
+    @property
+    def seconds_to_answer(self):
+        return int((self.accepted_at - self.created_at).total_seconds()) if self.accepted_at else None
+
+
 class WebhookEvent(BaseModel):
     """SEC-13: every verified provider callback once (retries from the provider are ignored)."""
 

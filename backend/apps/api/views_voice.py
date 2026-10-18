@@ -15,14 +15,16 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.dateparse import parse_datetime
 from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.agents.models import AIEmployee
 from apps.crm.models import Lead
+from apps.rbac.services import has_perm
+from apps.voice import handoff as handoff_service
 from apps.voice import services
-from apps.voice.models import Call, PhoneNumber
+from apps.voice.models import Call, Handoff, PhoneNumber
 
 from .base import AdminViewSet, TenantContextMixin, any_perm, perm
 
@@ -179,6 +181,92 @@ class CallViewSet(TenantContextMixin, mixins.ListModelMixin, mixins.RetrieveMode
     def cancel(self, request, pk=None):
         call = _errors(services.cancel, self.get_object(), request.user, request._request)
         return Response(CallSerializer(call).data)
+
+    @action(detail=True, methods=["get"])
+    def recording(self, request, pk=None):
+        """VOICE-12 / REC-03: a short-lived link to play (recordings.listen) or download (recordings.download)."""
+        download = request.query_params.get("download") == "1"
+        if not has_perm(request.user, "recordings.download" if download else "recordings.listen", request.company):
+            raise PermissionDenied("You may not " + ("download" if download else "listen to") + " call recordings.")
+        url = _errors(services.recording_link, self.get_object(), request.user, download, request._request)
+        return Response({"url": request.build_absolute_uri(url)})
+
+
+class HandoffSerializer(serializers.ModelSerializer):
+    lead_reference = serializers.CharField(source="lead.reference", read_only=True, default="")
+    lead_name = serializers.CharField(source="lead.name", read_only=True, default="")
+    lead_score = serializers.SerializerMethodField()
+    employee_name = serializers.CharField(source="conversation.employee.name", read_only=True)
+    assigned_name = serializers.SerializerMethodField()
+    reason_label = serializers.CharField(source="get_reason_display", read_only=True)
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+    requirement = serializers.JSONField(source="conversation.requirement", read_only=True)
+    seconds_to_answer = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Handoff
+        fields = [
+            "id",
+            "conversation",
+            "call",
+            "lead",
+            "lead_reference",
+            "lead_name",
+            "lead_score",
+            "employee_name",
+            "channel",
+            "mode",
+            "reason",
+            "reason_label",
+            "detail",
+            "summary",
+            "requirement",
+            "status",
+            "status_label",
+            "assigned_user",
+            "assigned_name",
+            "created_at",
+            "accepted_at",
+            "ended_at",
+            "seconds_to_answer",
+        ]
+        read_only_fields = fields
+
+    def get_lead_score(self, obj):
+        return {"label": obj.lead.score_label, "value": obj.lead.score_value} if obj.lead else None
+
+    def get_assigned_name(self, obj):
+        return (obj.assigned_user.full_name or obj.assigned_user.email) if obj.assigned_user else ""
+
+
+class HandoffViewSet(TenantContextMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """HO-03 / HO-05: handoff log (calls.view) and the agent's live screen pop (handoffs.receive)."""
+
+    serializer_class = HandoffSerializer
+
+    def get_permissions(self):
+        key = "handoffs.receive" if self.action in ("live", "accept") else "calls.view"
+        return [permissions.IsAuthenticated(), perm(key)()]
+
+    def get_queryset(self):
+        qs = Handoff.objects.filter(company=self.request.company).select_related(
+            "lead", "conversation__employee", "assigned_user"
+        )
+        params = self.request.query_params
+        for key, field in (("status", "status"), ("lead", "lead_id"), ("conversation", "conversation_id")):
+            if params.get(key):
+                qs = qs.filter(**{field: params[key]})
+        return qs
+
+    @action(detail=False, methods=["get"])
+    def live(self, request):
+        rows = handoff_service.live_for(request.user, request.company)
+        return Response(HandoffSerializer(rows, many=True).data)
+
+    @action(detail=True, methods=["post"])
+    def accept(self, request, pk=None):
+        h = _errors(handoff_service.accept, self.get_object(), request.user, request._request)
+        return Response(HandoffSerializer(h).data)
 
 
 class CallingPolicyView(TenantContextMixin, APIView):

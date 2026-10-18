@@ -68,6 +68,7 @@ agents_router.register("ai-employees", agentapi.AIEmployeeViewSet, basename="ai-
 agents_router.register("conversations", agentapi.ConversationViewSet, basename="conversations")
 agents_router.register("phone-numbers", voiceapi.PhoneNumberViewSet, basename="phone-numbers")
 agents_router.register("calls", voiceapi.CallViewSet, basename="calls")
+agents_router.register("handoffs", voiceapi.HandoffViewSet, basename="handoffs")
 
 kb_router = DefaultRouter(trailing_slash=True)
 kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")

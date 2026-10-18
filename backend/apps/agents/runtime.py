@@ -390,7 +390,39 @@ def reply(conv, text, now=None):
             knowledge.log_unanswered(conv.company, text, employee, conv)
             answer, cited = fallback_text(employee, language), []
     meta["tool_calls"] = calls_log
+    reason = _handoff_trigger(conv, employee, text, meta)
+    if reason:
+        conv.state = {**(conv.state or {}), "transfer": {"reason": reason, "detail": text[:200]}}
+        conv.save(update_fields=["state", "updated_at"])
+        meta["handoff_trigger"] = reason
     return _say(conv, answer, meta, citations=[knowledge.citation(c) for c in cited])
+
+
+def _handoff_trigger(conv, employee, text, meta):
+    """HO-01 configurable triggers on calls (the AI's own transfer_call covers "customer asks for a person"):
+    keywords, knowledge gap, repeated failure, hot lead. Rules per AI Employee; the threshold is a setting."""
+    state = conv.state or {}
+    if not state.get("voice") or state.get("transfer") or state.get("handoff"):
+        return None
+    rules = employee.rules or {}
+    low = text.lower()
+    if any(k.strip().lower() in low for k in rules.get("handoff_keywords") or [] if k.strip()):
+        return "keyword"
+    failed = bool(meta.get("fallback") or meta.get("grounding_blocked") or meta.get("error"))
+    if failed and rules.get("handoff_on_knowledge_gap") and meta.get("fallback") == "missing_facts":
+        return "knowledge_gap"
+    limit = setting("handoff.repeat_failures")
+    if failed and limit:
+        # (filtered in Python: a JSON-key exclude would also drop the rows without the key)
+        rows = conv.messages.filter(role="ai").order_by("-created_at")[: limit + 1]
+        recent = [m for m in rows if not m.meta.get("opening")][: limit - 1]
+        if len(recent) == limit - 1 and all(m.meta.get("fallback") or m.meta.get("grounding_blocked") for m in recent):
+            return "repeated_failure"
+    if rules.get("handoff_on_hot_lead") and conv.lead_id:
+        lead = Lead.objects.filter(pk=conv.lead_id).only("score_label").first()
+        if lead and lead.score_label == Lead.HOT:
+            return "hot_lead"
+    return None
 
 
 def _say(conv, text, meta, citations=None, end_after=False):

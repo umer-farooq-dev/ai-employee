@@ -148,8 +148,8 @@ _Voices (EMP-05) aur phone test (EMP-10 voice) Phase 5 mein; WhatsApp / website 
 4. [x] **Phone numbers & telephony** (VOICE-16, SEC-13): number pool, AI Employee ko assign, inbound routing, webhooks signature check; adapters Exotel / Plivo / Twilio
 5. [x] **Calls** (VOICE-01, 02, 17, 18, COMP-02): inbound, authorised outbound ("Call now", follow-up) with consent / opt-out / calling-hour checks, call state machine, voicemail / busy / no-answer retry, concurrent / daily / duration limits, consent records
 6. [x] **Voice Gateway** (VOICE-03..06, 10, 21, 22): Pipecat pipeline — VAD, streaming STT, turn detection, same AI runtime, streaming TTS, barge-in, filler jab tool chale, AI disclosure + recording consent, language follow, provider failover, per-stage latency metrics
-7. [ ] **Transfer & handoff** (TOOL-08, VOICE-11, HO-01..05): triggers, routing (assigned → round robin → available → fallback), agent screen pop + notification, no agent → message + callback task, handoff log
-8. [ ] **Recording, transcript, post-call** (VOICE-12..14, REC-01, REC-03, COMP-06): recording on / off, consent announcement, retention auto-delete, signed-link playback, listen / download permissions, access audit; speaker-labelled transcript; summary / extraction / score / sentiment
+7. [x] **Transfer & handoff** (TOOL-08, VOICE-11, HO-01..05): triggers, routing (assigned → round robin → available → fallback), agent screen pop + notification, no agent → message + callback task, handoff log
+8. [x] **Recording, transcript, post-call** (VOICE-12..14, REC-01, REC-03, COMP-06): recording on / off, consent announcement, retention auto-delete, signed-link playback, listen / download permissions, access audit; speaker-labelled transcript; summary / extraction / score / sentiment
 9. [ ] **Panels**: wizard voice step (EMP-05 preview), phone step (EMP-08), browser test call (VOICE-19, EMP-10), call logs (VOICE-15), lead timeline calls + recordings (CRM-11), Super Admin Calls (SA-15), usage: voice minutes / calls / STT / TTS (USE-01)
 10. [ ] Monitoring alerts (ENGR-05), concurrent-call load test script (ENGR-07)
 11. [ ] Har feature ki REST API + tests
@@ -188,7 +188,7 @@ _Telephony aur STT / TTS provider client ka faisla — development mein test acc
 - Super Admin → System Settings → Registration → **Email verification = Mandatory** (development mein Optional)
 - **SMS provider** chun kar Super Admin mein lagana (client ka faisla) agar mobile OTP on karna hai
 - Demo / staging server par **"Allow search engines" off**, live par on
-- Cron mein har 5 minute: `process_knowledge` aur `end_idle_conversations` (README dekhein); har minute `dial_due_calls` (call retries / follow-ups)
+- Cron mein har 5 minute: `process_knowledge` aur `end_idle_conversations` (README dekhein); har minute `dial_due_calls` (call retries / follow-ups); roz `apply_voice_retention` (recordings / transcripts retention)
 - `.env` mein `PUBLIC_BASE_URL` (https) aur `VOICE_GATEWAY_URL` (wss); telephony provider console mein Super Admin → Phone Numbers ke callback URLs
 - `.env` mein `CLAMAV_ADDRESS` (upload virus scan, SEC-11) — ClamAV hosting par chalana
 - Hosting par PostgreSQL **vector** extension (pgvector) on karna
