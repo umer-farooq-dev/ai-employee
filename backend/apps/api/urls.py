@@ -12,6 +12,7 @@ from . import views_company as company
 from . import views_crm as crmapi
 from . import views_knowledge as kbapi
 from . import views_templates as tpl
+from . import views_voice as voiceapi
 
 admin = DefaultRouter(trailing_slash=True)
 admin.register("companies", views.CompanyViewSet, basename="admin-companies")
@@ -33,6 +34,7 @@ admin.register("employee-roles", tpl.EmployeeRoleViewSet, basename="admin-employ
 admin.register("ai-providers", aiapi.ProviderViewSet, basename="admin-ai-providers")
 admin.register("languages", aiapi.LanguageViewSet, basename="admin-languages")
 admin.register("voices", aiapi.VoiceViewSet, basename="admin-voices")
+admin.register("phone-numbers", voiceapi.AdminPhoneNumberViewSet, basename="admin-phone-numbers")
 admin.register("tools", agentapi.ToolViewSet, basename="admin-tools")
 admin.register("ai-employees", agentapi.AdminEmployeeViewSet, basename="admin-ai-employees")
 admin.register("cms/pages", views.PageViewSet, basename="admin-cms-pages")
@@ -64,6 +66,8 @@ calendar_router.register("appointments", calapi.AppointmentViewSet, basename="ca
 agents_router = DefaultRouter(trailing_slash=True)
 agents_router.register("ai-employees", agentapi.AIEmployeeViewSet, basename="ai-employees")
 agents_router.register("conversations", agentapi.ConversationViewSet, basename="conversations")
+agents_router.register("phone-numbers", voiceapi.PhoneNumberViewSet, basename="phone-numbers")
+agents_router.register("calls", voiceapi.CallViewSet, basename="calls")
 
 kb_router = DefaultRouter(trailing_slash=True)
 kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")
@@ -94,6 +98,7 @@ api_v1 = [
     path("calendar/", include(calendar_router.urls)),
     path("kb/test-query/", kbapi.TestQueryView.as_view(), name="kb-test-query"),
     path("kb/", include(kb_router.urls)),
+    path("calling-policy/", voiceapi.CallingPolicyView.as_view(), name="calling-policy"),
     path("", include(agents_router.urls)),
     path("admin/conversations/<uuid:pk>/", agentapi.AdminConversationView.as_view(), name="admin-conversation"),
     path(

@@ -38,6 +38,7 @@ urlpatterns = [
     path("ai-settings/", views.ai_settings, name="ai_settings"),
     path("voice-settings/", views.voice_settings, name="voice_settings"),
     path("languages/", views.languages, name="languages"),
+    path("phone-numbers/", views.phone_numbers, name="phone_numbers"),
     path("enquiries/", views.enquiry_list, name="enquiry_list"),
     path("enquiries/<uuid:pk>/", views.enquiry_detail, name="enquiry_detail"),
     path("users/", views.user_list, name="user_list"),

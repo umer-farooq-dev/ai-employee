@@ -1,0 +1,204 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Phone Numbers{% endblock %}
+{% block extra_css %}
+<style>
+    .pn-switch .form-check-input{width:2.6em;height:1.4em;cursor:pointer;margin:0}
+    .pn-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:#eef0ff;color:#4f46e5;margin-right:4px}
+    .pn-chip.outbound{background:#e9f9f1;color:#0f9f61}
+    .pn-chip.test{background:#fff6e5;color:#b26b00}
+    .pn-hook code{word-break:break-all}
+    #number-modal .modal-header{background:#fff}
+    #number-modal .modal-title{color:var(--bs-heading-color,#101537)}
+</style>
+{% endblock %}
+{% block page_content %}
+<div class="mt-3 mb-3">
+    <h4 class="mb-1">Phone Numbers</h4>
+    <p class="text-muted mb-0">The number pool: numbers bought at a telephony provider, given to companies. Each company connects its number to one of its AI Employees.</p>
+</div>
+
+<div class="card">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h5 class="mb-1"><i class="iconoir-phone me-1"></i>Numbers</h5>
+                <div class="text-muted small"><span id="pn-count"></span></div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <input type="search" class="form-control form-control-sm" id="pn-search" placeholder="Search number or company" aria-label="Search numbers" style="width:220px">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="add-number"><i class="iconoir-plus me-1"></i>Add number</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Number</th><th>Provider</th><th>Calls</th><th>Company</th><th>AI Employee</th><th class="text-center">On</th><th></th></tr></thead>
+                <tbody id="pn-rows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-4">
+        <h5 class="mb-1"><i class="iconoir-link me-1"></i>Provider callback addresses</h5>
+        <p class="text-muted small mb-3">Paste these into each telephony provider's console (number / application settings). Each address carries a secret token — keep it private.</p>
+        <div class="table-responsive pn-hook">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light"><tr><th style="width:160px">Provider</th><th>Answer / incoming call URL</th><th>Status callback URL</th></tr></thead>
+                <tbody id="hook-rows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts" aria-live="polite"></div>
+{{ data|json_script:"pn-data" }}
+{% endblock page_content %}
+
+{% block modal %}
+<div class="modal fade" id="number-modal" tabindex="-1" aria-labelledby="nm-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form class="modal-content" id="number-form" novalidate autocomplete="off">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nm-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 small d-none" id="nm-alert" role="alert"></div>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label" for="nm-e164">Number</label><input class="form-control" id="nm-e164" required placeholder="+918045678901" inputmode="tel"></div>
+                    <div class="col-md-6"><label class="form-label" for="nm-provider">Telephony provider</label><select class="form-select" id="nm-provider"></select></div>
+                    <div class="col-md-6"><label class="form-label" for="nm-label">Label</label><input class="form-control" id="nm-label" maxlength="80" placeholder="e.g. Kolkata sales line"></div>
+                    <div class="col-md-6"><label class="form-label" for="nm-pid">Provider's number ID <span class="text-muted small">(optional)</span></label><input class="form-control" id="nm-pid" maxlength="120" spellcheck="false"></div>
+                    <div class="col-md-6"><span class="form-label d-block">Used for</span><div id="nm-caps" class="d-flex gap-3 pt-1"></div></div>
+                    <div class="col-md-6"><label class="form-label" for="nm-company">Company</label><select class="form-select" id="nm-company"></select><div class="form-text">Giving the number to another company disconnects it from the old AI Employee.</div></div>
+                    <div class="col-md-6"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="nm-test"><label class="form-check-label" for="nm-test">Test number (our development account)</label></div></div>
+                    <div class="col-md-6"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="nm-active"><label class="form-check-label" for="nm-active">On</label></div></div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-link text-danger px-0" id="nm-delete">Delete number</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="nm-save">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock modal %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+    "use strict";
+    var D = JSON.parse(document.getElementById("pn-data").textContent);
+    var API = "{% url 'api:admin-phone-numbers-list' %}";
+    var TOKEN = "{{ csrf_token }}";
+    var nm = new bootstrap.Modal(document.getElementById("number-modal"));
+    var current = null;
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function errorText(j) {
+        var e = (j && j.error) || {}, d = e.details;
+        if (Array.isArray(d) && d.length) return d.join(" ");
+        if (d && typeof d === "object" && Object.keys(d).length) return Object.keys(d).map(function (k) { return k + ": " + [].concat(d[k]).join(" "); }).join(" ");
+        return e.message || "Something went wrong.";
+    }
+    function api(method, url, body) {
+        var opts = {method: method, headers: {"X-CSRFToken": TOKEN, "Accept": "application/json"}, credentials: "same-origin"};
+        if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+        return fetch(url, opts).then(function (r) {
+            if (r.status === 204) return null;
+            return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(errorText(j)); return j; });
+        });
+    }
+    function toast(text, ok) {
+        var el = document.createElement("div");
+        el.className = "toast align-items-center border-0 text-white " + (ok === false ? "bg-danger" : "bg-success");
+        el.setAttribute("role", ok === false ? "alert" : "status");
+        el.innerHTML = '<div class="d-flex"><div class="toast-body">' + esc(text) + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+        $("toasts").appendChild(el);
+        var t = new bootstrap.Toast(el, {delay: ok === false ? 6000 : 2500});
+        el.addEventListener("hidden.bs.toast", function () { el.remove(); });
+        t.show();
+    }
+    function busy(btn, on) { btn.disabled = on; btn.classList.toggle("opacity-75", on); }
+    function capLabel(k) { var c = D.capabilities.find(function (x) { return x.key === k; }); return c ? c.label.replace(" calls", "") : k; }
+
+    function render() {
+        var q = $("pn-search").value.trim().toLowerCase();
+        var rows = D.numbers.filter(function (n) { return !q || (n.e164 + " " + n.label + " " + n.company_name).toLowerCase().indexOf(q) >= 0; });
+        $("pn-count").textContent = D.numbers.length + " number(s) · " + D.numbers.filter(function (n) { return !n.company; }).length + " free in the pool";
+        $("pn-rows").innerHTML = rows.map(function (n) {
+            return "<tr><td><div class=\"fw-medium\">" + esc(n.e164) + (n.is_test ? ' <span class="pn-chip test">Test</span>' : "") + '</div><div class="small text-muted">' + esc(n.label || "") + "</div></td>" +
+                "<td>" + esc(n.provider_name) + "</td>" +
+                "<td>" + n.capabilities.map(function (c) { return '<span class="pn-chip ' + c + '">' + esc(capLabel(c)) + "</span>"; }).join("") + "</td>" +
+                "<td>" + (n.company_name ? esc(n.company_name) : '<span class="text-muted small">In the pool</span>') + "</td>" +
+                "<td>" + (n.employee_name ? esc(n.employee_name) : '<span class="text-muted small">' + (n.company ? "Not connected yet" : "—") + "</span>") + "</td>" +
+                '<td class="text-center"><div class="form-check form-switch pn-switch d-inline-block"><input class="form-check-input" type="checkbox" role="switch" data-toggle="' + n.id + '"' + (n.status === "active" ? " checked" : "") + ' aria-label="' + esc(n.e164) + ' on or off"></div></td>' +
+                '<td class="text-end"><button type="button" class="btn btn-sm btn-light" data-edit="' + n.id + '">Edit</button></td></tr>';
+        }).join("") || '<tr><td colspan="7" class="text-muted small">No numbers yet. Buy a number at a telephony provider, then add it here.</td></tr>';
+    }
+    function replace(n) {
+        var i = D.numbers.findIndex(function (x) { return x.id === n.id; });
+        if (i < 0) D.numbers.push(n); else D.numbers[i] = n;
+        D.numbers.sort(function (a, b) { return a.e164.localeCompare(b.e164); });
+        render();
+    }
+    $("pn-search").addEventListener("input", render);
+    $("pn-rows").addEventListener("change", function (e) {
+        var input = e.target.closest("[data-toggle]"); if (!input) return;
+        var on = input.checked; input.disabled = true;
+        api("PATCH", API + input.dataset.toggle + "/", {status: on ? "active" : "inactive"})
+            .then(function (n) { replace(n); toast(n.e164 + (on ? " switched on" : " switched off")); })
+            .catch(function (err) { input.checked = !on; input.disabled = false; toast(err.message, false); });
+    });
+    $("pn-rows").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-edit]");
+        if (b) open(D.numbers.find(function (n) { return n.id === b.dataset.edit; }));
+    });
+
+    function open(n) {
+        current = n || null;
+        n = n || {e164: "", provider: (D.providers[0] || {}).key, label: "", provider_number_id: "", capabilities: ["inbound", "outbound"], company: "", is_test: false, status: "active"};
+        $("nm-alert").classList.add("d-none");
+        $("nm-title").textContent = current ? n.e164 : "Add number";
+        $("nm-e164").value = n.e164; $("nm-e164").disabled = !!current;
+        $("nm-provider").innerHTML = D.providers.map(function (p) { return '<option value="' + esc(p.key) + '"' + (p.key === n.provider ? " selected" : "") + ">" + esc(p.name) + (p.is_active ? "" : " (off)") + "</option>"; }).join("");
+        $("nm-label").value = n.label; $("nm-pid").value = n.provider_number_id;
+        $("nm-caps").innerHTML = D.capabilities.map(function (c) {
+            return '<div class="form-check"><input class="form-check-input" type="checkbox" id="cap-' + c.key + '" value="' + c.key + '"' + (n.capabilities.indexOf(c.key) >= 0 ? " checked" : "") + '><label class="form-check-label" for="cap-' + c.key + '">' + esc(c.label) + "</label></div>";
+        }).join("");
+        $("nm-company").innerHTML = '<option value="">— In the pool (no company) —</option>' + D.companies.map(function (c) { return '<option value="' + c.id + '"' + (c.id === n.company ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
+        $("nm-test").checked = n.is_test; $("nm-active").checked = n.status === "active";
+        $("nm-delete").classList.toggle("d-none", !current);
+        nm.show();
+    }
+    $("add-number").addEventListener("click", function () { open(null); });
+    $("number-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var body = {provider: $("nm-provider").value, label: $("nm-label").value.trim(), provider_number_id: $("nm-pid").value.trim(),
+            capabilities: [].slice.call($("nm-caps").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
+            company: $("nm-company").value || null, is_test: $("nm-test").checked, status: $("nm-active").checked ? "active" : "inactive"};
+        if (!current) body.e164 = $("nm-e164").value.trim();
+        var btn = $("nm-save"); busy(btn, true);
+        (current ? api("PATCH", API + current.id + "/", body) : api("POST", API, body))
+            .then(function (n) { replace(n); nm.hide(); toast(n.e164 + " saved"); })
+            .catch(function (err) { var a = $("nm-alert"); a.textContent = err.message; a.classList.remove("d-none"); })
+            .finally(function () { busy(btn, false); });
+    });
+    $("nm-delete").addEventListener("click", function () {
+        if (!current || !window.confirm("Delete " + current.e164 + " from the pool?")) return;
+        api("DELETE", API + current.id + "/")
+            .then(function () { D.numbers = D.numbers.filter(function (n) { return n.id !== current.id; }); render(); nm.hide(); toast("Number deleted"); })
+            .catch(function (err) { var a = $("nm-alert"); a.textContent = err.message; a.classList.remove("d-none"); });
+    });
+
+    $("hook-rows").innerHTML = D.webhooks.map(function (h) {
+        return "<tr><td class=\"fw-medium\">" + esc(h.name) + "</td><td><code>" + esc(h.answer) + "</code></td><td><code>" + esc(h.status) + "</code></td></tr>";
+    }).join("");
+    render();
+})();
+</script>
+{% endblock %}

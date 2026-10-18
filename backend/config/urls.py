@@ -7,6 +7,7 @@ from apps.api.urls import api_v1, public_v1
 urlpatterns = [
     path("", include("apps.panel.urls")),
     path("", include("apps.core.urls")),
+    path("", include("apps.voice.urls")),
     path("superadmin/", include("apps.superadmin.urls")),
     path("accounts/", include("allauth.urls")),
     # Login / 2FA / password API for browser and app clients (API-02: Bearer JWT for the app)

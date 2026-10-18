@@ -671,6 +671,42 @@ def voice_settings(request):
     return _provider_page(request, "voice")
 
 
+@staff_perm("number_pool.manage")
+def phone_numbers(request):
+    """VOICE-16: the number pool — add numbers of a telephony provider and give them to companies (no reloads)."""
+    from apps.api.views_voice import AdminPhoneNumberSerializer
+    from apps.providers.models import Provider
+    from apps.voice.models import PhoneNumber
+
+    data = {
+        "numbers": AdminPhoneNumberSerializer(
+            PhoneNumber.objects.select_related("provider", "company", "employee"), many=True
+        ).data,
+        "providers": [
+            {"key": p.key, "name": p.name, "is_active": p.is_active}
+            for p in Provider.objects.filter(capabilities__contains=["telephony"])
+        ],
+        "companies": [
+            {"id": str(c.pk), "name": c.name}
+            for c in Company.objects.filter(status__in=[Company.ACTIVE, Company.TRIAL]).order_by("name")
+        ],
+        "capabilities": [{"key": k, "label": label} for k, label in PhoneNumber.CAPABILITIES],
+        "webhooks": _webhook_help(),
+    }
+    return render(request, "panel/admin/voice/numbers.html", {"data": data})
+
+
+def _webhook_help():
+    """The callback addresses to paste into each telephony provider's console."""
+    from apps.providers.models import Provider
+    from apps.voice.services import webhook_url
+
+    return [
+        {"name": p.name, "answer": webhook_url(p, "answer"), "status": webhook_url(p, "status")}
+        for p in Provider.objects.filter(capabilities__contains=["telephony"])
+    ]
+
+
 @staff_perm("voice_settings.manage")
 def languages(request):
     """SA-11: languages (texts, speech routes with failover) and the voice catalogue. Talks to the REST API."""

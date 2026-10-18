@@ -21,6 +21,10 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 # Super Admin on its own host so staff and company / website sessions never share a cookie (empty = same host).
 ADMIN_HOST = env("ADMIN_HOST", default="")
 ENVIRONMENT = env("ENVIRONMENT", default="local")  # local | staging | production
+# Where telephony providers reach us (webhooks) and the Voice Gateway's media address (infrastructure, Phase 5)
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="http://127.0.0.1:8000").rstrip("/")
+VOICE_GATEWAY_URL = env("VOICE_GATEWAY_URL", default="ws://127.0.0.1:8765").rstrip("/")
+VOICE_GATEWAY_BIND = env("VOICE_GATEWAY_BIND", default="127.0.0.1:8765")
 
 INSTALLED_APPS = [
     # django.contrib.admin is intentionally NOT installed (decision D9: custom Super Admin only)
@@ -51,6 +55,7 @@ INSTALLED_APPS = [
     "apps.scheduling",
     "apps.providers",
     "apps.agents",
+    "apps.voice",
     "apps.knowledge",
     "apps.cms",
     "apps.notifications",

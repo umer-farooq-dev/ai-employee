@@ -14,7 +14,7 @@ from apps.tenancy.middleware import PLATFORM_PATHS
 from apps.tenancy.services import IMPERSONATOR_SESSION_KEY
 
 # Paths a user must still reach while being forced to set up 2FA or during maintenance.
-OPEN_PATHS = ("/accounts/", "/static/", "/media/", "/healthz/", "/api/v1/auth/", "/superadmin/")
+OPEN_PATHS = ("/accounts/", "/static/", "/media/", "/healthz/", "/api/v1/auth/", "/superadmin/", "/webhooks/")
 
 
 def _is_api(request):

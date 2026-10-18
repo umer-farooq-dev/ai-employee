@@ -57,6 +57,7 @@ VENDORS = {
             ("account_sid", "Account SID", "", True),
             ("api_key", "API key (username)", "", True),
             ("subdomain", "API host", "api.in.exotel.com", True),
+            ("flow_id", "Voicebot flow (app) ID", "", True),
         ],
         "base_url": "https://api.in.exotel.com",
     },

@@ -409,12 +409,45 @@ def update_lead(lead, data, user=None, request=None):
     lead.save()
     if changes:
         log(lead, "update", f"Updated {', '.join(c.replace('_', ' ') for c in changes)}", user)
+    if "dnd" in changes or "consent_status" in changes:  # COMP-02: a consent record for every change
+        opted_out = lead.dnd or lead.consent_status == "opted_out"
+        _consent_row(lead, "voice" if "dnd" in changes else "all", "opt_out" if opted_out else "opt_in", "panel", user)
     if new_user != lead.assigned_user:
         assign(lead, new_user, user, request=request)
     if new_status and new_status.pk != lead.status_id:
         set_status(lead, new_status, user, request=request)
     rescore(lead, user)
     record(request, "lead.update", "lead", lead.id, company=company, changes={"fields": changes})
+    return lead
+
+
+def _consent_row(lead, channel, action, source, user=None, evidence=None):
+    from .models import ConsentRecord
+
+    ConsentRecord.objects.create(
+        company_id=lead.company_id, lead=lead, channel=channel, action=action, source=source, evidence=evidence or {}
+    )
+    log(lead, "consent", f"{'Opted out of' if action == 'opt_out' else 'Opted in to'} {channel} ({source})", user)
+
+
+def record_consent(lead, channel, action, source, user=None, evidence=None):
+    """COMP-02: consent / opt-out per lead and channel with source and time. A voice or overall opt-out also sets
+    Do-not-call, so no outbound call is placed afterwards (COMP-03)."""
+    if action not in ("opt_in", "opt_out"):
+        raise ValidationError("Consent action must be opt_in or opt_out.")
+    fields = []
+    if action == "opt_out" and channel in ("voice", "all") and not lead.dnd:
+        lead.dnd = True
+        fields.append("dnd")
+    if channel == "all":
+        lead.consent_status = "opted_out" if action == "opt_out" else "opted_in"
+        fields.append("consent_status")
+    elif action == "opt_in" and lead.consent_status == "unknown":
+        lead.consent_status = "opted_in"
+        fields.append("consent_status")
+    if fields:
+        lead.save(update_fields=[*fields, "updated_at"])
+    _consent_row(lead, channel, action, source, user, evidence)
     return lead
 
 

@@ -23,6 +23,9 @@ PERMISSIONS = {
     "holidays.manage": (PLATFORM, "Manage platform holidays"),
     "ai_providers.manage": (PLATFORM, "Manage AI providers, keys and model per task"),
     "voice_settings.manage": (PLATFORM, "Manage speech / telephony providers, languages and voices"),
+    "number_pool.manage": (PLATFORM, "Manage the phone-number pool and give numbers to companies"),
+    "calls_oversight.view": (PLATFORM, "View calls of all companies with quality metrics"),
+    "recordings_oversight.listen": (PLATFORM, "Listen to call recordings of any company (audited)"),
     "tools.manage": (PLATFORM, "Manage the AI tool registry"),
     "ai_oversight.view": (PLATFORM, "View AI Employees of all companies, conversations and tool logs"),
     "ai_oversight.manage": (PLATFORM, "Pause AI Employees, create the ready-made employee for a company"),
@@ -65,6 +68,12 @@ PERMISSIONS = {
     "knowledge.manage": (COMPANY, "Add, edit and delete knowledge sources and FAQs"),
     "knowledge.approve": (COMPANY, "Approve knowledge for the AI"),
     "conversations.view": (COMPANY, "View AI conversations, transcripts and tool logs"),
+    "calls.view": (COMPANY, "View call logs, transcripts and call details"),
+    "calls.make": (COMPANY, "Start outbound AI calls (Call now) and schedule follow-up calls"),
+    "phone_numbers.manage": (COMPANY, "Connect phone numbers to AI Employees and set the company's calling rules"),
+    "recordings.listen": (COMPANY, "Listen to call recordings"),
+    "recordings.download": (COMPANY, "Download call recordings"),
+    "handoffs.receive": (COMPANY, "Receive live calls and chats handed over by the AI"),
     "billing.view": (COMPANY, "View subscription and billing"),
     "billing.manage": (COMPANY, "Change subscription and billing"),
 }
@@ -94,6 +103,15 @@ MANAGER_P4 = [
     "conversations.view",
 ]
 AGENT_P4 = ["ai_employees.view", "knowledge.view", "conversations.view"]
+MANAGER_P5 = [
+    "calls.view",
+    "calls.make",
+    "phone_numbers.manage",
+    "recordings.listen",
+    "recordings.download",
+    "handoffs.receive",
+]
+AGENT_P5 = ["calls.view", "calls.make", "recordings.listen", "handoffs.receive"]
 AGENT_P3 = ["leads.view", "leads.manage", "catalog.view", "calendar.view", "calendar.manage"]
 
 SEED_ROLES = [
@@ -116,6 +134,6 @@ SEED_ROLES = [
         ],
     ),
     (COMPANY, "owner", "Owner / Admin", COMPANY_KEYS),
-    (COMPANY, "manager", "Manager", ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4]),
-    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3, *AGENT_P4]),
+    (COMPANY, "manager", "Manager", ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4, *MANAGER_P5]),
+    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3, *AGENT_P4, *AGENT_P5]),
 ]
