@@ -24,7 +24,7 @@
     <thead class="table-light"><tr><th>When</th><th>Company</th><th>AI Employee</th><th>Direction</th><th>Status</th><th class="text-end">Duration</th><th class="text-end">Median / 95th</th><th class="text-end">Errors</th></tr></thead><tbody>
     {% for c in page %}
     <tr>
-        <td class="text-nowrap"><a href="{% url 'superadmin:call_detail' c.pk %}">{{ c.queued_at|date:"d M Y H:i" }}</a>{% if c.reason == 'browser_test' %} <span class="badge bg-light text-dark">test</span>{% endif %}</td>
+        <td class="text-nowrap"><a href="{% url 'superadmin:call_detail' c.pk %}">{{ c.queued_at|date:"d M Y H:i" }}</a>{% if c.reason == 'browser_test' or c.reason == 'test_call' %} <span class="badge bg-light text-dark">test</span>{% endif %}</td>
         <td>{{ c.company.name }}</td>
         <td>{{ c.employee.name }}</td>
         <td>{{ c.get_direction_display }}</td>

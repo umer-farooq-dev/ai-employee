@@ -12,7 +12,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.agents import services as employees
-from apps.agents.models import AIEmployee, UsageEvent
+from apps.agents.models import AIEmployee, Message, UsageEvent
 from apps.billing.models import Plan, PlanEntitlement
 from apps.crm import services as crm
 from apps.crm.models import ConsentRecord, LeadActivity
@@ -142,6 +142,60 @@ def test_call_now_dials_through_the_provider(monkeypatch, line, sara, lead, real
     with company_context(realty.id):
         failed = services.place_call(sara, lead)
     assert failed.status == Call.FAILED and "invalid number" in failed.error
+
+
+@pytest.mark.django_db
+def test_test_call_to_own_phone(monkeypatch, line, sara, realty):
+    """EMP-10: draft employees too, no lead / consent needed; never retried; the API defaults to the profile phone."""
+    fake = FakeTelephony(monkeypatch)
+    AIEmployee.all_companies.filter(pk=sara.pk).update(status=AIEmployee.DRAFT)
+    owner = make_user("owner@realty.example")
+    owner.phone = "+919811112222"
+    owner.save()
+    add_member(realty, owner.email, Role.objects.get(scope="company", key="owner"))
+    c = Client()
+    c.force_login(owner)
+    r = c.post(f"/api/v1/ai-employees/{sara.pk}/test-call/", {}, content_type="application/json")
+    assert r.status_code == 201, r.content
+    assert r.json()["to"] == "+919811112222" and fake.calls[-1]["data"]["To"] == "+919811112222"
+    call = Call.all_companies.get(pk=r.json()["call"])
+    assert call.reason == "test_call" and call.lead is None and call.from_e164 == line.e164
+    bad = c.post(f"/api/v1/ai-employees/{sara.pk}/test-call/", {"phone": "+15550001111"}, "application/json")
+    assert bad.status_code == 400  # allowed countries still apply
+    with company_context(realty.id):
+        call.status = Call.BUSY
+        assert services.schedule_retry(call) is None
+
+
+@pytest.mark.django_db
+def test_stt_and_tts_usage_is_metered(line, sara, realty):
+    with company_context(realty.id):
+        conv = runtime_start(sara)
+        Message.objects.create(company=realty, conversation=conv, role="ai", content="Namaste!")
+        Message.objects.create(
+            company=realty, conversation=conv, role="ai", content="Never said", meta={"unspoken": True}
+        )
+        call = Call.objects.create(
+            company=realty,
+            employee=sara,
+            conversation=conv,
+            direction="inbound",
+            status=Call.COMPLETED,
+            duration_sec=42,
+            metrics={"providers": {"stt": '["sarvam/saarika-v2", "deepgram/nova-3"]', "tts": '["sarvam/bulbul"]'}},
+        )
+        services.finish(call)
+    usage = {u.meter: u for u in UsageEvent.all_companies.filter(conversation=conv)}
+    assert usage["stt_seconds"].quantity == 42 and usage["stt_seconds"].provider_key == "sarvam"
+    assert usage["tts_characters"].quantity == len("Namaste!")
+
+
+def runtime_start(employee):
+    from apps.agents import runtime
+
+    conv = runtime.start(employee, "voice", {})
+    conv.messages.all().delete()  # only the lines written by the test count
+    return conv
 
 
 @pytest.mark.django_db

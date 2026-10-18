@@ -121,6 +121,7 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `voice.reply_style` | textarea | short spoken sentences, no lists / markdown | prompt layer on calls |
 | `handoff.agent_ring_seconds` / `handoff.max_agents` | number | 25 / 3 | HO-02 routing |
 | `handoff.repeat_failures` / `handoff.callback_minutes` | number | 2 / 30 | HO-01 trigger, HO-04 callback task |
+| `handoff.upset_prompt` | textarea | "If the customer is clearly angry…" | HO-01 negative-sentiment trigger (added on calls when the employee's rule is on) |
 | `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | Phase 6 |
 
 Per-language phrases — AI disclosure, recording announcement, default greeting, fillers, transfer, no agent, voicemail, silence, goodbye — live on each language in **Languages & Voices** (a new language brings all its texts with it).

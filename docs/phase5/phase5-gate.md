@@ -19,14 +19,14 @@ rest arrives in the phase named.
 | VOICE-11 / TOOL-08 | Call transfer | Done | `transfer_call` tool (calls only); warm transfer (agent hears the summary first), cold for vendors without whisper, next agent on no answer, no agent → message + callback task |
 | VOICE-12 / REC-03 / COMP-06 | Recording & compliance | Done | On / off per company and AI Employee, announcement, encrypted storage per company, play / download by permission with short-lived links, every access audited, retention job `apply_voice_retention` |
 | VOICE-13 | Transcript | Done | Speaker-labelled, time-stamped messages; unspoken answers, silence prompts, goodbye and voicemail marked |
-| VOICE-14 / REC-01 | Post-call analysis / per-call record | Done | Duration, transcript, summary, requirement, score, sentiment / intent (confidence threshold), follow-up, transfer status, outcome, numbers, language, recording, tools, usage |
+| VOICE-14 / REC-01 | Post-call analysis / per-call record | Done | Duration, transcript, summary, requirement, score, sentiment / intent (confidence threshold), follow-up needed, appointments booked / moved / cancelled on the call, transfer status, outcome, numbers, language, recording, tools, usage (page + API) |
 | VOICE-15 | Call logs | Done | Company → Calls (filters, detail with recording player, transcript, summary, fields, tools, handoff, quality, timeline) |
 | VOICE-17 | Voicemail & no answer | Done | Answering-machine detection → voicemail message or hang up (setting); busy / no answer / voicemail retried after the gap within the caps (`dial_due_calls`) |
 | VOICE-18 | Call limits | Done | Concurrent calls, calls and minutes per month (plan), calls per day, max duration, calling window (settings; company may tighten) |
-| VOICE-19 / EMP-10 | Browser test call | Done | AI Employee test console → Voice test (microphone, live transcript) |
+| VOICE-19 / EMP-10 | Browser test call, test call to own number | Done | AI Employee test console → Voice test (microphone, live transcript) and "Test call to your phone" (the employee's number calls the tester, draft employees too, test data removed, never retried; plan limits and allowed countries apply) |
 | VOICE-21 | Provider failover | Done | STT / TTS ServiceSwitcher failover per language route; LLM fallback from Phase 4 |
 | VOICE-22 | Voice quality metrics | Done | Per call: latency per stage per turn, P50 / P95, interruptions, silences, recognition confidence, errors |
-| HO-01 … HO-05 | Handoff | Done (voice) | Triggers (customer asks, keywords, knowledge gap, repeated failure, hot lead), routing (assigned → team round robin → available, calendar-aware), screen pop + e-mail, no agent, handoff log. Chat / WhatsApp takeover in P6 |
+| HO-01 … HO-05 | Handoff | Done (voice) | Triggers (customer asks, keywords, knowledge gap, repeated failure, hot lead, upset caller — instruction text in System Settings → Human handoff), routing (assigned → team round robin → available, calendar-aware), screen pop + e-mail, no agent, handoff log. Chat / WhatsApp takeover in P6 |
 | EMP-05 | Wizard voice | Done | Voices per language from the catalogue with sample preview, speaking speed |
 | EMP-08 | Wizard phone | Done (phone) | Connect the company number; WhatsApp in P6 |
 | ENG-07 | Mixed language (voice) | Done | Multilingual STT route; the voice follows the caller's language |
@@ -35,7 +35,8 @@ rest arrives in the phase named.
 | CP-06 | Settings | Done (calling) | Settings → Calling & numbers: numbers, calling window, attempts, daily cap, recording, retention (within platform limits) |
 | SEC-13 | Webhook verification | Done (telephony) | Twilio / Plivo signatures + per-provider URL token; de-duplicated callbacks. WhatsApp / Razorpay in P6 / P7 |
 | COMP-02 | Consent records | Done | Every opt-in / opt-out stored per lead and channel with source and time; voice opt-out sets Do-not-call |
-| USE-01 | Usage metering (voice) | Done (capture) | Calls and voice minutes (inbound / outbound) per company, AI Employee, conversation; display in P7 |
+| USE-01 | Usage metering (voice) | Done (capture) | Calls, voice minutes (inbound / outbound), STT seconds and TTS characters (with the provider) per company, AI Employee, conversation; display in P7 |
+| — | Stuck calls | Done | A call that never reports back (lost webhook, browser test that never connected) is closed by `dial_due_calls` after the ring time / longest call |
 | ENGR-05 | Monitoring & alerting | Done (base) | Voice latency over the thresholds logged as a quality alert; Super Admin → Calls summary. Full monitoring stack in P8 |
 | ENGR-07 | Load testing | Done (tool) | `voice_load_test --employee <id> --calls N --audio caller.wav` — set-up success, greeting time, answer P50 / P95 |
 
@@ -49,7 +50,7 @@ delay) · Data retention (recordings, transcripts).
 ## REST API added
 
 `/api/v1/phone-numbers/` · `/api/v1/calls/` (+ `schedule`, `cancel`, `recording`) · `/api/v1/calling-policy/` ·
-`/api/v1/handoffs/` (+ `live`, `accept`) · `/api/v1/ai-employees/<id>/voice-test/` · `/api/v1/admin/phone-numbers/` ·
+`/api/v1/handoffs/` (+ `live`, `accept`) · `/api/v1/ai-employees/<id>/voice-test/` · `/api/v1/ai-employees/<id>/test-call/` · `/api/v1/admin/phone-numbers/` ·
 `/api/v1/admin/languages/` (+ `routes`) · `/api/v1/admin/voices/` · `/api/v1/admin/ai-providers/<id>/voices/`
 
 ## Processes

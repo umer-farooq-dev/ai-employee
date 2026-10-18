@@ -281,9 +281,10 @@ def transfer_call(ctx, tool, args):
     if not (ctx.conversation.state or {}).get("voice"):
         raise ToolError("Transfers work on phone calls only; use assign_salesperson in chats.")
     reason = str(args.get("reason") or "").strip()[:200] or "Customer asked for a person"
+    why = "negative_sentiment" if reason.lower().startswith("upset") else "customer_request"  # handoff.upset_prompt
     ctx.conversation.state = {
         **(ctx.conversation.state or {}),
-        "transfer": {"reason": "customer_request", "detail": reason},
+        "transfer": {"reason": why, "detail": reason},
     }
     ctx.conversation.save(update_fields=["state", "updated_at"])
     return {"transferring": True, "say": "Tell the customer in one short sentence that you are connecting them now."}
@@ -781,9 +782,10 @@ def run(ctx, tools, name, args, call_id=""):
         schema = HANDLERS[tool.handler][1](ctx, tool)
         errors = sorted(Draft7Validator(schema).iter_errors(args or {}), key=lambda e: e.path)
         if errors:
-            status, output = ToolInvocation.ERROR, {
-                "error": "Invalid arguments: " + "; ".join(e.message for e in errors[:3])
-            }
+            status, output = (
+                ToolInvocation.ERROR,
+                {"error": "Invalid arguments: " + "; ".join(e.message for e in errors[:3])},
+            )
         else:
             try:
                 with transaction.atomic():

@@ -21,7 +21,7 @@
                 <dt class="col-7 fw-normal text-muted">Interruptions</dt><dd class="col-5">{{ m.interruptions|default:0 }}</dd>
                 <dt class="col-7 fw-normal text-muted">Silences</dt><dd class="col-5">{{ m.silences|default:0 }}</dd>
                 <dt class="col-7 fw-normal text-muted">Recognition confidence</dt><dd class="col-5">{{ m.stt_confidence|default:"—" }}</dd>
-                <dt class="col-7 fw-normal text-muted">Providers</dt><dd class="col-5 text-break">{{ m.providers.stt|default:"" }} {{ m.providers.tts|default:"" }}</dd>
+                <dt class="col-7 fw-normal text-muted">Providers</dt><dd class="col-5 text-break">{% if m.providers %}STT {{ m.providers.stt|routes }}<br>TTS {{ m.providers.tts|routes }}{% else %}—{% endif %}</dd>
             </dl>
             {% if turns %}<table class="table table-sm mb-0"><thead><tr><th>#</th><th>STT</th><th>AI</th><th>Voice</th><th>Total</th></tr></thead><tbody>
             {% for t in turns %}<tr><td>{{ forloop.counter }}</td><td>{{ t.stt_ms|default:"—" }}</td><td>{{ t.llm_ms|default:"—" }}</td><td>{{ t.tts_ms|default:"—" }}</td><td>{{ t.total_ms|default:"—" }}</td></tr>{% endfor %}

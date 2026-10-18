@@ -17,7 +17,7 @@
     <thead class="table-light"><tr><th>When</th><th>Customer</th><th>AI Employee</th><th>Direction</th><th>Status</th><th class="text-end">Duration</th><th>Summary</th></tr></thead><tbody>
     {% for c in page %}
     <tr>
-        <td class="text-nowrap"><a href="{% url 'panel:call_detail' c.pk %}">{{ c.queued_at|date:"d M Y H:i" }}</a>{% if c.reason == 'browser_test' %} <span class="badge bg-light text-dark">test</span>{% endif %}</td>
+        <td class="text-nowrap"><a href="{% url 'panel:call_detail' c.pk %}">{{ c.queued_at|date:"d M Y H:i" }}</a>{% if c.reason == 'browser_test' or c.reason == 'test_call' %} <span class="badge bg-light text-dark">test</span>{% endif %}</td>
         <td>{% if c.lead %}<a href="{% url 'panel:lead_detail' c.lead.pk %}">{{ c.lead.name|default:c.lead.reference }}</a><div class="small text-muted">{{ c.customer_number }}</div>{% else %}{{ c.customer_number|default:"—" }}{% endif %}</td>
         <td>{{ c.employee.name }}</td>
         <td><i class="iconoir-{% if c.direction == 'inbound' %}phone-income{% else %}phone-outcome{% endif %} me-1"></i>{{ c.get_direction_display }}{% if c.attempt > 1 %} <span class="small text-muted">· try {{ c.attempt }}</span>{% endif %}</td>

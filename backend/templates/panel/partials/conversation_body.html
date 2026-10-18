@@ -34,6 +34,8 @@
                 <dt class="col-5 fw-normal text-muted">Intent</dt><dd class="col-7">{{ conv.intent|upper|default:"—" }}{% if conv.intent_score is not None %} ({{ conv.intent_score }}/100){% endif %}</dd>
                 <dt class="col-5 fw-normal text-muted">Sentiment</dt><dd class="col-7">{{ conv.sentiment|default:"—" }}</dd>
                 <dt class="col-5 fw-normal text-muted">Outcome</dt><dd class="col-7">{{ conv.outcome|default:"—" }}</dd>
+                {% if conv.summary %}<dt class="col-5 fw-normal text-muted">Follow-up</dt><dd class="col-7">{{ conv.follow_up_required|yesno:"Needed,Not needed" }}</dd>{% endif %}
+                {% for t in tools %}{% if t.status == 'ok' and t.output.appointment_number %}<dt class="col-5 fw-normal text-muted">Appointment</dt><dd class="col-7">{{ t.output.appointment_number }} · {% if t.output.cancelled %}cancelled{% elif t.output.rescheduled %}moved to {{ t.output.when }}{% else %}{{ t.output.type }}{% if t.output.with %} with {{ t.output.with }}{% endif %}{% if t.output.when %}, {{ t.output.when }}{% endif %}{% endif %}</dd>{% endif %}{% endfor %}
                 <dt class="col-5 fw-normal text-muted">Lead score after</dt><dd class="col-7">{{ conv.score_label_after|upper|default:"—" }}</dd>
                 <dt class="col-5 fw-normal text-muted">Language</dt><dd class="col-7">{{ conv.language|default:"—" }}</dd>
             </dl>

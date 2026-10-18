@@ -105,7 +105,7 @@ def open_session(call_id, sig, vendor, mode="talk"):
     if call is None or call.status in Call.TERMINAL:
         raise SessionRefused("call not found or ended")
     with company_context(call.company_id):
-        employee, test = call.employee, call.reason == "browser_test"
+        employee, test = call.employee, call.reason in Call.TEST_REASONS
         conv = call.conversation
         if conv is None:
             preferred = call.language or (call.lead.preferred_language if call.lead else "")

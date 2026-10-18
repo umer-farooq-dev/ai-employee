@@ -8,6 +8,7 @@ a company may only tighten them) or plan data — nothing is hard-coded.
 
 import hashlib
 import hmac
+import json
 import math
 import threading
 import urllib.parse
@@ -364,6 +365,37 @@ def _dial(call):
         finish(call)
 
 
+def place_test_call(employee, phone, user=None, request=None):
+    """EMP-10: the AI Employee calls the tester's own phone from its number (draft employees too). The tester asked
+    for it, so consent / DND and calling hours do not apply; plan limits and allowed countries do."""
+    if employee.status == AIEmployee.ARCHIVED:
+        raise ValidationError(f"{employee.name} is archived.")
+    number = number_for(employee, "outbound")
+    if not number:
+        raise ValidationError(f"Connect a phone number for outbound calls to {employee.name} first (step 7: Tools).")
+    if not number.provider.is_active or (production() and number.provider.test_only):
+        raise ValidationError(f"The telephony provider {number.provider.name} is switched off.")
+    phone = clean_e164(phone)
+    if not any(phone.startswith(code) for code in setting("calling.allowed_country_codes")):
+        raise ValidationError("Calls to this country are not allowed.")
+    check_capacity(employee.company)
+    call = Call.objects.create(
+        company=employee.company,
+        employee=employee,
+        phone_number=number,
+        provider=number.provider,
+        direction="outbound",
+        reason="test_call",
+        from_e164=number.e164,
+        to_e164=phone,
+        requested_by=user if user and user.is_authenticated else None,
+        events=[_event(Call.QUEUED, "test call")],
+    )
+    _dial(call)
+    record(request, "call.test_call", "call", str(call.pk), {"to": phone}, user, company=call.company)
+    return call
+
+
 def start_browser_test(employee, language="", user=None, request=None):
     """VOICE-19 / EMP-10: a test call from the browser (no telephony). → (call, signed gateway address)."""
     from apps.providers import languages as langs
@@ -550,6 +582,15 @@ def inbound(provider, event):
 
 
 # ------------------------------------------------------------------ after the call (REC-01, USE-01, VOICE-17)
+def _primary(described):
+    """'["sarvam/saarika", "deepgram/nova-3"]' (gateway metrics) → 'sarvam'. ponytail: the first route is billed even if
+    the call failed over mid-way; per-service usage frames if the split ever matters."""
+    try:
+        return str(json.loads(described)[0]).split("/")[0][:60]
+    except (TypeError, ValueError, IndexError):
+        return ""
+
+
 def finish(call):
     """Runs once when a call reaches a final state: duration, usage, lead timeline, retry; the conversation's
     summary / extraction / score run in the background (they call the AI)."""
@@ -565,6 +606,26 @@ def finish(call):
     rows = [UsageEvent(meter="calls", quantity=1, unit="calls", task=call.direction, **common)]
     if minutes:
         rows.append(UsageEvent(meter=f"voice_minutes_{call.direction}", quantity=minutes, unit="minutes", **common))
+    # STT / TTS consumption: streaming STT listens for the whole answered call; TTS is charged per spoken character
+    used = {k: _primary(v) for k, v in ((call.metrics or {}).get("providers") or {}).items()}
+    if call.duration_sec and used.get("stt"):
+        rows.append(
+            UsageEvent(
+                meter="stt_seconds", quantity=call.duration_sec, unit="seconds", provider_key=used["stt"], **common
+            )
+        )
+    if call.conversation_id and used.get("tts"):
+        spoken = sum(
+            len(m.content)
+            for m in call.conversation.messages.filter(role="ai").only("content", "meta")
+            if not (m.meta or {}).get("unspoken")
+        )
+        if spoken:
+            rows.append(
+                UsageEvent(
+                    meter="tts_characters", quantity=spoken, unit="characters", provider_key=used["tts"], **common
+                )
+            )
     UsageEvent.objects.bulk_create(rows)
     if call.lead_id:
         lead = call.lead
@@ -609,7 +670,7 @@ def _later(company_id, fn, *args):
 
 def schedule_retry(call):
     """VOICE-17: busy / no answer / voicemail → another attempt after the configured gap, within the caps."""
-    if call.direction != "outbound" or not call.lead_id or call.reason == "browser_test":
+    if call.direction != "outbound" or not call.lead_id or call.reason in Call.TEST_REASONS:
         return None
     if call.status not in setting("calling.retry_outcomes"):
         return None

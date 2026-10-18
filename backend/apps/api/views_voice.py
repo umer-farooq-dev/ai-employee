@@ -116,6 +116,17 @@ class CallDetailSerializer(CallSerializer):
     follow_up_required = serializers.BooleanField(
         source="conversation.follow_up_required", read_only=True, default=False
     )
+    appointments = serializers.SerializerMethodField()
+
+    def get_appointments(self, call):
+        """VOICE-14: appointments booked / moved / cancelled during the call (from the tool log)."""
+        if not call.conversation_id:
+            return []
+        return [
+            t.output
+            for t in call.conversation.tool_invocations.filter(status="ok")
+            if (t.output or {}).get("appointment_number")
+        ]
 
     class Meta(CallSerializer.Meta):
         fields = CallSerializer.Meta.fields + [
@@ -127,6 +138,7 @@ class CallDetailSerializer(CallSerializer):
             "intent_score",
             "outcome",
             "follow_up_required",
+            "appointments",
         ]
         read_only_fields = fields
 

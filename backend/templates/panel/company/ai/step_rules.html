@@ -33,6 +33,7 @@
         <textarea id="f-hk" class="form-control mb-2" name="handoff_keywords" rows="2" placeholder="complaint&#10;manager">{% for t in rules.handoff_keywords %}{{ t }}&#10;{% endfor %}</textarea>
         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="f-hkg" name="handoff_on_knowledge_gap" {% if rules.handoff_on_knowledge_gap %}checked{% endif %}><label class="form-check-label" for="f-hkg">Hand over when the answer is not in the approved knowledge</label></div>
         <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="f-hhl" name="handoff_on_hot_lead" {% if rules.handoff_on_hot_lead %}checked{% endif %}><label class="form-check-label" for="f-hhl">Hand over hot leads during the call</label></div>
+        <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="f-hup" name="handoff_on_upset" {% if rules.handoff_on_upset %}checked{% endif %}><label class="form-check-label" for="f-hup">Hand over when the caller is angry or upset</label></div>
         <label class="form-label" for="f-esc">Escalate when (one per line)</label>
         <textarea id="f-esc" class="form-control mb-3" name="escalation_triggers" rows="3" placeholder="Customer asks for a human&#10;Budget above 2 Cr">{% for t in rules.escalation_triggers %}{{ t }}&#10;{% endfor %}</textarea>
         <label class="form-label" for="f-rt">Restricted topics (one per line)</label>

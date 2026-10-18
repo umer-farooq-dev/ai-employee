@@ -298,6 +298,19 @@ class AIEmployeeViewSet(TenantContextMixin, viewsets.ModelViewSet):
         )
         return Response({"call": str(call.pk), "url": url, "language": call.language}, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="test-call")
+    def test_call(self, request, pk=None):
+        """EMP-10: the AI Employee calls the tester's own phone (default: the phone in their profile)."""
+        from apps.voice import services as voice
+
+        phone = request.data.get("phone") or request.user.phone
+        call = _errors(voice.place_test_call, self.get_object(), phone, request.user, request._request)
+        if call.status == "failed":
+            return Response(
+                {"error": {"code": "call_failed", "message": call.error}}, status=status.HTTP_502_BAD_GATEWAY
+            )
+        return Response({"call": str(call.pk), "to": call.to_e164}, status=status.HTTP_201_CREATED)
+
 
 # ------------------------------------------------------------- company: conversations (transcripts, KB-11, TOOL-14)
 class ConversationViewSet(

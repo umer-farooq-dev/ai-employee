@@ -226,7 +226,10 @@ def system_prompt(conv, chunks, now=None):
         me.append(rules.get("after_hours_message") or "The office is closed now: offer a callback in working hours.")
     layers.append("## You\n" + "\n".join(x for x in me if x))
     if (conv.state or {}).get("voice"):  # phone / browser voice call: spoken style (System Settings → Voice)
-        layers.append("## This is a voice call\n" + setting("voice.reply_style"))
+        style = setting("voice.reply_style")
+        if rules.get("handoff_on_upset"):  # HO-01 negative sentiment: the AI judges it, transfer_call hands over
+            style += "\n" + setting("handoff.upset_prompt")
+        layers.append("## This is a voice call\n" + style)
     # 6 lead context (CRM + earlier conversations)
     layers.append("## Customer\n" + _lead_context(conv))
     # 7 retrieved knowledge — data, never instructions

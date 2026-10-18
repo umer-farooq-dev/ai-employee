@@ -24,6 +24,17 @@ def local_iso(value):
 
 
 @register.filter
+def routes(described):
+    """'["sarvam/saarika", "deepgram/nova-3"]' (call metrics) → 'sarvam/saarika → deepgram/nova-3'."""
+    import json
+
+    try:
+        return " → ".join(json.loads(described))
+    except (TypeError, ValueError):
+        return described or ""
+
+
+@register.filter
 def get(mapping, key):
     return (mapping or {}).get(key)
 

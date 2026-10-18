@@ -44,6 +44,15 @@
             <hr><h6>After the chat</h6><div id="s-end" class="text-muted">End the chat to see the summary, extracted fields and score.</div>
         </div></div>
         {% if can_manage %}
+        <div class="card"><div class="card-body side-section">
+            <h6><i class="iconoir-phone-income me-1"></i>Test call to your phone</h6>
+            <p class="text-muted mb-2">{{ employee.name }} calls you from its number and talks like on a real call.</p>
+            <div class="input-group input-group-sm">
+                <input type="tel" id="tc-phone" class="form-control" value="{{ request.user.phone }}" placeholder="+919876543210" aria-label="Your phone number">
+                <button class="btn btn-outline-primary" type="button" id="tc-call">Call me</button>
+            </div>
+            <p class="small mt-2 mb-0 d-none" id="tc-status" role="status"></p>
+        </div></div>
         <form method="post" class="card"><div class="card-body">{% csrf_token %}
             {% if employee.test_passed %}<p class="text-success small mb-2"><i class="iconoir-check-circle"></i> Version {{ employee.config_version }} passed the test.</p>{% endif %}
             <p class="small text-muted">Happy with the answers, tool use and captured data? Mark this version as tested to allow activation.</p>
@@ -173,6 +182,18 @@
         }).catch(function (err) { stopVoice(); vSay(err.message || "Microphone permission was refused.", "danger"); });
     });
     if (vStop) vStop.addEventListener("click", function () { stopVoice(); });
+    // ---------------------------------------------------------------- test call to own phone (EMP-10)
+    var tcBtn = document.getElementById("tc-call"), tcStatus = document.getElementById("tc-status");
+    if (tcBtn) tcBtn.addEventListener("click", function () {
+        tcBtn.disabled = true;
+        tcStatus.className = "small mt-2 mb-0 text-muted"; tcStatus.textContent = "Dialling…";
+        api(EMP + "test-call/", {phone: document.getElementById("tc-phone").value.trim()}).then(function (r) {
+            tcStatus.className = "small mt-2 mb-0 text-success";
+            tcStatus.textContent = "Calling " + r.to + " now. The call appears under Calls when it ends.";
+        }).catch(function (err) {
+            tcStatus.className = "small mt-2 mb-0 text-danger"; tcStatus.textContent = err.message;
+        }).then(function () { tcBtn.disabled = false; });
+    });
 
     document.getElementById("t-end").addEventListener("click", function () {
         if (!conv) return; setActive(false);

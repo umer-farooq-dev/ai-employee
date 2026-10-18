@@ -70,7 +70,9 @@ class Call(TenantModel):
         ("retry", "Retry"),
         ("campaign", "Campaign"),
         ("browser_test", "Browser test"),
+        ("test_call", "Test call to own phone"),
     ]
+    TEST_REASONS = ("browser_test", "test_call")  # EMP-10: test data is removed, never retried
     TRANSFER = [
         ("none", "No transfer"),
         ("requested", "Requested"),
@@ -170,6 +172,7 @@ class Handoff(TenantModel):
         ("hot_lead", "Hot lead"),
         ("keyword", "Keyword said"),
         ("repeated_failure", "AI did not understand repeatedly"),
+        ("negative_sentiment", "Customer upset"),
         ("ai_decision", "AI escalated"),
     ]
 

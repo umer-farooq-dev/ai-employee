@@ -196,6 +196,7 @@ def _step_data(request, employee, step):
                 "handoff_keywords": post.get("handoff_keywords", ""),
                 "handoff_on_knowledge_gap": bool(post.get("handoff_on_knowledge_gap")),
                 "handoff_on_hot_lead": bool(post.get("handoff_on_hot_lead")),
+                "handoff_on_upset": bool(post.get("handoff_on_upset")),
                 "follow_up": {
                     "enabled": bool(post.get("follow_up_enabled")),
                     "after_hours": post.get("follow_up_hours"),

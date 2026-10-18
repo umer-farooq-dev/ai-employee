@@ -532,6 +532,14 @@ SETTINGS = [
         max=10,
     ),
     Setting(
+        "handoff.upset_prompt",
+        "textarea",
+        "If the customer is clearly angry, upset or frustrated with you, apologise once in a short sentence and call "
+        "transfer_call with the reason starting with the word 'upset'.",
+        "Upset customer instruction (added on calls when the AI Employee hands over upset customers)",
+        "handoff",
+    ),
+    Setting(
         "handoff.callback_minutes",
         "number",
         30,

@@ -98,6 +98,24 @@ def test_call_log_and_detail(monkeypatch, owner, realty, sara, number, lead, com
     other = member(company_b, "owner@beta.example")
     assert other.get(f"/app/calls/{call.pk}/").status_code == 404
 
+    # VOICE-14: follow-up need and the appointment booked on the call (page + API)
+    from apps.agents import runtime
+    from apps.agents.models import ToolInvocation
+
+    with company_context(realty.id):
+        conv = runtime.start(sara, "voice", {}, lead=lead)
+        conv.summary, conv.follow_up_required = "Wants a site visit.", True
+        conv.save()
+        booked = {"booked": True, "appointment_number": "AP-000007", "type": "Site visit", "when": "Sunday 22 Nov"}
+        ToolInvocation.objects.create(
+            company=realty, conversation=conv, tool_key="book_appointment", output=booked, idempotency_key="t1"
+        )
+        Call.objects.filter(pk=call.pk).update(conversation=conv)
+    html = owner.get(f"/app/calls/{call.pk}/").content.decode()
+    assert "Needed" in html and "AP-000007" in html and "Sunday 22 Nov" in html
+    data = owner.get(f"/api/v1/calls/{call.pk}/").json()
+    assert data["follow_up_required"] is True and data["appointments"][0]["appointment_number"] == "AP-000007"
+
 
 # ---------------------------------------------------------------- Call now from the lead (CRM-11, VOICE-02)
 @pytest.mark.django_db

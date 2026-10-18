@@ -299,6 +299,23 @@ def test_rule_triggers_on_calls(monkeypatch, live_call, sara, realty, set_settin
         chat.refresh_from_db()
         assert not chat.state.get("transfer")
 
+        # negative sentiment: the instruction is added only when the rule is on; the AI hands over with "upset …"
+        conv.state = {**conv.state, "transfer": None}
+        conv.save()
+        fake = FakeLLM(monkeypatch, [{"text": "Okay."}])
+        runtime.reply(conv, "hello")
+        assert "upset" not in fake.calls[0]["messages"][0]["content"]
+        employees.update_employee(sara, {"rules": {**sara.rules, "handoff_on_upset": True}})
+        conv = Conversation.objects.get(pk=conv.pk)  # fresh employee, as on the next call turn
+        fake = FakeLLM(
+            monkeypatch,
+            [{"calls": [("transfer_call", {"reason": "upset about the delay"})]}, {"text": "Sorry, connecting you."}],
+        )
+        runtime.reply(conv, "This is useless, I have waited three weeks!")
+        conv.refresh_from_db()
+        assert "angry, upset or frustrated" in fake.calls[0]["messages"][0]["content"]
+        assert conv.state["transfer"]["reason"] == "negative_sentiment"
+
 
 # ---------------------------------------------------------------- HO-03 screen pop API
 @pytest.mark.django_db
