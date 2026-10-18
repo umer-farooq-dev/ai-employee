@@ -1,6 +1,6 @@
 {% extends 'panel/admin/layout.html' %}
 {% block title %}Call{% endblock %}
-{% block page_content %}
+{% block page_content %}{% load admin_tags %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
     <div>
         <h4 class="mb-0">{{ call.company.name }} · {{ call.get_direction_display }} call · {{ call.employee.name }} {% include 'panel/company/calls/_status.html' %}</h4>
@@ -33,7 +33,7 @@
             {% for h in handoffs %}<div class="mb-2"><strong>{{ h.get_reason_display }}</strong> · {{ h.get_status_display }}{% if h.seconds_to_answer is not None %} · {{ h.seconds_to_answer }} s{% endif %}<div>{{ h.summary }}</div></div>{% endfor %}
         </div></div>{% endif %}
         <div class="card"><div class="card-header"><h4 class="card-title mb-0">Timeline</h4></div><div class="card-body small">
-            {% for e in call.events %}<div><span class="text-muted">{{ e.at|slice:"11:19" }}</span> {{ e.status }}{% if e.detail %} — <span class="text-muted">{{ e.detail }}</span>{% endif %}</div>{% endfor %}
+            {% for e in call.events %}<div><span class="text-muted">{{ e.at|local_iso|date:"H:i:s" }}</span> {{ e.status }}{% if e.detail %} — <span class="text-muted">{{ e.detail }}</span>{% endif %}</div>{% endfor %}
         </div></div>
     </div>
     <div class="col-lg-8 order-lg-1">

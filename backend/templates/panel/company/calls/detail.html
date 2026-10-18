@@ -1,6 +1,6 @@
 {% extends 'panel/company/layout.html' %}
 {% block title %}Call{% endblock title %}
-{% block page_content %}
+{% block page_content %}{% load admin_tags %}
 <style>
     .kv dt{font-weight:400;color:var(--bs-secondary-color)}
     .lat-bar{height:6px;border-radius:3px;background:var(--bs-light);overflow:hidden;display:flex}
@@ -78,7 +78,7 @@
         </div></div>
 
         <div class="card"><div class="card-header"><h4 class="card-title mb-0">Timeline</h4></div><div class="card-body small"><div class="tl">
-            {% for e in call.events %}<div><span class="text-muted">{{ e.at|slice:"11:19" }}</span> {{ e.status|cut:"ignored:" }}{% if e.detail %} — <span class="text-muted">{{ e.detail }}</span>{% endif %}</div>{% endfor %}
+            {% for e in call.events %}<div><span class="text-muted">{{ e.at|local_iso|date:"H:i:s" }}</span> {{ e.status|cut:"ignored:" }}{% if e.detail %} — <span class="text-muted">{{ e.detail }}</span>{% endif %}</div>{% endfor %}
         </div></div></div>
     </div>
     <div class="col-lg-8 order-lg-1">

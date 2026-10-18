@@ -14,6 +14,16 @@ def can(user, key):
 
 
 @register.filter
+def local_iso(value):
+    """ISO timestamp string (stored in JSON, UTC) → aware datetime in the current timezone, for |date."""
+    from django.utils import timezone
+    from django.utils.dateparse import parse_datetime
+
+    parsed = parse_datetime(str(value or ""))
+    return timezone.localtime(parsed) if parsed else None
+
+
+@register.filter
 def get(mapping, key):
     return (mapping or {}).get(key)
 
