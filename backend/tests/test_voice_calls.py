@@ -145,6 +145,23 @@ def test_call_now_dials_through_the_provider(monkeypatch, line, sara, lead, real
 
 
 @pytest.mark.django_db
+def test_calls_that_never_report_back_are_closed(monkeypatch, line, sara, lead, realty):
+    FakeTelephony(monkeypatch)
+    with company_context(realty.id):
+        dialled = services.place_call(sara, lead)  # queued with a provider id, no webhook ever arrives
+        talking = Call.objects.create(company=realty, employee=sara, direction="inbound", status=Call.IN_PROGRESS)
+    now = timezone.now()
+    services.sweep_stuck(now + dt.timedelta(minutes=3))  # past the ring time, not past the longest call
+    dialled.refresh_from_db()
+    talking.refresh_from_db()
+    assert dialled.status == Call.FAILED and "No update" in dialled.error
+    assert talking.status == Call.IN_PROGRESS
+    services.sweep_stuck(now + dt.timedelta(minutes=18))
+    talking.refresh_from_db()
+    assert talking.status == Call.FAILED and any(e["status"] == "finished" for e in talking.events)
+
+
+@pytest.mark.django_db
 def test_outbound_compliance_checks(monkeypatch, line, sara, lead, realty, set_setting):
     FakeTelephony(monkeypatch)
     blocked = services.CallBlocked

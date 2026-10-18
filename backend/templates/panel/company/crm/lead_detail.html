@@ -41,8 +41,9 @@
                 <button class="btn btn-sm btn-light">Assign</button></form>
             {% else %}<p class="small mb-0">Assigned to {{ lead.assigned_user|person|default:"nobody"  }}</p>{% endif %}
         </div></div>
-        {% if can_call and voice_employees %}
+        {% if can_call or calls %}
         <div class="card"><div class="card-header"><h5 class="card-title mb-0"><i class="iconoir-phone-outcome me-1"></i>AI call</h5></div><div class="card-body">
+            {% if can_call and not voice_employees %}<p class="small text-muted mb-0">No live AI Employee has a phone number for outbound calls yet. Make the employee live and connect a number in <a href="{% url 'panel:calling_settings' %}">Settings → Calling &amp; numbers</a>.</p>{% elif can_call %}
             {% if lead.dnd or lead.consent_status == 'opted_out' %}<p class="small text-danger mb-2">This customer opted out of calls (Do not call).</p>{% endif %}
             <form method="post" action="{% url 'panel:call_now' lead.pk %}">{% csrf_token %}
                 <label class="form-label small" for="call-emp">AI Employee</label>
@@ -54,6 +55,7 @@
                 </div>
                 <p class="form-text mb-0">Consent, calling hours and call limits are checked before the AI dials.</p>
             </form>
+            {% endif %}
             {% if calls %}<hr class="my-2"><div class="small">{% for c in calls %}<div class="d-flex justify-content-between"><a href="{% url 'panel:call_detail' c.pk %}">{{ c.queued_at|date:"d M H:i" }} · {{ c.get_direction_display }}</a><span>{% include 'panel/company/calls/_status.html' with call=c %}</span></div>{% endfor %}</div>{% endif %}
         </div></div>
         {% endif %}

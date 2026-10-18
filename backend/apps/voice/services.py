@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import close_old_connections, transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from apps.agents.models import AIEmployee, Conversation, UsageEvent
@@ -111,8 +111,9 @@ def save_policy(company, data, user=None, request=None):
                 raise ValidationError(f"{key.replace('_', ' ').capitalize()}: must be at least 1.")
         platform = setting(setting_key)
         if stricter(platform, value) != value:
+            bound = {"window_start": "earlier than", "window_end": "later than"}.get(key, "more than")
             raise ValidationError(
-                f"{key.replace('_', ' ').capitalize()} can be at most as wide as the platform limit ({platform})."
+                f"{key.replace('_', ' ').capitalize()} cannot be {bound} the platform limit ({platform})."
             )
         own[key] = value
     if own.get("window_start") and own.get("window_end") and own["window_start"] >= own["window_end"]:
@@ -650,10 +651,34 @@ def schedule_follow_up(employee, lead, when, user=None):
     )
 
 
+def sweep_stuck(now):
+    """A call that never reports back (lost status webhook, browser test that never connected, gateway crash) would
+    stay live forever and hold a concurrent-call slot: fail it once it is past the ring time / longest call."""
+    grace = timedelta(minutes=2)
+    ring = timedelta(seconds=setting("calling.ring_timeout_seconds")) + grace
+    talk = timedelta(minutes=setting("calling.max_call_minutes")) + grace
+    # ponytail: transferred calls are left alone — a human conversation has no fixed length
+    checks = (
+        (Q(status=Call.QUEUED) & ~Q(provider_call_id=""), ring),  # dialled, the provider never reported back
+        (Q(status=Call.RINGING), ring),
+        (Q(status=Call.IN_PROGRESS), talk),
+    )
+    for cond, limit in checks:
+        with platform_context():
+            stuck = list(Call.all_companies.filter(cond, updated_at__lt=now - limit).values_list("pk", "company_id"))
+        for pk, company_id in stuck:
+            with company_context(company_id):
+                call = Call.objects.select_related("employee", "lead", "company").get(pk=pk)
+                call.error = call.error or "No update from the call — closed automatically."
+                if transition(call, Call.FAILED, "no update"):
+                    finish(call)
+
+
 def dial_due(now=None):
     """Scheduler (cron, every minute): dial queued retries / follow-ups that are due. Calls blocked by the calling
     window move to the next window; other blocks cancel the call with the reason."""
     now = now or timezone.now()
+    sweep_stuck(now)
     done = 0
     with platform_context():
         due = list(

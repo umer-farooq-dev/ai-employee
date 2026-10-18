@@ -118,6 +118,7 @@ def calling_settings(request):
     """CP-06: the company's numbers (connected to AI Employees) and its calling rules within the platform limits."""
     company = request.company
     can_manage = has_perm(request.user, "phone_numbers.manage", company)
+    own = (company.settings or {}).get("calling") or {}
     if request.method == "POST":
         if not can_manage:
             messages.error(request, "You may not change calling settings.")
@@ -139,7 +140,8 @@ def calling_settings(request):
             return redirect("panel:calling_settings")
         except ValidationError as exc:
             _errors(request, exc)
-    own = (company.settings or {}).get("calling") or {}
+            if request.POST.get("op") != "number":
+                own = request.POST  # keep what was typed
     limits = {key: setting(skey) for key, (skey, _) in voice.POLICY_KEYS.items()}
     return render(
         request,
