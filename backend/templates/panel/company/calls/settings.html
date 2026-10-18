@@ -1,0 +1,61 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Calling &amp; numbers{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap gap-2 mt-3">
+    <a class="btn btn-sm btn-light" href="{% url 'panel:company_settings' %}">Company</a>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:crm_settings' %}">CRM fields, scoring &amp; assignment</a>
+    <a class="btn btn-sm btn-primary" href="{% url 'panel:calling_settings' %}">Calling &amp; numbers</a>
+</div>
+<div class="row mt-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Phone numbers</h4></div>
+            <div class="card-body">
+                <p class="text-muted small">Calls to a number are answered by the AI Employee connected to it; outbound calls use the employee's number. New numbers are added by the platform team.</p>
+                <div class="table-responsive"><table class="table align-middle mb-0">
+                    <thead class="table-light"><tr><th>Number</th><th>Calls</th><th>AI Employee</th></tr></thead><tbody>
+                    {% for n in numbers %}
+                    <tr>
+                        <td><div class="fw-medium">{{ n.e164 }}</div><div class="small text-muted">{{ n.label|default:n.provider.name }}{% if n.status != 'active' %} · switched off{% endif %}</div></td>
+                        <td class="small">{% for c in n.capabilities %}<span class="badge bg-light text-dark me-1">{{ c|title }}</span>{% endfor %}</td>
+                        <td>
+                            <form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="op" value="number"><input type="hidden" name="number" value="{{ n.pk }}">
+                                <select class="form-select form-select-sm" name="employee" aria-label="AI Employee for {{ n.e164 }}" {% if not can_manage %}disabled{% endif %}>
+                                    <option value="">— Not connected —</option>
+                                    {% for e in employees %}<option value="{{ e.pk }}" {% if n.employee_id == e.pk %}selected{% endif %}>{{ e.name }} ({{ e.get_status_display }})</option>{% endfor %}
+                                </select>
+                                {% if can_manage %}<button class="btn btn-sm btn-primary">Save</button>{% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}<tr><td colspan="3" class="text-muted small py-4 text-center">No number yet. Ask the platform team for a number for your company.</td></tr>{% endfor %}
+                </tbody></table></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <form method="post" class="card">{% csrf_token %}<input type="hidden" name="op" value="rules">
+            <div class="card-header"><h4 class="card-title mb-0">Calling rules</h4></div>
+            <fieldset class="card-body" {% if not can_manage %}disabled{% endif %}>
+                <p class="text-muted small">You can make these stricter than the platform limits shown, not wider. Empty = platform limit.</p>
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><label class="form-label small" for="c-ws">Outbound calls from</label><input type="time" id="c-ws" class="form-control form-control-sm" name="window_start" value="{{ own.window_start|default:'' }}"><div class="form-text">Earliest {{ limits.window_start }}</div></div>
+                    <div class="col-6"><label class="form-label small" for="c-we">until</label><input type="time" id="c-we" class="form-control form-control-sm" name="window_end" value="{{ own.window_end|default:'' }}"><div class="form-text">Latest {{ limits.window_end }}</div></div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><label class="form-label small" for="c-ad">Calls per lead per day</label><input type="number" min="1" id="c-ad" class="form-control form-control-sm" name="max_attempts_per_lead_per_day" value="{{ own.max_attempts_per_lead_per_day|default:'' }}" placeholder="{{ limits.max_attempts_per_lead_per_day }}"></div>
+                    <div class="col-6"><label class="form-label small" for="c-at">Calls per lead in total</label><input type="number" min="1" id="c-at" class="form-control form-control-sm" name="max_attempts_per_lead" value="{{ own.max_attempts_per_lead|default:'' }}" placeholder="{{ limits.max_attempts_per_lead }}"></div>
+                    <div class="col-6"><label class="form-label small" for="c-day">Calls per day (company)</label><input type="number" min="1" id="c-day" class="form-control form-control-sm" name="max_calls_per_day" value="{{ own.max_calls_per_day|default:'' }}" placeholder="{{ limits.max_calls_per_day }}"></div>
+                </div>
+                <hr>
+                <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="c-rec" name="recording_enabled" {% if effective.recording_enabled %}checked{% endif %}><label class="form-check-label" for="c-rec">Record calls (the caller hears the recording announcement)</label></div>
+                <div class="row g-2">
+                    <div class="col-6"><label class="form-label small" for="c-rd">Keep recordings (days)</label><input type="number" min="1" id="c-rd" class="form-control form-control-sm" name="recordings_days" value="{{ own.recordings_days|default:'' }}" placeholder="{{ limits.recordings_days }}"></div>
+                    <div class="col-6"><label class="form-label small" for="c-td">Keep transcripts (days)</label><input type="number" min="1" id="c-td" class="form-control form-control-sm" name="transcripts_days" value="{{ own.transcripts_days|default:'' }}" placeholder="{{ limits.transcripts_days }}"></div>
+                </div>
+            </fieldset>
+            {% if can_manage %}<div class="card-footer"><button class="btn btn-primary">Save calling rules</button></div>{% endif %}
+        </form>
+    </div>
+</div>
+{% endblock page_content %}

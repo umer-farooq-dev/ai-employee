@@ -17,6 +17,10 @@
                 {% if m.meta.disclosure %} · AI disclosure{% endif %}
                 {% if m.meta.grounding_blocked %} · <span class="text-danger">blocked invented amount {{ m.meta.grounding_blocked|join:", " }}</span>{% endif %}
                 {% if m.meta.fallback %} · <span class="text-warning">fallback (facts missing)</span>{% endif %}
+                {% if m.meta.unspoken %} · <span class="text-muted fst-italic">not spoken — the caller kept talking</span>{% endif %}
+                {% if m.meta.recording_consent %} · recording announced{% endif %}
+                {% if m.meta.silence %} · silence prompt{% endif %}{% if m.meta.goodbye %} · goodbye{% endif %}{% if m.meta.voicemail %} · voicemail message{% endif %}{% if m.meta.no_agent %} · no agent available{% endif %}
+                {% if m.meta.handoff_trigger %} · <span class="text-primary">handoff: {{ m.meta.handoff_trigger }}</span>{% endif %}
                 {% if m.citations %}<br>Knowledge: {% for c in m.citations %}<span class="badge bg-primary-subtle text-primary">{{ c.source_title }}{% if c.title and c.title != c.source_title %} — {{ c.title|truncatechars:40 }}{% endif %}</span> {% endfor %}{% endif %}
             </div>
         {% endfor %}

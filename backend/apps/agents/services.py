@@ -185,10 +185,13 @@ def _clean(employee, data):
             speed = float(v.get("speed") or 1.0)
         except (TypeError, ValueError):
             raise ValidationError("Speaking speed must be a number.") from None
-        employee.voices = {
-            **{k: str(x) for k, x in v.items() if k in codes},
-            "speed": max(0.5, min(speed, 2.0)),
-        }
+        from apps.providers.models import Voice
+
+        chosen = {k: str(x) for k, x in v.items() if k in codes and x}
+        for code, voice_id in chosen.items():  # EMP-05: only an active catalogue voice of that language
+            if not Voice.objects.filter(pk=voice_id, language__code=code, is_active=True).exists():
+                raise ValidationError(f"Choose a voice from the catalogue for {code}.")
+        employee.voices = {**chosen, "speed": max(0.5, min(speed, 2.0))}
     if "languages" in data or "primary_language" in data:
         langs = [c for c in (data.get("languages") or employee.languages or []) if c in codes]
         primary = data.get("primary_language") or employee.primary_language

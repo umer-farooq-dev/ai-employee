@@ -150,9 +150,11 @@ _Voices (EMP-05) aur phone test (EMP-10 voice) Phase 5 mein; WhatsApp / website 
 6. [x] **Voice Gateway** (VOICE-03..06, 10, 21, 22): Pipecat pipeline — VAD, streaming STT, turn detection, same AI runtime, streaming TTS, barge-in, filler jab tool chale, AI disclosure + recording consent, language follow, provider failover, per-stage latency metrics
 7. [x] **Transfer & handoff** (TOOL-08, VOICE-11, HO-01..05): triggers, routing (assigned → round robin → available → fallback), agent screen pop + notification, no agent → message + callback task, handoff log
 8. [x] **Recording, transcript, post-call** (VOICE-12..14, REC-01, REC-03, COMP-06): recording on / off, consent announcement, retention auto-delete, signed-link playback, listen / download permissions, access audit; speaker-labelled transcript; summary / extraction / score / sentiment
-9. [ ] **Panels**: wizard voice step (EMP-05 preview), phone step (EMP-08), browser test call (VOICE-19, EMP-10), call logs (VOICE-15), lead timeline calls + recordings (CRM-11), Super Admin Calls (SA-15), usage: voice minutes / calls / STT / TTS (USE-01)
-10. [ ] Monitoring alerts (ENGR-05), concurrent-call load test script (ENGR-07)
-11. [ ] Har feature ki REST API + tests
+9. [x] **Panels**: wizard voice step (EMP-05 preview), phone step (EMP-08), browser test call (VOICE-19, EMP-10), call logs (VOICE-15), lead timeline calls + recordings (CRM-11), Super Admin Calls (SA-15), usage: voice minutes / calls / STT / TTS (USE-01)
+10. [x] Monitoring alerts (ENGR-05), concurrent-call load test script (ENGR-07)
+11. [x] Har feature ki REST API + tests
+
+_Detail: docs/phase5/phase5-gate.md_
 
 **Phase 5 gate:** latency P50 / P95 per language asli test calls par · 50+ scripted calls per language (code-mixed bhi) · barge-in, transfer (warm / cold / no agent), voicemail tests · provider failover test · concurrent-call load test · CI green · client sign-off
 

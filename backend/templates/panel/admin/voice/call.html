@@ -1,0 +1,43 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Call{% endblock %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div>
+        <h4 class="mb-0">{{ call.company.name }} · {{ call.get_direction_display }} call · {{ call.employee.name }} {% include 'panel/company/calls/_status.html' %}</h4>
+        <span class="text-muted small">{{ call.queued_at|date:"d M Y H:i" }}{% if call.ended_at %} – {{ call.ended_at|date:"H:i" }}{% endif %} · {{ call.get_reason_display }} · {{ call.customer_number|default:"" }}{% if call.duration_sec %} · {{ call.duration_sec }} s{% endif %}</span>
+    </div>
+    <div class="d-flex gap-2">
+        {% if call.recording_status == 'stored' and can_listen %}<a class="btn btn-sm btn-primary" href="{% url 'superadmin:call_recording' call.pk %}" target="_blank" rel="noopener"><i class="iconoir-play me-1"></i>Recording (audited)</a>{% endif %}
+        <a class="btn btn-sm btn-light" href="{% url 'superadmin:calls' %}">All calls</a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-4 order-lg-2">
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Quality</h4></div><div class="card-body small">
+            {% with m=call.metrics %}
+            <dl class="row mb-2">
+                <dt class="col-7 fw-normal text-muted">Median reply</dt><dd class="col-5 {% if m.p50_ms > thresholds.p50 %}text-danger{% endif %}">{{ m.p50_ms|default:"—" }}{% if m.p50_ms %} ms{% endif %}</dd>
+                <dt class="col-7 fw-normal text-muted">95th percentile</dt><dd class="col-5 {% if m.p95_ms > thresholds.p95 %}text-danger{% endif %}">{{ m.p95_ms|default:"—" }}{% if m.p95_ms %} ms{% endif %}</dd>
+                <dt class="col-7 fw-normal text-muted">Interruptions</dt><dd class="col-5">{{ m.interruptions|default:0 }}</dd>
+                <dt class="col-7 fw-normal text-muted">Silences</dt><dd class="col-5">{{ m.silences|default:0 }}</dd>
+                <dt class="col-7 fw-normal text-muted">Recognition confidence</dt><dd class="col-5">{{ m.stt_confidence|default:"—" }}</dd>
+                <dt class="col-7 fw-normal text-muted">Providers</dt><dd class="col-5 text-break">{{ m.providers.stt|default:"" }} {{ m.providers.tts|default:"" }}</dd>
+            </dl>
+            {% if turns %}<table class="table table-sm mb-0"><thead><tr><th>#</th><th>STT</th><th>AI</th><th>Voice</th><th>Total</th></tr></thead><tbody>
+            {% for t in turns %}<tr><td>{{ forloop.counter }}</td><td>{{ t.stt_ms|default:"—" }}</td><td>{{ t.llm_ms|default:"—" }}</td><td>{{ t.tts_ms|default:"—" }}</td><td>{{ t.total_ms|default:"—" }}</td></tr>{% endfor %}
+            </tbody></table>{% endif %}
+            {% for e in m.errors %}<div class="text-danger mt-1">{{ e.stage }}: {{ e.error }}</div>{% endfor %}
+            {% endwith %}
+        </div></div>
+        {% if handoffs %}<div class="card"><div class="card-header"><h4 class="card-title mb-0">Handoff</h4></div><div class="card-body small">
+            {% for h in handoffs %}<div class="mb-2"><strong>{{ h.get_reason_display }}</strong> · {{ h.get_status_display }}{% if h.seconds_to_answer is not None %} · {{ h.seconds_to_answer }} s{% endif %}<div>{{ h.summary }}</div></div>{% endfor %}
+        </div></div>{% endif %}
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Timeline</h4></div><div class="card-body small">
+            {% for e in call.events %}<div><span class="text-muted">{{ e.at|slice:"11:19" }}</span> {{ e.status }}{% if e.detail %} — <span class="text-muted">{{ e.detail }}</span>{% endif %}</div>{% endfor %}
+        </div></div>
+    </div>
+    <div class="col-lg-8 order-lg-1">
+        {% if conv %}{% include 'panel/partials/conversation_body.html' with lead_links=False %}{% else %}<div class="card"><div class="card-body text-muted">No conversation — the call was not answered.</div></div>{% endif %}
+    </div>
+</div>
+{% endblock page_content %}

@@ -193,6 +193,9 @@ def _step_data(request, employee, step):
                 "disclosure": _texts(post, "disclosure", codes),
                 "recording": bool(post.get("recording")),
                 "consent": _texts(post, "consent", codes),
+                "handoff_keywords": post.get("handoff_keywords", ""),
+                "handoff_on_knowledge_gap": bool(post.get("handoff_on_knowledge_gap")),
+                "handoff_on_hot_lead": bool(post.get("handoff_on_hot_lead")),
                 "follow_up": {
                     "enabled": bool(post.get("follow_up_enabled")),
                     "after_hours": post.get("follow_up_hours"),
@@ -201,6 +204,44 @@ def _step_data(request, employee, step):
             "qualification": questions,
         }
     return {}
+
+
+def _voice_rows(employee):
+    """EMP-05: per language — voices of the providers that speak it (Super Admin routes), the default, the choice."""
+    from apps.providers.models import Voice
+    from apps.providers.services import speech_chain
+
+    rows = []
+    for code, name in _lang_names(employee.languages or [employee.primary_language]):
+        chain = speech_chain(code, "tts")
+        providers = [r.provider_id for r in chain]
+        voices = Voice.objects.filter(language__code=code, is_active=True, provider_id__in=providers).select_related(
+            "provider"
+        )
+        default = chain[0].voice if chain and chain[0].voice else None
+        rows.append(
+            {
+                "code": code,
+                "name": name,
+                "voices": voices,
+                "selected": (employee.voices or {}).get(code) or (str(default.pk) if default else ""),
+                "default": default,
+            }
+        )
+    return rows
+
+
+def _number_post(request, employee):
+    """EMP-08: connect the chosen company number to this employee (and only that one)."""
+    from apps.voice import services as voice
+
+    numbers = voice.numbers_for(request.company)
+    chosen = request.POST.get("phone_number") or ""
+    for number in numbers:
+        if str(number.pk) == chosen and number.employee_id != employee.pk:
+            voice.connect_number(request.company, number, employee, request.user, request)
+        elif str(number.pk) != chosen and number.employee_id == employee.pk:
+            voice.connect_number(request.company, number, None, request.user, request)
 
 
 def _knowledge_post(request, employee):
@@ -235,6 +276,8 @@ def employee_step(request, pk, step):
                 messages.success(request, "Test passed for this version.")
             if step == "knowledge":
                 _knowledge_post(request, employee)
+            if step == "tools" and has_perm(request.user, "phone_numbers.manage", request.company):
+                _number_post(request, employee)
             next_index = STEP_KEYS.index(step) + 1
             data = {**_step_data(request, employee, step), "wizard_step": next_index + 1}
             employees.update_employee(employee, data, request.user, request)
@@ -256,6 +299,8 @@ def employee_step(request, pk, step):
         context["greetings"] = employee.greetings or (
             employee.template_version.greetings if employee.template_version else {}
         )
+    elif step == "voice":
+        context["voice_rows"] = _voice_rows(employee)
     elif step == "languages":
         context["supported"] = _lang_names(employee.industry.supported_languages or languages.codes())
     elif step == "knowledge":
@@ -266,6 +311,12 @@ def employee_step(request, pk, step):
         ]
     elif step == "tools":
         tools = toolkit.available(employee)
+        from apps.voice.services import numbers_for
+
+        context.update(
+            numbers=numbers_for(request.company).filter(status="active"),
+            can_numbers=has_perm(request.user, "phone_numbers.manage", request.company),
+        )
         context.update(
             tools=[(t, employee.tools.get(t.key, True)) for t in tools],
             resources=Resource.objects.filter(company=request.company, is_active=True),

@@ -43,6 +43,7 @@ python backend/manage.py runserver
   - `python backend/manage.py end_idle_conversations` — closes idle AI conversations so summary, CRM and score update
   - every minute: `python backend/manage.py dial_due_calls` — call retries (busy / no answer / voicemail) and follow-up calls
   - daily: `python backend/manage.py apply_voice_retention` — deletes recordings / voice transcripts past each company's retention
+- Voice load test (ENGR-07): `python backend/manage.py voice_load_test --employee <id> --calls 20 --audio caller.wav` against a running gateway.
 - AI quality gate (ENG-12): `python backend/manage.py run_ai_eval [--only real-estate] [--output report.json]` on the
   production model (keys in Super Admin); exit code 1 when the thresholds in AI settings are not met.
 

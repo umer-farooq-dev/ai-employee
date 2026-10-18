@@ -671,6 +671,104 @@ def voice_settings(request):
     return _provider_page(request, "voice")
 
 
+@staff_perm("calls_oversight.view")
+def calls(request):
+    """SA-15: global call log across companies with filters and quality metrics (VOICE-22, ENGR-05 alerts)."""
+    import statistics
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.voice.models import Call
+
+    with platform_context():
+        qs = Call.all_companies.select_related("company", "employee", "lead")
+        p = request.GET
+        for key, field in (
+            ("company", "company_id"),
+            ("status", "status"),
+            ("direction", "direction"),
+            ("reason", "reason"),
+        ):
+            if p.get(key):
+                qs = qs.filter(**{field: p[key]})
+        if p.get("slow"):
+            qs = qs.filter(metrics__p95_ms__gt=config.get("voice.latency_alert_p95_ms"))
+        page = Paginator(qs, 30).get_page(p.get("page"))
+        page.object_list = list(page.object_list)  # loaded inside the platform context (row-level security)
+        day = list(
+            Call.all_companies.filter(queued_at__gte=timezone.now() - timedelta(hours=24)).values_list(
+                "status", "metrics", "duration_sec"
+            )
+        )
+        companies = Company.objects.filter(deleted_at__isnull=True).order_by("name")
+    p50s = [m.get("p50_ms") for _, m, _ in day if (m or {}).get("p50_ms")]
+    p95s = [m.get("p95_ms") for _, m, _ in day if (m or {}).get("p95_ms")]
+    limit50, limit95 = config.get("voice.latency_alert_p50_ms"), config.get("voice.latency_alert_p95_ms")
+    summary = {
+        "calls": len(day),
+        "answered": sum(1 for s, _, d in day if d),
+        "minutes": round(sum(d or 0 for _, _, d in day) / 60),
+        "p50": round(statistics.median(p50s)) if p50s else None,
+        "p95": round(statistics.median(p95s)) if p95s else None,
+        "slow": sum(1 for v in p95s if v > limit95),
+        "errors": sum(len((m or {}).get("errors") or []) for _, m, _ in day),
+        "limit50": limit50,
+        "limit95": limit95,
+    }
+    return render(
+        request,
+        "panel/admin/voice/calls.html",
+        {"page": page, "summary": summary, "companies": companies, "statuses": Call.STATUSES, "p": p},
+    )
+
+
+@staff_perm("calls_oversight.view")
+def call_detail(request, pk):
+    from apps.voice.models import Call, Handoff
+
+    with platform_context():
+        call = get_object_or_404(
+            Call.all_companies.select_related("company", "employee", "lead", "conversation"), pk=pk
+        )
+        conv = call.conversation
+        msgs = list(conv.messages.all()) if conv else []
+        tools = list(conv.tool_invocations.all()) if conv else []
+        handoffs = list(Handoff.all_companies.filter(call=call).select_related("assigned_user"))
+    return render(
+        request,
+        "panel/admin/voice/call.html",
+        {
+            "call": call,
+            "conv": conv,
+            "msgs": msgs,
+            "tools": tools,
+            "handoffs": handoffs,
+            "turns": (call.metrics or {}).get("turns", [])[:50],
+            "can_listen": has_perm(request.user, "recordings_oversight.listen"),
+            "thresholds": {
+                "p50": config.get("voice.latency_alert_p50_ms"),
+                "p95": config.get("voice.latency_alert_p95_ms"),
+            },
+        },
+    )
+
+
+@staff_perm("recordings_oversight.listen")
+def call_recording(request, pk):
+    """Platform staff listening to a company's recording — audited (REC-03)."""
+    from apps.voice import services as voice
+    from apps.voice.models import Call
+
+    with platform_context():
+        call = get_object_or_404(Call.all_companies.select_related("company"), pk=pk)
+    try:
+        return redirect(voice.recording_link(call, request.user, False, request, platform=True))
+    except ValidationError as exc:
+        messages.error(request, exc.messages[0])
+        return redirect("superadmin:call_detail", pk=pk)
+
+
 @staff_perm("number_pool.manage")
 def phone_numbers(request):
     """VOICE-16: the number pool — add numbers of a telephony provider and give them to companies (no reloads)."""

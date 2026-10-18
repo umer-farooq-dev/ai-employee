@@ -1,0 +1,111 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Call{% endblock title %}
+{% block page_content %}
+<style>
+    .kv dt{font-weight:400;color:var(--bs-secondary-color)}
+    .lat-bar{height:6px;border-radius:3px;background:var(--bs-light);overflow:hidden;display:flex}
+    .lat-bar span{display:block;height:100%}
+    .tl{border-left:2px solid var(--bs-border-color);padding-left:12px;margin-left:4px}
+    .tl div{position:relative;margin-bottom:6px}
+    .tl div:before{content:"";position:absolute;left:-17px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--brand-primary)}
+</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div>
+        <h4 class="mb-0"><i class="iconoir-{% if call.direction == 'inbound' %}phone-income{% else %}phone-outcome{% endif %} me-1"></i>{{ call.get_direction_display }} call · {{ call.employee.name }} {% include 'panel/company/calls/_status.html' %}</h4>
+        <span class="text-muted small">{{ call.queued_at|date:"d M Y H:i" }}{% if call.ended_at %} – {{ call.ended_at|date:"H:i" }}{% endif %} · {{ call.get_reason_display }}{% if call.attempt > 1 %} · attempt {{ call.attempt }}{% endif %}{% if call.requested_by %} · by {{ call.requested_by.full_name|default:call.requested_by.email }}{% endif %}</span>
+    </div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:calls' %}">All calls</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 order-lg-2">
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Call</h4></div><div class="card-body small">
+            <dl class="row kv mb-0">
+                <dt class="col-5">Customer</dt><dd class="col-7">{% if call.lead %}<a href="{% url 'panel:lead_detail' call.lead.pk %}">{{ call.lead.name|default:call.lead.reference }}</a><br>{% endif %}{{ call.customer_number|default:"—" }}</dd>
+                <dt class="col-5">Our number</dt><dd class="col-7">{% if call.direction == 'inbound' %}{{ call.to_e164 }}{% else %}{{ call.from_e164|default:"—" }}{% endif %}</dd>
+                <dt class="col-5">Duration</dt><dd class="col-7">{% if call.duration_sec %}{{ call.duration_sec }} s{% else %}—{% endif %}</dd>
+                <dt class="col-5">Language</dt><dd class="col-7">{{ call.language|default:"—" }}</dd>
+                <dt class="col-5">Ended by</dt><dd class="col-7">{{ call.hangup_by|default:"—" }}</dd>
+                <dt class="col-5">Answered by</dt><dd class="col-7">{% if call.amd_result == 'machine' %}Voicemail{% elif call.answered_at %}Person{% else %}—{% endif %}</dd>
+                <dt class="col-5">Transfer</dt><dd class="col-7">{{ call.get_transfer_status_display }}</dd>
+                {% if call.error %}<dt class="col-5">Error</dt><dd class="col-7 text-danger">{{ call.error }}</dd>{% endif %}
+            </dl>
+        </div></div>
+
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Recording</h4></div><div class="card-body small">
+            {% if call.recording_status == 'stored' %}
+                {% if can.listen %}
+                <button type="button" class="btn btn-sm btn-primary" id="rec-play"><i class="iconoir-play me-1"></i>Play recording ({{ call.recording_seconds }} s)</button>
+                {% if can.download %}<button type="button" class="btn btn-sm btn-light" id="rec-download"><i class="iconoir-download me-1"></i>Download</button>{% endif %}
+                <audio id="rec-audio" controls class="w-100 mt-2 d-none"></audio>
+                <p class="text-muted mt-2 mb-0">Every listen and download is recorded in the audit log.</p>
+                {% else %}<p class="text-muted mb-0">You do not have permission to listen to recordings.</p>{% endif %}
+            {% else %}<p class="text-muted mb-0">{{ call.get_recording_status_display }}.</p>{% endif %}
+        </div></div>
+
+        {% if handoffs %}
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Handoff</h4></div><div class="card-body small">
+            {% for h in handoffs %}
+            <div class="mb-2"><strong>{{ h.get_reason_display }}</strong> · <span class="badge bg-light text-dark">{{ h.get_status_display }}</span>
+                <div class="text-muted">{{ h.created_at|date:"H:i:s" }}{% if h.assigned_user %} · {{ h.assigned_user.full_name|default:h.assigned_user.email }}{% endif %}{% if h.seconds_to_answer is not None %} · answered in {{ h.seconds_to_answer }} s{% endif %} · {{ h.mode }}</div>
+                <div>{{ h.summary }}</div></div>
+            {% endfor %}
+        </div></div>
+        {% endif %}
+
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Quality</h4></div><div class="card-body small">
+            {% with m=call.metrics %}
+            {% if m.p50_ms %}
+            <div class="d-flex gap-3 mb-2">
+                <div><div class="text-muted">Median reply</div><div class="fs-5 fw-semibold {% if m.p50_ms > thresholds.p50 %}text-danger{% endif %}">{{ m.p50_ms }} ms</div></div>
+                <div><div class="text-muted">95th percentile</div><div class="fs-5 fw-semibold {% if m.p95_ms > thresholds.p95 %}text-danger{% endif %}">{{ m.p95_ms }} ms</div></div>
+            </div>
+            <p class="text-muted mb-2">Targets: median ≤ {{ thresholds.p50 }} ms, 95th ≤ {{ thresholds.p95 }} ms (from the end of the caller's speech to the AI's first sound).</p>
+            {% endif %}
+            <dl class="row kv mb-2">
+                <dt class="col-7">Interruptions (barge-in)</dt><dd class="col-5">{{ m.interruptions|default:0 }}</dd>
+                <dt class="col-7">Silences</dt><dd class="col-5">{{ m.silences|default:0 }}</dd>
+                <dt class="col-7">Recognition confidence</dt><dd class="col-5">{{ m.stt_confidence|default:"—" }}</dd>
+                <dt class="col-7">Errors</dt><dd class="col-5">{{ m.errors|length|default:0 }}</dd>
+            </dl>
+            {% if turns %}
+            <table class="table table-sm mb-0"><thead><tr><th>Turn</th><th>STT</th><th>AI</th><th>Voice</th><th>Total</th></tr></thead><tbody>
+            {% for t in turns %}<tr><td>{{ forloop.counter }}</td><td>{{ t.stt_ms|default:"—" }}</td><td>{{ t.llm_ms|default:"—" }}</td><td>{{ t.tts_ms|default:"—" }}</td><td class="fw-medium">{{ t.total_ms|default:"—" }}</td></tr>{% endfor %}
+            </tbody></table><p class="text-muted mt-1 mb-0">milliseconds per stage</p>
+            {% endif %}
+            {% for e in m.errors %}<div class="text-danger mt-1">{{ e.stage }}: {{ e.error }}</div>{% endfor %}
+            {% endwith %}
+        </div></div>
+
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Timeline</h4></div><div class="card-body small"><div class="tl">
+            {% for e in call.events %}<div><span class="text-muted">{{ e.at|slice:"11:19" }}</span> {{ e.status|cut:"ignored:" }}{% if e.detail %} — <span class="text-muted">{{ e.detail }}</span>{% endif %}</div>{% endfor %}
+        </div></div></div>
+    </div>
+    <div class="col-lg-8 order-lg-1">
+        {% if conv %}
+            {% include 'panel/partials/conversation_body.html' with lead_links=True %}
+        {% else %}
+            <div class="card"><div class="card-body text-muted">{% if call.status == 'queued' %}This call has not started yet.{% else %}No conversation — the call was not answered.{% endif %}</div></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}
+{% if call.recording_status == 'stored' and can.listen %}
+<script>
+(function () {
+    "use strict";
+    var URL_ = "{% url 'api:calls-recording' call.pk %}";
+    function link(download) {
+        return fetch(URL_ + (download ? "?download=1" : ""), {credentials: "same-origin", headers: {"Accept": "application/json"}})
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(); });
+    }
+    document.getElementById("rec-play").addEventListener("click", function () {
+        link(false).then(function (j) { var a = document.getElementById("rec-audio"); a.src = j.url; a.classList.remove("d-none"); a.play(); });
+    });
+    var dl = document.getElementById("rec-download");
+    if (dl) dl.addEventListener("click", function () { link(true).then(function (j) { window.location.href = j.url; }); });
+})();
+</script>
+{% endif %}
+{% endblock %}

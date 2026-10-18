@@ -26,8 +26,15 @@
             <a class="small" href="{% url 'panel:crm_settings' %}">CRM settings</a>
         </div></div>
         <div class="card border mb-0"><div class="card-body">
-            <h6><i class="iconoir-phone me-1"></i>Phone &amp; WhatsApp</h6>
-            <p class="small text-muted mb-0">Phone numbers arrive in Phase 5, WhatsApp and the website chat widget in Phase 6.</p>
+            <h6><i class="iconoir-phone me-1"></i>Phone number</h6>
+            {% if numbers %}
+            <label class="form-label small" for="f-num">Calls to this number are answered by {{ employee.name }}; outbound calls use it</label>
+            <select id="f-num" class="form-select form-select-sm mb-1" name="phone_number" {% if not can_numbers %}disabled{% endif %}>
+                <option value="">— No number —</option>
+                {% for n in numbers %}<option value="{{ n.pk }}" {% if n.employee_id == employee.pk %}selected{% endif %}>{{ n.e164 }}{% if n.label %} · {{ n.label }}{% endif %}{% if n.employee_id and n.employee_id != employee.pk %} (now: {{ n.employee.name }}){% endif %}</option>{% endfor %}
+            </select>
+            <p class="small text-muted mb-0">Choosing a number that another AI Employee uses moves it to {{ employee.name }}.</p>
+            {% else %}<p class="small text-muted mb-0">Your company has no phone number yet — ask the platform team. WhatsApp and the website chat widget arrive in Phase 6.</p>{% endif %}
         </div></div>
     </div>
 </div>

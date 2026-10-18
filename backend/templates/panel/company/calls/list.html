@@ -1,0 +1,31 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Calls{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Calls</h4><span class="text-muted small">Every phone and test call of your AI Employees — recording, transcript, summary, extracted details and quality.</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:calling_settings' %}"><i class="iconoir-settings me-1"></i>Numbers &amp; calling rules</a>
+</div>
+<form method="get" class="card"><div class="card-body row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label small" for="f-q">Search</label><input id="f-q" class="form-control form-control-sm" name="q" value="{{ p.q|default:'' }}" placeholder="Number or lead name"></div>
+    <div class="col-md-2"><label class="form-label small" for="f-e">AI Employee</label><select id="f-e" class="form-select form-select-sm" name="employee"><option value="">All</option>{% for e in employees %}<option value="{{ e.pk }}" {% if p.employee == e.pk|stringformat:"s" %}selected{% endif %}>{{ e.name }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small" for="f-d">Direction</label><select id="f-d" class="form-select form-select-sm" name="direction"><option value="">All</option><option value="inbound" {% if p.direction == 'inbound' %}selected{% endif %}>Inbound</option><option value="outbound" {% if p.direction == 'outbound' %}selected{% endif %}>Outbound</option></select></div>
+    <div class="col-6 col-md-2"><label class="form-label small" for="f-s">Status</label><select id="f-s" class="form-select form-select-sm" name="status"><option value="">All</option>{% for k, v in statuses %}<option value="{{ k }}" {% if p.status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small" for="f-r">Type</label><select id="f-r" class="form-select form-select-sm" name="reason"><option value="">All</option>{% for k, v in reasons %}<option value="{{ k }}" {% if p.reason == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Apply</button> <a class="btn btn-sm btn-light" href="?">Clear</a></div>
+</div></form>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead class="table-light"><tr><th>When</th><th>Customer</th><th>AI Employee</th><th>Direction</th><th>Status</th><th class="text-end">Duration</th><th>Summary</th></tr></thead><tbody>
+    {% for c in page %}
+    <tr>
+        <td class="text-nowrap"><a href="{% url 'panel:call_detail' c.pk %}">{{ c.queued_at|date:"d M Y H:i" }}</a>{% if c.reason == 'browser_test' %} <span class="badge bg-light text-dark">test</span>{% endif %}</td>
+        <td>{% if c.lead %}<a href="{% url 'panel:lead_detail' c.lead.pk %}">{{ c.lead.name|default:c.lead.reference }}</a><div class="small text-muted">{{ c.customer_number }}</div>{% else %}{{ c.customer_number|default:"—" }}{% endif %}</td>
+        <td>{{ c.employee.name }}</td>
+        <td><i class="iconoir-{% if c.direction == 'inbound' %}phone-income{% else %}phone-outcome{% endif %} me-1"></i>{{ c.get_direction_display }}{% if c.attempt > 1 %} <span class="small text-muted">· try {{ c.attempt }}</span>{% endif %}</td>
+        <td>{% include 'panel/company/calls/_status.html' with call=c %}</td>
+        <td class="text-end text-nowrap">{% if c.duration_sec %}{{ c.duration_sec|floatformat:0 }}s{% else %}—{% endif %}</td>
+        <td class="small text-truncate" style="max-width:300px">{{ c.conversation.summary|default:"—" }}</td>
+    </tr>
+    {% empty %}<tr><td colspan="7" class="text-center text-muted py-5">No calls yet. Connect a number in <a href="{% url 'panel:calling_settings' %}">Numbers &amp; calling rules</a>, or try a voice test from an AI Employee's test console.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock page_content %}

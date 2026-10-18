@@ -195,8 +195,23 @@ def lead_detail(request, pk):
             "follow_form": FollowUpForm(),
             "now": timezone.now(),
             "can": {k: _can(request, f"leads.{k}") for k in ("manage", "assign", "delete")},
+            # Phase 5: AI calls from the lead (CRM-11, VOICE-02)
+            "can_call": _can(request, "calls.make") and not lead.deleted_at,
+            "can_view_calls": _can(request, "calls.view"),
+            "voice_employees": _voice_employees(request.company),
+            "calls": lead.calls.order_by("-queued_at")[:5] if _can(request, "calls.view") else [],
         },
     )
+
+
+def _voice_employees(company):
+    from apps.agents.models import AIEmployee
+    from apps.voice.models import PhoneNumber
+
+    ids = PhoneNumber.objects.filter(company=company, status="active", capabilities__contains=["outbound"]).values(
+        "employee_id"
+    )
+    return AIEmployee.objects.filter(company=company, status=AIEmployee.ACTIVE, pk__in=ids)
 
 
 def _detail_post(request, lead):

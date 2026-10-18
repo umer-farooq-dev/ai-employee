@@ -1,14 +1,48 @@
 {% extends 'panel/company/ai/_step_form.html' %}
-{% load admin_tags %}
 {% block step_title %}Voice{% endblock %}
 {% block fields %}
-<div class="alert alert-info small">Voices for phone calls arrive with calling (Phase 5): the platform team adds the voices per language, and you will be able to listen to samples and pick one here. Text conversations work without a voice.</div>
+<style>
+    .voice-card{border:1px solid var(--bs-border-color);border-radius:12px;padding:12px;cursor:pointer;height:100%;display:flex;gap:10px;align-items:center;transition:border-color .15s,box-shadow .15s}
+    .voice-card:hover{border-color:var(--brand-primary)}
+    .voice-input:checked+.voice-card{border-color:var(--brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand-primary) 25%,transparent)}
+    .voice-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bs-light);flex-shrink:0}
+</style>
+<p class="text-muted small">How {{ employee.name }} sounds on calls, per language. Voices come from the platform's voice catalogue for each language.</p>
+{% for row in voice_rows %}
+<fieldset class="mb-4">
+    <legend class="fs-6 fw-semibold mb-2">{{ row.name }}{% if row.default %} <span class="text-muted small fw-normal">· default: {{ row.default.name }}</span>{% endif %}</legend>
+    {% if row.voices %}
+    <div class="row g-2">
+        {% for v in row.voices %}
+        <div class="col-md-4 col-sm-6">
+            <input class="voice-input visually-hidden" type="radio" id="v-{{ row.code }}-{{ v.pk }}" name="voice_{{ row.code }}" value="{{ v.pk }}" {% if row.selected == v.pk|stringformat:"s" %}checked{% endif %}>
+            <label class="voice-card" for="v-{{ row.code }}-{{ v.pk }}">
+                <span class="voice-avatar"><i class="iconoir-{% if v.gender == 'male' %}user{% else %}user-love{% endif %}"></i></span>
+                <span class="flex-grow-1" style="min-width:0"><span class="fw-medium d-block">{{ v.name }}</span><span class="small text-muted text-capitalize">{{ v.gender }}{% if v.style %} · {{ v.style }}{% endif %}</span></span>
+                {% if v.sample %}<button type="button" class="btn btn-sm btn-light" data-sample="{{ v.sample }}" aria-label="Play a sample of {{ v.name }}"><i class="iconoir-play"></i></button>{% endif %}
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-light border small mb-0">No voice is set for {{ row.name }} yet — the platform team adds voices in Languages &amp; Voices. Text conversations work without a voice.</div>
+    {% endif %}
+</fieldset>
+{% endfor %}
 <div class="row g-3">
-    {% for code, name in languages %}
-    <div class="col-md-4"><label class="form-label" for="v-{{ code }}">{{ name }} voice</label>
-        <select id="v-{{ code }}" class="form-select" name="voice_{{ code }}" disabled><option>Available in Phase 5</option></select></div>
-    {% endfor %}
     <div class="col-md-4"><label class="form-label" for="f-speed">Speaking speed: <output id="speed-out">{{ employee.voices.speed|default:"1.0" }}</output>×</label>
         <input id="f-speed" type="range" class="form-range" name="speed" min="0.5" max="2" step="0.1" value="{{ employee.voices.speed|default:'1.0' }}" oninput="document.getElementById('speed-out').textContent=this.value"></div>
 </div>
+<script>
+(function () {
+    var player = new Audio();
+    document.querySelectorAll("[data-sample]").forEach(function (b) {
+        b.addEventListener("click", function (e) {
+            e.preventDefault(); e.stopPropagation();
+            if (!player.paused && player.src === b.dataset.sample) { player.pause(); return; }
+            player.src = b.dataset.sample; player.play();
+        });
+    });
+})();
+</script>
 {% endblock %}

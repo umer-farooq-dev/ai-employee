@@ -118,6 +118,9 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `voice.stt_min_confidence_percent` | number | 50 | below → ask to repeat |
 | `voice.latency_alert_p50_ms` / `voice.latency_alert_p95_ms` | number | 1200 / 2000 | quality alerts |
 | `retention.recordings_days` / `retention.transcripts_days` | number | 90 / 365 | *company may override* (shorter) |
+| `voice.reply_style` | textarea | short spoken sentences, no lists / markdown | prompt layer on calls |
+| `handoff.agent_ring_seconds` / `handoff.max_agents` | number | 25 / 3 | HO-02 routing |
+| `handoff.repeat_failures` / `handoff.callback_minutes` | number | 2 / 30 | HO-01 trigger, HO-04 callback task |
 | `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | Phase 6 |
 
 Per-language phrases — AI disclosure, recording announcement, default greeting, fillers, transfer, no agent, voicemail, silence, goodbye — live on each language in **Languages & Voices** (a new language brings all its texts with it).

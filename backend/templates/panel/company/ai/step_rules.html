@@ -28,7 +28,11 @@
         <h6>Hand-over to people</h6>
         <label class="form-label" for="f-tr">Transfer targets</label>
         <select id="f-tr" class="form-select mb-1" name="transfer_user_ids" multiple size="4">{% for u in team %}<option value="{{ u.pk }}" {% if u.pk|stringformat:"s" in rules.transfer_user_ids %}selected{% endif %}>{{ u.full_name|default:u.email }}</option>{% endfor %}</select>
-        <div class="form-text mb-3">Live call transfers start in Phase 5; until then hot leads are assigned and the team gets a task.</div>
+        <div class="form-text mb-3">On calls, the AI connects the caller to these people first (round robin), then to any team member who is Online. Each person needs a phone number in their profile.</div>
+        <label class="form-label" for="f-hk">Hand over a call when the caller says (one per line)</label>
+        <textarea id="f-hk" class="form-control mb-2" name="handoff_keywords" rows="2" placeholder="complaint&#10;manager">{% for t in rules.handoff_keywords %}{{ t }}&#10;{% endfor %}</textarea>
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="f-hkg" name="handoff_on_knowledge_gap" {% if rules.handoff_on_knowledge_gap %}checked{% endif %}><label class="form-check-label" for="f-hkg">Hand over when the answer is not in the approved knowledge</label></div>
+        <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="f-hhl" name="handoff_on_hot_lead" {% if rules.handoff_on_hot_lead %}checked{% endif %}><label class="form-check-label" for="f-hhl">Hand over hot leads during the call</label></div>
         <label class="form-label" for="f-esc">Escalate when (one per line)</label>
         <textarea id="f-esc" class="form-control mb-3" name="escalation_triggers" rows="3" placeholder="Customer asks for a human&#10;Budget above 2 Cr">{% for t in rules.escalation_triggers %}{{ t }}&#10;{% endfor %}</textarea>
         <label class="form-label" for="f-rt">Restricted topics (one per line)</label>
@@ -54,7 +58,7 @@
             </div>
         {% endfor %}
         </div>
-        <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" id="f-rec" name="recording" {% if rules.recording|default_if_none:True %}checked{% endif %}><label class="form-check-label" for="f-rec">Record calls (Phase 5)</label></div>
+        <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" id="f-rec" name="recording" {% if rules.recording|default_if_none:True %}checked{% endif %}><label class="form-check-label" for="f-rec">Record this AI Employee's calls (also needs recording on in Settings → Calling &amp; numbers)</label></div>
         <div class="small text-muted mt-1">Current defaults — disclosure: “{{ disclosure_default }}” · fallback: “{{ fallback_default }}”</div>
     </div>
 

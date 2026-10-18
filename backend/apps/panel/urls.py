@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import ai_views, calendar_views, catalog_views, company_views, crm_views, knowledge_views, views
+from . import ai_views, calendar_views, calls_views, catalog_views, company_views, crm_views, knowledge_views, views
 
 app_name = "panel"
 
@@ -67,6 +67,11 @@ urlpatterns = [
     path("app/knowledge/test/", knowledge_views.test, name="kb_test"),
     path("app/knowledge/unanswered/", knowledge_views.unanswered, name="kb_unanswered"),
     path("app/knowledge/<uuid:pk>/", knowledge_views.source_detail, name="kb_source"),
+    # Calls (Phase 5)
+    path("app/calls/", calls_views.call_list, name="calls"),
+    path("app/calls/<uuid:pk>/", calls_views.call_detail, name="call_detail"),
+    path("app/leads/<uuid:lead_pk>/call/", calls_views.call_now, name="call_now"),
+    path("app/settings/calling/", calls_views.calling_settings, name="calling_settings"),
     path("app/search/", crm_views.search, name="search"),
     path("app/settings/crm/", crm_views.crm_settings, name="crm_settings"),
     path("app/settings/crm/fields/new/", crm_views.company_field, name="crm_field_create"),

@@ -90,6 +90,9 @@ def phrases(employee):
                 else runtime._render(value, employee)
             )
         texts["fallback"] = runtime.fallback_text(employee, code)
+        own_consent = ((employee.rules or {}).get("consent") or {}).get(code)  # the employee's own text wins
+        if own_consent:
+            texts["recording_consent"] = runtime._render(own_consent, employee)
         out[code] = texts
     return out
 
