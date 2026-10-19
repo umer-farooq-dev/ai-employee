@@ -345,7 +345,9 @@ def test_runtime_uses_the_language_texts_when_the_template_has_none(company_a):
     with company_context(company_a.id):
         emp = employees.create_employee(company_a, {"role": "sales_executive", "name": "Sara"})
         emp.template_version.disclosure_texts = {}
-        services.save_language(Language.objects.get(code="hi"), {"texts": {"disclosure": "मैं {{ employee_name }} हूँ।"}})
+        services.save_language(
+            Language.objects.get(code="hi"), {"texts": {"disclosure": "मैं {{ employee_name }} हूँ।"}}
+        )
         assert runtime.disclosure(emp, "hi") == f"मैं {emp.name} हूँ।"
 
 
