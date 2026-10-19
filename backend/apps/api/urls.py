@@ -14,6 +14,7 @@ from . import views_knowledge as kbapi
 from . import views_templates as tpl
 from . import views_voice as voiceapi
 from . import views_webchat as chatapi
+from . import views_whatsapp as waapi
 
 admin = DefaultRouter(trailing_slash=True)
 admin.register("companies", views.CompanyViewSet, basename="admin-companies")
@@ -36,6 +37,8 @@ admin.register("ai-providers", aiapi.ProviderViewSet, basename="admin-ai-provide
 admin.register("languages", aiapi.LanguageViewSet, basename="admin-languages")
 admin.register("voices", aiapi.VoiceViewSet, basename="admin-voices")
 admin.register("phone-numbers", voiceapi.AdminPhoneNumberViewSet, basename="admin-phone-numbers")
+admin.register("whatsapp-numbers", waapi.AdminNumberViewSet, basename="admin-whatsapp-numbers")
+admin.register("whatsapp-library", waapi.AdminLibraryViewSet, basename="admin-whatsapp-library")
 admin.register("tools", agentapi.ToolViewSet, basename="admin-tools")
 admin.register("ai-employees", agentapi.AdminEmployeeViewSet, basename="admin-ai-employees")
 admin.register("cms/pages", views.PageViewSet, basename="admin-cms-pages")
@@ -72,6 +75,11 @@ agents_router.register("calls", voiceapi.CallViewSet, basename="calls")
 agents_router.register("handoffs", voiceapi.HandoffViewSet, basename="handoffs")
 agents_router.register("inbox", chatapi.InboxViewSet, basename="inbox")
 
+wa_router = DefaultRouter(trailing_slash=True)
+wa_router.register("numbers", waapi.NumberViewSet, basename="whatsapp-numbers")
+wa_router.register("templates", waapi.TemplateViewSet, basename="whatsapp-templates")
+wa_router.register("messages", waapi.MessageViewSet, basename="whatsapp-messages")
+
 kb_router = DefaultRouter(trailing_slash=True)
 kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")
 kb_router.register("faqs", kbapi.FAQViewSet, basename="kb-faqs")
@@ -102,6 +110,8 @@ api_v1 = [
     path("kb/test-query/", kbapi.TestQueryView.as_view(), name="kb-test-query"),
     path("kb/", include(kb_router.urls)),
     path("calling-policy/", voiceapi.CallingPolicyView.as_view(), name="calling-policy"),
+    path("whatsapp/send/", waapi.SendView.as_view(), name="whatsapp-send"),
+    path("whatsapp/", include(wa_router.urls)),
     path("ai-employees/<uuid:pk>/widget/", chatapi.EmployeeWidgetView.as_view(), name="ai-employee-widget"),
     path("", include(agents_router.urls)),
     path("admin/conversations/<uuid:pk>/", agentapi.AdminConversationView.as_view(), name="admin-conversation"),

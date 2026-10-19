@@ -1,0 +1,20 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}WhatsApp Templates{% endblock %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-1">WhatsApp Templates</h4><p class="text-muted mb-0">The default library. Companies copy a template, adjust it and submit it to Meta under their own WhatsApp account.</p></div>
+    <a class="btn btn-sm btn-primary" href="{% url 'superadmin:whatsapp_library_new' %}"><i class="iconoir-plus me-1"></i>New template</a>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead class="table-light"><tr><th>Template</th><th>Used for</th><th>Category</th><th>Languages</th><th>Status</th></tr></thead><tbody>
+    {% for t in rows %}
+    <tr>
+        <td><a class="fw-medium" href="{% url 'superadmin:whatsapp_library_edit' t.pk %}">{{ t.title }}</a><div class="small text-muted font-monospace">{{ t.name }}</div></td>
+        <td class="small">{{ t.get_purpose_display }}</td>
+        <td class="small">{{ t.get_category_display }}{% if t.header_type != 'none' %} · {{ t.get_header_type_display }} header{% endif %}</td>
+        <td class="small">{{ t.texts|join:", " }}</td>
+        <td><span class="badge {% if t.is_active %}bg-success-subtle text-success{% else %}bg-light text-dark{% endif %}">{{ t.is_active|yesno:"Active,Hidden" }}</span></td>
+    </tr>
+    {% empty %}<tr><td colspan="5" class="text-center text-muted py-5 small">No templates yet.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock page_content %}

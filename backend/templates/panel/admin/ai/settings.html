@@ -1,5 +1,5 @@
 {% extends 'panel/admin/layout.html' %}
-{% block title %}{% if data.page == "voice" %}Voice Settings{% else %}AI Settings{% endif %}{% endblock %}
+{% block title %}{% if data.page == "voice" %}Voice &amp; Channels{% else %}AI Settings{% endif %}{% endblock %}
 {% block extra_css %}
 <style>
     .vendor-card{border:1px solid var(--bs-border-color);border-radius:16px;padding:20px;cursor:pointer;height:100%;background:#fff;transition:border-color .15s,box-shadow .15s}
@@ -11,6 +11,7 @@
     .ai-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:#eef0ff;color:#4f46e5}
     .ai-chip.embedding,.ai-chip.tts{background:#e9f9f1;color:#0f9f61}
     .ai-chip.telephony{background:#eaf4ff;color:#1d6fd6}
+    .ai-chip.whatsapp{background:#e8f8ee;color:#128c4a}
     .ai-chip.test{background:#fff6e5;color:#b26b00}
     .vendor-switch .form-check-input{width:2.8em;height:1.5em;cursor:pointer;margin:0}
     .ai-section{border:1px solid var(--bs-border-color);border-radius:14px;padding:18px;margin-bottom:16px}
@@ -23,8 +24,8 @@
 {% block page_content %}
 <div class="mt-3 mb-3">
     {% if data.page == "voice" %}
-    <h4 class="mb-1">Voice Settings</h4>
-    <p class="text-muted mb-0">Speech-to-text, voice and telephony providers and their keys. Which provider speaks each language is set in <a href="{% url 'superadmin:languages' %}">Languages &amp; Voices</a>.</p>
+    <h4 class="mb-1">Voice &amp; Channels</h4>
+    <p class="text-muted mb-0">Speech-to-text, voice, telephony and WhatsApp providers and their keys. Which provider speaks each language is set in <a href="{% url 'superadmin:languages' %}">Languages &amp; Voices</a>.</p>
     {% else %}
     <h4 class="mb-1">AI Settings</h4>
     <p class="text-muted mb-0">AI providers, their keys and the model the AI Employees use for each task.</p>
@@ -86,6 +87,11 @@
                     <textarea class="form-control d-none font-monospace small" id="pm-key-multi" rows="4" spellcheck="false" aria-labelledby="pm-key-label"></textarea>
                     <div class="small text-success mt-2 d-none" id="pm-key-note"><i class="iconoir-check-circle me-1"></i>A key is currently stored. Leave blank to keep it.</div>
                     <button type="button" class="btn btn-link text-dark px-0 mt-1 d-none" id="pm-remove-key"><i class="iconoir-trash me-1"></i>Remove key</button>
+                    <div class="mt-3 d-none" id="pm-whsec-wrap">
+                        <label class="form-label fw-semibold" for="pm-whsec" id="pm-whsec-label"></label>
+                        <input type="password" class="form-control" id="pm-whsec" autocomplete="new-password" spellcheck="false">
+                        <div class="small text-success mt-2 d-none" id="pm-whsec-note"><i class="iconoir-check-circle me-1"></i>Stored. Leave blank to keep it.</div>
+                    </div>
                     <div class="row g-3 mt-0" id="pm-config"></div>
                 </div>
                 <div class="alert alert-light border small d-none" id="pm-local-note"><i class="iconoir-server me-1"></i>Runs inside our Voice Gateway on the server — no key needed. Testing only: blocked on the production server.</div>
@@ -227,7 +233,7 @@
         if (p.has_key) return '<span class="vendor-status text-primary">Key saved · not tested</span>';
         return '<span class="vendor-status text-muted">Not connected</span>';
     }
-    var ICONS = {chat: "iconoir-chat-lines", embedding: "iconoir-database", stt: "iconoir-microphone", tts: "iconoir-sound-high", telephony: "iconoir-phone"};
+    var ICONS = {chat: "iconoir-chat-lines", embedding: "iconoir-database", stt: "iconoir-microphone", tts: "iconoir-sound-high", telephony: "iconoir-phone", whatsapp: "iconoir-chat-bubble"};
     function chips(p) {
         var out = [];
         p.capabilities.filter(function (cap) { return D.capabilities[cap]; }).forEach(function (cap) {
@@ -329,6 +335,8 @@
         var s = vendorSpec(vendor), local = !!(s && s.local);
         var caps = VOICE ? [].slice.call($("pm-caps").querySelectorAll("input:checked")).map(function (i) { return i.value; }) : p.capabilities;
         $("pm-key-label").textContent = s && s.secret ? s.secret : "API Key";
+        $("pm-whsec-wrap").classList.toggle("d-none", !(s && s.webhook_secret));
+        $("pm-whsec-label").textContent = s && s.webhook_secret ? s.webhook_secret : "";
         $("pm-key-multi").classList.toggle("d-none", !(s && s.secret_multiline));
         $("pm-key").classList.toggle("d-none", !!(s && s.secret_multiline));
         $("pm-key-section").classList.toggle("d-none", local);
@@ -361,6 +369,9 @@
         $("pm-key").value = ""; $("pm-key-multi").value = "";
         $("pm-key").placeholder = $("pm-key-multi").placeholder = p.has_key ? "•••••••••••• (saved — type to replace)" : "Paste the key";
         $("pm-key-note").classList.toggle("d-none", !p.has_key);
+        $("pm-whsec").value = "";
+        $("pm-whsec").placeholder = p.has_webhook_secret ? "•••••••••••• (saved — type to replace)" : "Paste the secret";
+        $("pm-whsec-note").classList.toggle("d-none", !p.has_webhook_secret);
         $("pm-remove-key").classList.toggle("d-none", !p.has_key);
         $("pm-name").value = p.name;
         $("pm-slug").value = p.key; $("pm-key-wrap").classList.toggle("d-none", !isNew);
@@ -419,6 +430,7 @@
         }
         var key = keyInput().value.trim();
         if (key) body.api_key = key;
+        if ($("pm-whsec").value.trim()) body.webhook_secret = $("pm-whsec").value.trim();
         if (!current) body.key = $("pm-slug").value.trim();
         return body;
     }
@@ -441,7 +453,10 @@
             .then(function (p) {
                 $("pm-title").textContent = p.name; $("pm-key-wrap").classList.add("d-none");
                 $("pm-delete").classList.remove("d-none");
-                $("pm-key-note").classList.toggle("d-none", !p.has_key); $("pm-remove-key").classList.toggle("d-none", !p.has_key);
+                $("pm-key-note").classList.toggle("d-none", !p.has_key);
+        $("pm-whsec").value = "";
+        $("pm-whsec").placeholder = p.has_webhook_secret ? "•••••••••••• (saved — type to replace)" : "Paste the secret";
+        $("pm-whsec-note").classList.toggle("d-none", !p.has_webhook_secret); $("pm-remove-key").classList.toggle("d-none", !p.has_key);
                 $("pm-key").placeholder = p.has_key ? "•••••••••••• (saved — type to replace)" : "Paste the API key";
                 return api("POST", API.providers + p.id + "/test/", {});
             })

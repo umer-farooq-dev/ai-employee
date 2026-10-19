@@ -3,7 +3,7 @@ Platform tables.
 
 Vendors are data (seeded, editable, more can be added in Super Admin). Keys are entered only in Super Admin and stored
 encrypted (SEC-07). One vendor row can offer several capabilities (e.g. ElevenLabs: speech-to-text and voices) so a
-key is entered once. WhatsApp, e-mail, SMS and payment providers join in Phases 6-7.
+key is entered once. WhatsApp joins in Phase 6 (Voice & channel providers); e-mail, SMS and payments in Phase 7.
 """
 
 from django.db import models
@@ -12,7 +12,12 @@ from apps.core.crypto import EncryptedTextField
 from apps.core.models import BaseModel
 
 LLM_CAPABILITIES = [("chat", "Chat / reasoning"), ("embedding", "Embeddings")]
-VOICE_CAPABILITIES = [("stt", "Speech-to-text"), ("tts", "Text-to-speech"), ("telephony", "Telephony")]
+VOICE_CAPABILITIES = [
+    ("stt", "Speech-to-text"),
+    ("tts", "Text-to-speech"),
+    ("telephony", "Telephony"),
+    ("whatsapp", "WhatsApp"),
+]
 CAPABILITIES = LLM_CAPABILITIES + VOICE_CAPABILITIES
 
 # What the AI engine asks for. Each task is routed to a provider + model in Super Admin (SDD: LLM gateway).
@@ -42,6 +47,7 @@ class Provider(BaseModel):
     )
     base_url = models.URLField(max_length=500)
     api_key = EncryptedTextField(blank=True, help_text="The vendor's secret (API key, auth token, service account)")
+    webhook_secret = EncryptedTextField(blank=True, help_text="Secret that signs the vendor's webhooks (SEC-13)")
     config = models.JSONField(default=dict, blank=True, help_text="Non-secret vendor settings: account id, region …")
     logo = models.CharField(max_length=500, blank=True, help_text="Image URL")
     capabilities = models.JSONField(default=list, blank=True)
@@ -130,6 +136,9 @@ LANGUAGE_TEXTS = [
     ("chat_submit", "Chat widget form: submit"),
     ("chat_thanks", "Chat widget form: thank you"),
     ("chat_error", "Chat widget: something went wrong"),
+    # WhatsApp (WA-08)
+    ("wa_opted_out", "WhatsApp: reply to an opt-out keyword"),
+    ("wa_opted_in", "WhatsApp: reply to an opt-in keyword"),
 ]
 CHAT_TEXT_KEYS = [k for k, _ in LANGUAGE_TEXTS if k.startswith("chat_")]
 

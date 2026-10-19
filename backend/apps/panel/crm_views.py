@@ -182,6 +182,7 @@ def lead_detail(request, pk):
         "panel/company/crm/lead_detail.html",
         {
             "lead": lead,
+            "ai_employee": _ai_employee(lead),
             "custom": [(d, field_engine.display(d, lead.custom.get(d.key))) for d in defs],
             "activities": lead.activities.select_related("actor")[:200],
             "notes": lead.notes.select_related("author"),
@@ -200,8 +201,23 @@ def lead_detail(request, pk):
             "can_view_calls": _can(request, "calls.view"),
             "voice_employees": _voice_employees(request.company),
             "calls": lead.calls.order_by("-queued_at")[:5] if _can(request, "calls.view") else [],
+            **whatsapp_card(request, lead),  # Phase 6: WhatsApp templates from the lead (WA-04)
         },
     )
+
+
+def _ai_employee(lead):
+    from apps.agents.models import AIEmployee
+
+    if not lead.assigned_ai_employee_id:
+        return None
+    return AIEmployee.objects.filter(company_id=lead.company_id, pk=lead.assigned_ai_employee_id).first()
+
+
+def whatsapp_card(request, lead):
+    from .whatsapp_views import lead_card
+
+    return lead_card(request, lead) if not lead.deleted_at else {}
 
 
 def _voice_employees(company):

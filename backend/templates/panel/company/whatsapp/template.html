@@ -1,0 +1,108 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}WhatsApp template{% endblock title %}
+{% block page_content %}
+<style>
+    .wa-phone{background:#efeae2;border-radius:14px;padding:18px;min-height:260px}
+    .wa-bubble{background:#fff;border-radius:10px;padding:8px 10px 6px;max-width:300px;box-shadow:0 1px 1px rgba(0,0,0,.08);font-size:14px;white-space:pre-wrap;word-wrap:break-word}
+    .wa-bubble .h{font-weight:600;margin-bottom:4px}.wa-bubble .f{color:#8696a0;font-size:12px;margin-top:4px}
+    .wa-media{background:#d1d7db;border-radius:6px;height:120px;display:flex;align-items:center;justify-content:center;color:#54656f;margin-bottom:6px}
+    .wa-btn{background:#fff;border-radius:10px;max-width:300px;text-align:center;color:#027eb5;padding:7px;margin-top:4px;font-size:14px;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div>
+        <h4 class="mb-0">{% if template %}{{ template.name }} <span class="badge {% if template.status == 'approved' %}bg-success{% elif template.status == 'rejected' or template.status == 'disabled' %}bg-danger{% elif template.status == 'pending' %}bg-warning text-dark{% else %}bg-light text-dark{% endif %} align-middle">{{ template.get_status_display }}</span>{% else %}New WhatsApp template{% endif %}</h4>
+        <span class="text-muted small">Meta reviews every template before it can be sent. Variables like <code>{% templatetag openvariable %}1{% templatetag closevariable %}</code> are filled in when the message goes out.</span>
+    </div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:whatsapp_settings' %}">All templates</a>
+</div>
+{% if template.rejected_reason %}<div class="alert alert-danger small">Meta rejected this template: {{ template.rejected_reason }}. Change it and submit again.</div>{% endif %}
+<div class="row">
+    <div class="col-xl-7">
+        <form method="post" class="card" id="wt-form">{% csrf_token %}
+            <div class="card-header"><h4 class="card-title mb-0">Template</h4></div>
+            <fieldset class="card-body" {% if not editable %}disabled{% endif %}>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label small" for="wt-name">Name</label><input id="wt-name" class="form-control form-control-sm font-monospace" name="name" value="{{ f.name|default:'' }}" pattern="[a-z0-9_]+" maxlength="60" required placeholder="site_visit_reminder"><div class="form-text">Lower-case letters, numbers and _ (Meta's rule).</div></div>
+                    <div class="col-md-6"><label class="form-label small" for="wt-num">Number</label><select id="wt-num" class="form-select form-select-sm" name="number">{% for n in numbers %}<option value="{{ n.pk }}" {% if f.number == n.pk|stringformat:"s" %}selected{% endif %}>{{ n.e164 }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label small" for="wt-lang">Language</label><select id="wt-lang" class="form-select form-select-sm" name="language">{% for code, name in languages %}<option value="{{ code }}" {% if f.language == code %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label small" for="wt-cat">Category</label><select id="wt-cat" class="form-select form-select-sm" name="category">{% for k, v in categories %}<option value="{{ k }}" {% if f.category == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label small" for="wt-purpose">Used for</label><select id="wt-purpose" class="form-select form-select-sm" name="purpose">{% for k, v in purposes %}<option value="{{ k }}" {% if f.purpose == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label small" for="wt-ht">Header</label><select id="wt-ht" class="form-select form-select-sm" name="header_type">{% for k, v in headers %}<option value="{{ k }}" {% if f.header_type == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+                    <div class="col-md-8" id="wt-htext-wrap"><label class="form-label small" for="wt-htext">Header text</label><input id="wt-htext" class="form-control form-control-sm" name="header_text" maxlength="60" value="{{ f.header_text|default:'' }}"></div>
+                    <div class="col-12"><label class="form-label small" for="wt-body">Message</label><textarea id="wt-body" class="form-control" rows="5" name="body" maxlength="1024" required>{{ f.body|default:'' }}</textarea><div class="form-text">Use {% templatetag openvariable %}1{% templatetag closevariable %}, {% templatetag openvariable %}2{% templatetag closevariable %} … for values filled in when sending.</div></div>
+                    <div class="col-12" id="wt-vars"></div>
+                    <div class="col-md-6"><label class="form-label small" for="wt-foot">Footer (optional)</label><input id="wt-foot" class="form-control form-control-sm" name="footer" maxlength="60" value="{{ f.footer|default:'' }}"></div>
+                    <div class="col-md-6"><span class="form-label small d-block">Quick-reply buttons (optional, up to 3)</span>
+                        {% for i in "012" %}<input class="form-control form-control-sm mb-1" name="button" maxlength="25" aria-label="Button {{ forloop.counter }}" value="{% for b in f.buttons %}{% if forloop.counter0|stringformat:'s' == i %}{{ b.text }}{% endif %}{% endfor %}">{% endfor %}
+                    </div>
+                </div>
+            </fieldset>
+            {% if editable %}<div class="card-footer d-flex flex-wrap justify-content-between gap-2">
+                <button class="btn btn-primary" name="op" value="save">Save draft</button>
+                {% if template %}<button class="btn btn-link text-danger" name="op" value="delete" formnovalidate onclick="return confirm('Delete this template?')">Delete</button>{% endif %}
+            </div>{% endif %}
+        </form>
+    </div>
+    <div class="col-xl-5">
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Preview</h4></div><div class="card-body">
+            <div class="wa-phone"><div class="wa-bubble" id="wt-preview"></div><div id="wt-btns"></div></div>
+            <p class="small text-muted mt-2 mb-0">Sample values are shown in place of the variables.</p>
+        </div></div>
+        {% if template and template.status == 'draft' or template.status == 'rejected' %}
+        <form method="post" enctype="multipart/form-data" class="card">{% csrf_token %}<input type="hidden" name="op" value="submit">
+            <div class="card-header"><h4 class="card-title mb-0">Submit to Meta</h4></div>
+            <div class="card-body small">
+                {% if template.header_type == 'image' or template.header_type == 'document' %}
+                <label class="form-label" for="wt-sample">Sample {{ template.get_header_type_display|lower }} for Meta's review</label>
+                <input id="wt-sample" type="file" class="form-control form-control-sm mb-2" name="sample" accept="{% if template.header_type == 'image' %}image/jpeg,image/png{% else %}application/pdf{% endif %}" required>
+                <p class="text-muted">When sending, the photo / brochure of the chosen property or product is used.</p>
+                {% endif %}
+                <p class="text-muted mb-2">Save your changes first. After approval the template can be used by your team and AI Employees.</p>
+                <button class="btn btn-success">Submit for approval</button>
+            </div>
+        </form>
+        {% elif template %}
+        <div class="card"><div class="card-body small text-muted">{% if template.status == 'approved' %}Approved templates cannot be changed; copy the text into a new template to make a new version.{% else %}Waiting for Meta's review. Use “Check approval” on the WhatsApp page to update the status.{% endif %}</div></div>
+        {% endif %}
+    </div>
+</div>
+{{ variables|json_script:"wt-variables" }}
+{{ f.variables|json_script:"wt-chosen" }}
+<script>
+(function () {
+    "use strict";
+    var VARS = JSON.parse(document.getElementById("wt-variables").textContent);
+    var chosen = JSON.parse(document.getElementById("wt-chosen").textContent) || [];
+    var SAMPLES = {"lead.name": "Ravi", "company.name": "{{ request.company.name|escapejs }}", "employee.name": "Sara", "appointment.when": "Sat 25 Oct, 11:00", "appointment.number": "APT-000123", "appointment.type": "Site visit", "item.title": "Green Valley 2 BHK", "item.price": "₹65 lakh", "text": "…"};
+    var $ = function (id) { return document.getElementById(id); };
+    var OPEN = "{" + "{", CLOSE = "}" + "}";
+    var disabled = {% if editable %}false{% else %}true{% endif %};
+    function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+    function used() { var m = ($("wt-body").value.match(/\{\{(\d+)\}\}/g) || []).map(function (x) { return +x.replace(/\D/g, ""); }); return m.length ? Math.max.apply(null, m) : 0; }
+    function drawVars() {
+        var n = used(), box = $("wt-vars");
+        var keep = [].slice.call(box.querySelectorAll("select")).map(function (s) { return s.value; });
+        if (keep.length) chosen = keep;
+        box.innerHTML = n ? '<span class="form-label small d-block">What fills each variable</span><div class="row g-2">' + Array.from({length: n}, function (_, i) {
+            return '<div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text">' + OPEN + (i + 1) + CLOSE + '</span><select class="form-select" name="variable"' + (disabled ? " disabled" : "") + ' aria-label="Variable ' + (i + 1) + '"><option value="">Choose…</option>' +
+                VARS.map(function (v) { return '<option value="' + v[0] + '"' + (chosen[i] === v[0] ? " selected" : "") + ">" + esc(v[1]) + "</option>"; }).join("") + "</select></div></div>";
+        }).join("") + "</div>" : "";
+        preview();
+    }
+    function preview() {
+        var vals = [].slice.call($("wt-vars").querySelectorAll("select")).map(function (s) { return SAMPLES[s.value] || OPEN + "…" + CLOSE; });
+        var body = esc($("wt-body").value).replace(/\{\{(\d+)\}\}/g, function (m, n) { return "<b>" + esc(vals[n - 1] || m) + "</b>"; });
+        var ht = $("wt-ht").value, head = "";
+        if (ht === "text" && $("wt-htext").value) head = '<div class="h">' + esc($("wt-htext").value) + "</div>";
+        if (ht === "image") head = '<div class="wa-media"><i class="iconoir-media-image fs-3"></i></div>';
+        if (ht === "document") head = '<div class="wa-media" style="height:60px"><i class="iconoir-page fs-4 me-1"></i>Brochure.pdf</div>';
+        $("wt-preview").innerHTML = head + (body || '<span class="text-muted">Your message</span>') + ($("wt-foot").value ? '<div class="f">' + esc($("wt-foot").value) + "</div>" : "");
+        $("wt-btns").innerHTML = [].slice.call(document.querySelectorAll("[name=button]")).filter(function (b) { return b.value.trim(); }).map(function (b) { return '<div class="wa-btn">' + esc(b.value) + "</div>"; }).join("");
+        $("wt-htext-wrap").classList.toggle("d-none", ht !== "text");
+    }
+    $("wt-form").addEventListener("input", function (e) { if (e.target.id === "wt-body") drawVars(); else preview(); });
+    $("wt-form").addEventListener("change", preview);
+    drawVars();
+})();
+</script>
+{% endblock page_content %}

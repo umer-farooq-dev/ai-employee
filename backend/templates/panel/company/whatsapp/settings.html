@@ -1,0 +1,95 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}WhatsApp{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/_settings_nav.html' with active='whatsapp' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">WhatsApp</h4><span class="text-muted small">Official WhatsApp Business Platform: your numbers, the AI Employee answering each, and the message templates Meta approved.</span></div>
+</div>
+<div class="row">
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Numbers</h4></div>
+            <div class="card-body">
+                <p class="text-muted small">Customers who message a number chat with the AI Employee connected to it; your team can take over in the <a href="{% url 'panel:inbox' %}">Inbox</a>. Numbers are added by the platform team.</p>
+                <div class="table-responsive"><table class="table align-middle mb-0">
+                    <thead class="table-light"><tr><th>Number</th><th>AI Employee</th></tr></thead><tbody>
+                    {% for n in numbers %}
+                    <tr>
+                        <td><div class="fw-medium">{{ n.e164 }}{% if n.is_test %} <span class="badge bg-warning-subtle text-warning">test</span>{% endif %}</div><div class="small text-muted">{{ n.display_name|default:n.provider.name }}{% if n.quality %} · quality {{ n.quality|lower }}{% endif %}</div></td>
+                        <td>
+                            <form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="op" value="connect"><input type="hidden" name="number" value="{{ n.pk }}">
+                                <select class="form-select form-select-sm" name="employee" aria-label="AI Employee for {{ n.e164 }}">
+                                    <option value="">— Not connected —</option>
+                                    {% for e in employees %}<option value="{{ e.pk }}" {% if n.employee_id == e.pk %}selected{% endif %}>{{ e.name }} ({{ e.get_status_display }})</option>{% endfor %}
+                                </select>
+                                <button class="btn btn-sm btn-primary">Save</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}<tr><td colspan="2" class="text-muted small py-4 text-center">No WhatsApp number yet. Ask the platform team to connect your WhatsApp Business number.</td></tr>{% endfor %}
+                </tbody></table></div>
+                {% if numbers and not webhook_ready %}<div class="alert alert-warning small mt-3 mb-0"><i class="iconoir-warning-triangle me-1"></i>Incoming messages are not verified yet — the platform team still needs to add the app secret.</div>{% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h4 class="card-title mb-0">Message templates</h4>
+                <div class="d-flex gap-2">
+                    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="sync"><button class="btn btn-sm btn-light" {% if not templates %}disabled{% endif %}><i class="iconoir-refresh-double me-1"></i>Check approval</button></form>
+                    {% if numbers %}<a class="btn btn-sm btn-primary" href="{% url 'panel:whatsapp_template_new' %}"><i class="iconoir-plus me-1"></i>New template</a>{% endif %}
+                </div>
+            </div>
+            <div class="card-body pb-2"><p class="small text-muted mb-0">Outside 24 hours after a customer's last message, WhatsApp only allows templates Meta has approved — for follow-ups, appointment confirmations and reminders.</p></div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Name</th><th>Language</th><th>Used for</th><th>Category</th><th>Status</th></tr></thead><tbody>
+                {% for t in templates %}
+                <tr>
+                    <td><a href="{% url 'panel:whatsapp_template' t.pk %}" class="fw-medium">{{ t.name }}</a><div class="small text-muted text-truncate" style="max-width:280px">{{ t.body }}</div></td>
+                    <td>{{ t.language }}</td>
+                    <td class="small">{{ t.get_purpose_display }}</td>
+                    <td class="small">{{ t.get_category_display }}</td>
+                    <td><span class="badge {% if t.status == 'approved' %}bg-success{% elif t.status == 'rejected' or t.status == 'disabled' %}bg-danger{% elif t.status == 'pending' %}bg-warning text-dark{% else %}bg-light text-dark{% endif %}">{{ t.get_status_display }}</span>{% if t.rejected_reason %}<div class="small text-danger">{{ t.rejected_reason }}</div>{% endif %}</td>
+                </tr>
+                {% empty %}<tr><td colspan="5" class="text-muted small py-4 text-center">No templates yet. Start from the library on the right.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">This month</h4></div>
+            <div class="card-body">
+                <div class="row g-2 text-center">
+                    <div class="col-4"><div class="border rounded py-2"><div class="fs-5 fw-semibold">{{ usage.received }}</div><div class="small text-muted">Received</div></div></div>
+                    <div class="col-4"><div class="border rounded py-2"><div class="fs-5 fw-semibold">{{ usage.sent }}</div><div class="small text-muted">Sent</div></div></div>
+                    <div class="col-4"><div class="border rounded py-2"><div class="fs-5 fw-semibold">{{ usage.delivered }}</div><div class="small text-muted">Delivered</div></div></div>
+                    <div class="col-4"><div class="border rounded py-2"><div class="fs-5 fw-semibold">{{ usage.read }}</div><div class="small text-muted">Read</div></div></div>
+                    <div class="col-4"><div class="border rounded py-2"><div class="fs-5 fw-semibold {% if usage.failed %}text-danger{% endif %}">{{ usage.failed }}</div><div class="small text-muted">Failed</div></div></div>
+                    <div class="col-4"><div class="border rounded py-2"><div class="fs-5 fw-semibold">{{ usage.billable }}</div><div class="small text-muted">Charged by Meta</div></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Template library</h4></div>
+            <div class="card-body">
+                <p class="small text-muted">Ready-made templates. Copy one, adjust the text if you like, then submit it to Meta.</p>
+                {% if numbers %}
+                <div class="list-group">
+                {% for d in library %}
+                    <form method="post" class="list-group-item">{% csrf_token %}<input type="hidden" name="op" value="library"><input type="hidden" name="default" value="{{ d.pk }}">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div><div class="fw-medium">{{ d.title }}</div><div class="small text-muted">{{ d.get_purpose_display }} · {{ d.get_category_display }}{% if d.header_type != 'none' %} · {{ d.get_header_type_display }} header{% endif %}</div></div>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <select class="form-select form-select-sm" name="language" aria-label="Language">{% for code, name in languages %}{% if code in d.texts %}<option value="{{ code }}">{{ name }}</option>{% endif %}{% endfor %}</select>
+                            {% if numbers|length > 1 %}<select class="form-select form-select-sm" name="number" aria-label="Number">{% for n in numbers %}<option value="{{ n.pk }}">{{ n.e164 }}</option>{% endfor %}</select>{% else %}<input type="hidden" name="number" value="{{ numbers.0.pk }}">{% endif %}
+                            <button class="btn btn-sm btn-light text-nowrap">Use</button>
+                        </div>
+                    </form>
+                {% empty %}<div class="list-group-item small text-muted">The library is empty.</div>{% endfor %}
+                </div>
+                {% else %}<p class="small text-muted mb-0">Available once your company has a WhatsApp number.</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}

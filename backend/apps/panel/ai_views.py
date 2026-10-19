@@ -197,6 +197,7 @@ def _step_data(request, employee, step):
                 "handoff_on_knowledge_gap": bool(post.get("handoff_on_knowledge_gap")),
                 "handoff_on_hot_lead": bool(post.get("handoff_on_hot_lead")),
                 "handoff_on_upset": bool(post.get("handoff_on_upset")),
+                "whatsapp_after_call": bool(post.get("whatsapp_after_call")),
                 "follow_up": {
                     "enabled": bool(post.get("follow_up_enabled")),
                     "after_hours": post.get("follow_up_hours"),
@@ -245,6 +246,18 @@ def _number_post(request, employee):
             voice.connect_number(request.company, number, None, request.user, request)
 
 
+def _whatsapp_post(request, employee):
+    """EMP-08 WhatsApp: the company number this employee answers (and only that one)."""
+    from apps.whatsapp import services as whatsapp
+
+    chosen = request.POST.get("whatsapp_number") or ""
+    for number in whatsapp.numbers_for(request.company):
+        if str(number.pk) == chosen and number.employee_id != employee.pk:
+            whatsapp.connect_number(request.company, number, employee, request.user, request)
+        elif str(number.pk) != chosen and number.employee_id == employee.pk:
+            whatsapp.connect_number(request.company, number, None, request.user, request)
+
+
 def _knowledge_post(request, employee):
     """EMP-07 / KB-08: per source — all employees, only selected (incl. this one), or not this employee."""
     for source in Source.objects.filter(company=request.company):
@@ -279,6 +292,8 @@ def employee_step(request, pk, step):
                 _knowledge_post(request, employee)
             if step == "tools" and has_perm(request.user, "phone_numbers.manage", request.company):
                 _number_post(request, employee)
+            if step == "tools" and has_perm(request.user, "whatsapp.manage", request.company):
+                _whatsapp_post(request, employee)
             next_index = STEP_KEYS.index(step) + 1
             data = {**_step_data(request, employee, step), "wizard_step": next_index + 1}
             employees.update_employee(employee, data, request.user, request)
@@ -313,10 +328,13 @@ def employee_step(request, pk, step):
     elif step == "tools":
         tools = toolkit.available(employee)
         from apps.voice.services import numbers_for
+        from apps.whatsapp.services import numbers_for as whatsapp_numbers
 
         context.update(
             numbers=numbers_for(request.company).filter(status="active"),
             can_numbers=has_perm(request.user, "phone_numbers.manage", request.company),
+            wa_numbers=whatsapp_numbers(request.company),
+            can_whatsapp=has_perm(request.user, "whatsapp.manage", request.company),
         )
         context.update(
             tools=[(t, employee.tools.get(t.key, True)) for t in tools],

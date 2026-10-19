@@ -154,5 +154,19 @@ def inbox_detail(request, pk):
             "handoff": conv.handoffs.order_by("-created_at").first(),
             "poll_seconds": setting("chat.poll_seconds"),
             "timezone": request.company.timezone or setting("locale.timezone"),
+            "wa_templates": _wa_templates(request, conv),
         },
+    )
+
+
+def _wa_templates(request, conv):
+    """WhatsApp outside the 24-hour window: the approved templates the team can send instead."""
+    if conv.channel != "whatsapp":
+        return []
+    from apps.whatsapp.models import Template
+
+    return list(
+        Template.objects.filter(company=request.company, status=Template.APPROVED).exclude(
+            header_type__in=["image", "document"]
+        )
     )

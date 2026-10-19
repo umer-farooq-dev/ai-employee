@@ -355,7 +355,7 @@ def test_runtime_uses_the_language_texts_when_the_template_has_none(company_a):
 @pytest.mark.django_db
 def test_voice_pages_render(admin_client):
     html = admin_client.get("/superadmin/voice-settings/").content.decode()
-    assert "Voice Settings" in html and '"key": "twilio"' in html and '"key": "anthropic"' not in html
+    assert "Voice &amp; Channels" in html and '"key": "twilio"' in html and '"key": "anthropic"' not in html
     assert "Model per task" not in html
     ai = admin_client.get("/superadmin/ai-settings/").content.decode()
     assert '"key": "anthropic"' in ai and '"key": "twilio"' not in ai

@@ -113,7 +113,12 @@ def clean_rules(company, rules):
             raise ValidationError("Maximum call duration must be a number of minutes.") from None
     if "recording" in rules:
         out["recording"] = bool(rules["recording"])
-    for key in ("handoff_on_knowledge_gap", "handoff_on_hot_lead", "handoff_on_upset"):  # HO-01 configurable triggers
+    for key in (  # HO-01 configurable triggers; WA-04 follow-up after a call
+        "handoff_on_knowledge_gap",
+        "handoff_on_hot_lead",
+        "handoff_on_upset",
+        "whatsapp_after_call",
+    ):
         if key in rules:
             out[key] = bool(rules[key])
     if "handoff_keywords" in rules:
@@ -354,7 +359,7 @@ def mark_tested(employee, user=None, request=None):
 
 
 def readiness(employee):
-    """EMP-11 checklist. Channels: a connected phone number or the website chat (WhatsApp joins with its part)."""
+    """EMP-11 checklist. Channels: a connected phone or WhatsApp number, or the website chat on a website."""
     from apps.knowledge.services import usable_chunks
     from apps.webchat.models import ChatWidget
 
@@ -390,9 +395,10 @@ def readiness(employee):
             "key": "channel",
             "label": "Channel connected (phone, WhatsApp or website chat)",
             "ok": employee.phone_numbers.filter(status="active").exists()
-            or ChatWidget.objects.filter(employee=employee, is_enabled=True).exclude(allowed_domains=[]).exists(),
+            or ChatWidget.objects.filter(employee=employee, is_enabled=True).exclude(allowed_domains=[]).exists()
+            or employee.whatsapp_numbers.filter(status="active").exists(),
             "required": False,
-            "help": "Connect a phone number or set up the website chat in step 7 (Tools).",
+            "help": "Connect a phone or WhatsApp number, or set up the website chat, in step 7 (Tools).",
         },
     ]
 

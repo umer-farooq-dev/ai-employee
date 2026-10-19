@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import template_views as tv
-from . import views
+from . import views, whatsapp_views
 
 app_name = "superadmin"
 
@@ -39,6 +39,10 @@ urlpatterns = [
     path("voice-settings/", views.voice_settings, name="voice_settings"),
     path("languages/", views.languages, name="languages"),
     path("phone-numbers/", views.phone_numbers, name="phone_numbers"),
+    path("whatsapp/numbers/", whatsapp_views.numbers, name="whatsapp_numbers"),
+    path("whatsapp/templates/", whatsapp_views.library, name="whatsapp_library"),
+    path("whatsapp/templates/new/", whatsapp_views.library_form, name="whatsapp_library_new"),
+    path("whatsapp/templates/<uuid:pk>/", whatsapp_views.library_form, name="whatsapp_library_edit"),
     path("calls/", views.calls, name="calls"),
     path("calls/<uuid:pk>/", views.call_detail, name="call_detail"),
     path("calls/<uuid:pk>/recording/", views.call_recording, name="call_recording"),

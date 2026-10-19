@@ -1,0 +1,64 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}WhatsApp Numbers{% endblock %}
+{% block page_content %}
+<div class="mt-3 mb-3">
+    <h4 class="mb-1">WhatsApp Numbers</h4>
+    <p class="text-muted mb-0">WhatsApp Business numbers on the official platform, given to companies. Each company connects its number to one of its AI Employees and manages its own templates.</p>
+</div>
+<div class="row">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="table-responsive"><table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Number</th><th>Meta IDs</th><th>Company</th><th>AI Employee</th><th>Status</th><th></th></tr></thead><tbody>
+                {% for n in rows %}
+                <tr>
+                    <td><div class="fw-medium">{{ n.e164 }}{% if n.is_test %} <span class="badge bg-warning-subtle text-warning">test</span>{% endif %}</div><div class="small text-muted">{{ n.display_name|default:n.provider.name }}</div></td>
+                    <td class="small font-monospace">{{ n.phone_number_id }}<br><span class="text-muted">{{ n.waba_id }}</span></td>
+                    <td>{{ n.company.name|default:"—" }}</td>
+                    <td>{{ n.employee.name|default:"—" }}</td>
+                    <td><span class="badge {% if n.status == 'active' %}bg-success-subtle text-success{% else %}bg-light text-dark{% endif %}">{{ n.get_status_display }}</span></td>
+                    <td class="text-end"><a class="btn btn-sm btn-light" href="?edit={{ n.pk }}">Edit</a></td>
+                </tr>
+                {% empty %}<tr><td colspan="6" class="text-center text-muted py-5 small">No WhatsApp numbers yet. Add one with the form on the right.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0">Webhook at Meta</h5></div>
+            <div class="card-body small">
+                <p class="text-muted">In the Meta app → WhatsApp → Configuration, set the callback URL and verify token below and subscribe to <code>messages</code>. Incoming messages are accepted only when signed with the app secret saved under Voice &amp; Channels.</p>
+                {% for h in hooks %}
+                <div class="border rounded p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><strong>{{ h.provider.name }}</strong>
+                        {% if h.ready %}<span class="badge bg-success-subtle text-success">Token and app secret saved</span>{% else %}<a class="badge bg-warning-subtle text-warning" href="{% url 'superadmin:voice_settings' %}">Add the access token and app secret</a>{% endif %}</div>
+                    <div class="mb-1"><span class="text-muted">Callback URL</span><br><code class="user-select-all">{{ h.url }}</code></div>
+                    <div><span class="text-muted">Verify token</span><br><code class="user-select-all">{{ h.token }}</code></div>
+                </div>
+                {% empty %}<p class="mb-0">No WhatsApp provider yet — add one under <a href="{% url 'superadmin:voice_settings' %}">Voice &amp; Channels</a>.</p>{% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <form method="post" class="card">{% csrf_token %}
+            <div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0">{% if editing %}Edit {{ editing.e164 }}{% else %}Add number{% endif %}</h5>{% if editing %}<a class="small" href="?">New</a>{% endif %}</div>
+            <div class="card-body">
+                <label class="form-label small" for="w-p">Provider</label>
+                <select id="w-p" class="form-select form-select-sm mb-2" name="provider">{% for p in providers %}<option value="{{ p.key }}" {% if editing.provider_id == p.pk %}selected{% endif %}>{{ p.name }}{% if not p.is_active %} (off){% endif %}</option>{% endfor %}</select>
+                <label class="form-label small" for="w-e">Number</label>
+                <input id="w-e" class="form-control form-control-sm mb-2" name="e164" value="{{ editing.e164|default:'' }}" placeholder="+919876543210" required>
+                <label class="form-label small" for="w-d">Display name (approved by Meta)</label>
+                <input id="w-d" class="form-control form-control-sm mb-2" name="display_name" value="{{ editing.display_name|default:'' }}">
+                <label class="form-label small" for="w-pid">Phone number ID</label>
+                <input id="w-pid" class="form-control form-control-sm mb-2 font-monospace" name="phone_number_id" value="{{ editing.phone_number_id|default:'' }}" required>
+                <label class="form-label small" for="w-waba">WhatsApp Business Account ID</label>
+                <input id="w-waba" class="form-control form-control-sm mb-2 font-monospace" name="waba_id" value="{{ editing.waba_id|default:'' }}" required>
+                <div class="form-text mb-2">Both IDs are shown in the Meta app → WhatsApp → API setup.</div>
+                <label class="form-label small" for="w-c">Company</label>
+                <select id="w-c" class="form-select form-select-sm mb-2" name="company"><option value="">— Not given yet —</option>{% for c in companies %}<option value="{{ c.pk }}" {% if editing.company_id == c.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="w-t" name="is_test" {% if editing.is_test %}checked{% endif %}><label class="form-check-label small" for="w-t">Meta test number (development)</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="w-a" name="active" {% if not editing or editing.status == 'active' %}checked{% endif %}><label class="form-check-label small" for="w-a">Active</label></div>
+            </div>
+            <div class="card-footer"><button class="btn btn-primary" {% if not providers %}disabled{% endif %}>Save number</button></div>
+        </form>
+    </div>
+</div>
+{% endblock page_content %}

@@ -193,7 +193,7 @@ def test_wizard_voice_number_and_handoff_steps(owner, realty, sara, number):
     assert PhoneNumber.objects.get(pk=number.pk).employee_id == sara.pk
 
     r = owner.get(f"/app/ai-employees/{sara.pk}/setup/rules/").content.decode()
-    assert "Hand over a call when the caller says" in r
+    assert "Hand over a call or chat when the customer says" in r
     owner.post(
         f"/app/ai-employees/{sara.pk}/setup/rules/",
         {"handoff_keywords": "complaint\nmanager", "handoff_on_hot_lead": "on", "recording": "on", "then": "stay"},

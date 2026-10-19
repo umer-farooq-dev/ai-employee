@@ -284,6 +284,17 @@ class InboxSerializer(serializers.ModelSerializer):
 VIEWS = ("open", "waiting", "mine", "ai", "ended", "all")
 
 
+def _window(conv):
+    """WhatsApp: whether free-form replies are allowed now (Meta's customer service window)."""
+    if conv.channel != "whatsapp":
+        return {}
+    from apps.whatsapp import services as wa
+
+    phone = (conv.customer or {}).get("phone", "")
+    closes = wa.window_closes_at(conv.company, phone)
+    return {"window_open": wa.window_open(conv.company, phone), "window_closes_at": closes}
+
+
 def inbox_queryset(request, view="open", channel="", q=""):
     """The conversations of the inbox, newest activity first (the panel page uses the same filters)."""
     last = Message.objects.filter(conversation=OuterRef("pk"), role__in=("customer", "ai", "human")).order_by(
@@ -341,6 +352,7 @@ class InboxViewSet(TenantContextMixin, mixins.ListModelMixin, mixins.RetrieveMod
         return Response(
             {
                 **InboxSerializer(conv).data,
+                **_window(conv),
                 "messages": chat.messages_after(conv, request.query_params.get("after", "")),
                 "can_answer": has_perm(request.user, "handoffs.receive", request.company),
             }
@@ -349,7 +361,25 @@ class InboxViewSet(TenantContextMixin, mixins.ListModelMixin, mixins.RetrieveMod
     def _done(self, conv):
         conv = self.get_queryset().get(pk=conv.pk)
         after = self.request.data.get("after", "")
-        return Response({**InboxSerializer(conv).data, "messages": chat.messages_after(conv, after)})
+        return Response({**InboxSerializer(conv).data, **_window(conv), "messages": chat.messages_after(conv, after)})
+
+    @action(detail=True, methods=["post"])
+    def template(self, request, pk=None):
+        """WhatsApp outside the 24-hour window: an approved template to this customer (WA-04)."""
+        from apps.whatsapp import services as wa
+        from apps.whatsapp.models import Template
+
+        from .views_whatsapp import template_context
+
+        conv = self.get_object()
+        if conv.channel != "whatsapp":
+            raise ValidationError("Templates are for WhatsApp chats.")
+        template = get_object_or_404(
+            Template.objects.select_related("number"), pk=request.data.get("template"), company=request.company
+        )
+        lead = conv.lead or wa._ensure_lead(conv, conv.customer.get("phone", ""), conv.customer.get("name", ""))
+        _errors(wa.send_template, template, lead, template_context(request), request.user, conv, request._request)
+        return self._done(conv)
 
     @action(detail=True, methods=["post"], url_path="take-over")
     def take_over(self, request, pk=None):

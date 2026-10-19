@@ -123,11 +123,13 @@ def _auto_done(company, key):
             )
         if key == "catalogue":
             return CatalogItem.all_companies.filter(company=company).exists()
-        if key == "channel":  # a connected phone number or a website chat placed on the company's site
+        if key == "channel":  # a connected phone / WhatsApp number or a website chat on the company's site
             from apps.webchat.models import ChatWidget
+            from apps.whatsapp.models import WhatsAppNumber
 
             return (
                 PhoneNumber.objects.filter(company=company, employee__isnull=False, status="active").exists()
+                or WhatsAppNumber.objects.filter(company=company, employee__isnull=False, status="active").exists()
                 or ChatWidget.all_companies.filter(company=company, is_enabled=True)
                 .exclude(allowed_domains=[])
                 .exists()

@@ -37,6 +37,39 @@ def _request(method, url, headers, body=None, timeout=60):
         raise ProviderError("The provider did not return JSON.") from None
 
 
+def request_raw(method, url, headers, data=None, timeout=60, as_json=True):
+    """Binary / multipart bodies (speech files, media uploads) and binary downloads."""
+    if not url.startswith(("https://", "http://")):
+        raise ProviderError("Base URL must start with https:// or http://")
+    req = urllib.request.Request(url, data=data, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — scheme checked above
+            body = resp.read()
+            return (json.loads(body or b"{}"), resp.headers) if as_json else (body, resp.headers)
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")[:300]
+        raise ProviderError(f"HTTP {exc.code}: {detail}") from None
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise ProviderError(f"Connection failed: {getattr(exc, 'reason', exc)}") from None
+    except json.JSONDecodeError:
+        raise ProviderError("The provider did not return JSON.") from None
+
+
+def multipart(fields, files):
+    """fields {name: value}, files {name: (file name, bytes, content type)} → (body, content type header)."""
+    import secrets
+
+    boundary = "----aie" + secrets.token_hex(12)
+    out = []
+    for name, value in fields.items():
+        out.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode())
+    for name, (fname, content, ctype) in files.items():
+        head = f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"; filename="{fname}"\r\n'
+        out.append(f"{head}Content-Type: {ctype}\r\n\r\n".encode() + content + b"\r\n")
+    out.append(f"--{boundary}--\r\n".encode())
+    return b"".join(out), f"multipart/form-data; boundary={boundary}"
+
+
 class OpenAIAdapter:
     def __init__(self, provider, timeout):
         self.base = provider.base_url.rstrip("/")

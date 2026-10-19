@@ -66,6 +66,9 @@ class AIModelSerializer(serializers.Serializer):
 class ProviderSerializer(serializers.ModelSerializer):
     api_key = serializers.CharField(write_only=True, required=False, allow_blank=True, trim_whitespace=True)
     remove_key = serializers.BooleanField(write_only=True, required=False)
+    webhook_secret = serializers.CharField(write_only=True, required=False, allow_blank=True, trim_whitespace=True)
+    remove_webhook_secret = serializers.BooleanField(write_only=True, required=False)
+    has_webhook_secret = serializers.SerializerMethodField()
     available_models = AIModelSerializer(many=True, required=False)
     capabilities = serializers.ListField(
         child=serializers.ChoiceField(choices=[c for c, _ in CAPABILITIES]), required=False
@@ -96,9 +99,15 @@ class ProviderSerializer(serializers.ModelSerializer):
             "has_key",
             "api_key",
             "remove_key",
+            "webhook_secret",
+            "remove_webhook_secret",
+            "has_webhook_secret",
             "usage",
         ]
         read_only_fields = ["is_active", "health"]
+
+    def get_has_webhook_secret(self, obj):
+        return bool(obj.webhook_secret)
 
     def get_usage(self, obj):
         """Tasks / languages routed to this provider: {"chat_dialog": 1, "stt": 2, …} (the chips on the vendor card)."""

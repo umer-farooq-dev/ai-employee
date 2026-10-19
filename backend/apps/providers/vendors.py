@@ -93,6 +93,14 @@ VENDORS = {
         "config": [("account_sid", "Account SID", "AC…", True)],
         "base_url": "https://api.twilio.com",
     },
+    # WA-01: the official WhatsApp Business Platform (Cloud API). BSPs join as further vendors with their adapter.
+    "meta_whatsapp": {
+        "label": "Meta WhatsApp Cloud API",
+        "secret": "Access token (system user)",  # nosec B105 — field label, not a secret
+        "webhook_secret": "App secret (verifies Meta's webhooks)",  # nosec B105 — field label, not a secret
+        "config": [("app_id", "App ID", "", False)],
+        "base_url": "https://graph.facebook.com/v21.0",
+    },
 }
 VENDOR_CHOICES = [(k, v["label"]) for k, v in VENDORS.items()]
 
@@ -191,6 +199,10 @@ def test(provider, timeout=30):
             "GET", f"https://{host}/v1/Accounts/{sid}.json", _basic(_cfg(provider, "api_key"), key), timeout=timeout
         )
         return f"Connected · {sid}"
+    if v == "meta_whatsapp":
+        data = _request("GET", f"{base}/me?fields=id,name", {"Authorization": f"Bearer {key}"}, timeout=timeout)
+        note = "" if provider.webhook_secret else " · add the app secret to receive messages"
+        return f"Connected · {data.get('name') or data.get('id', '')}{note}"
     raise ProviderError("This vendor has no connection test.")
 
 

@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core import signing
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils import timezone
 
 from apps.agents import inbox, runtime
@@ -219,6 +219,13 @@ def out(msg):
         row.update(text="", notice=(msg.meta or {}).get("notice", ""), name=(msg.meta or {}).get("name", ""))
     if (msg.meta or {}).get("ask_contact"):
         row["ask_contact"] = True
+    for key in ("voice_note", "template"):
+        if (msg.meta or {}).get(key):
+            row[key] = msg.meta[key]
+    try:  # WhatsApp delivery status (WA-10)
+        row["delivery"], row["delivery_error"] = msg.wa.status, msg.wa.error
+    except ObjectDoesNotExist:
+        pass
     return row
 
 
@@ -226,7 +233,7 @@ VISIBLE = ("customer", "ai", "human", "system")
 
 
 def messages_after(conv, after=""):
-    qs = conv.messages.filter(role__in=VISIBLE).order_by("created_at")
+    qs = conv.messages.filter(role__in=VISIBLE).select_related("wa").order_by("created_at")
     if after:
         last = conv.messages.filter(pk=after).values_list("created_at", flat=True).first() if _uuid(after) else None
         if last:

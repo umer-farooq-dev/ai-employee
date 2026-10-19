@@ -126,7 +126,10 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `chat.rate_sessions` / `chat.rate_messages` | text | 20/hour per IP / 20/minute per chat | CHAT-05 rate limits |
 | `chat.bot_min_seconds` | number | 2 | CHAT-05: a first message faster than this is refused (bot protection) |
 | `chat.poll_seconds` | number | 4 | widget and inbox check for new messages |
-| `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | Phase 6 |
+| `whatsapp.opt_out_keywords` / `whatsapp.opt_in_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO, बंद करो / START, SUBSCRIBE | WA-08: exact customer message → consent record |
+| `whatsapp.inbound_is_opt_in` / `whatsapp.require_opt_in` | boolean | on / on | WA-08, COMP-07: who may receive templates |
+| `whatsapp.session_window_hours` | number | 24 | Meta's customer service window for free-form replies |
+| `whatsapp.max_item_photos` / `whatsapp.read_receipts` | number / boolean | 3 / on | WA-04 item photos; blue ticks for customers |
 
 Per-language phrases — AI disclosure, recording announcement, default greeting, fillers, transfer, no agent, voicemail, silence, goodbye, and every text of the website chat widget (button, message box, quick actions, "connecting you", form labels) — live on each language in **Languages & Voices** (a new language brings all its texts with it).
 

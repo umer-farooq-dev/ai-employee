@@ -1,6 +1,6 @@
 """Shared inbox (WA-06, CHAT-06, HO-01 chat): people take over a live chat from the AI, reply, hand it back, assign it.
 
-Channel-independent: the website chat widget (and WhatsApp) only deliver messages; who answers is decided here.
+Channel-independent: the website chat widget and WhatsApp only carry messages; who answers is decided here.
 While a person has taken over (handled_by = human) the AI pauses; customer messages are stored and shown in the inbox.
 Notices for the customer ("connecting you", "Asha joined", "back with the AI") are system messages with a notice key;
 the widget shows them in the customer's language from the language phrases.
@@ -25,9 +25,28 @@ def first_name(user):
 
 
 def notice(conv, key, **data):
-    return Message.objects.create(
+    msg = Message.objects.create(
         company=conv.company, conversation=conv, role="system", content=key, meta={"notice": key, **data}
     )
+    _out(conv, msg)
+    return msg
+
+
+def _out(conv, msg):
+    """Channels that deliver to the customer's own app (WhatsApp) send it now; the website widget polls."""
+    if conv.channel == "whatsapp":
+        from apps.whatsapp import services as whatsapp
+
+        whatsapp.deliver(conv, msg)
+
+
+def _can_write(conv):
+    """WhatsApp: free-form messages only inside Meta's customer service window."""
+    if conv.channel == "whatsapp":
+        from apps.whatsapp import services as whatsapp
+
+        if not whatsapp.window_open(conv.company, (conv.customer or {}).get("phone", "")):
+            raise ValidationError("The 24-hour reply window is closed: send an approved template instead.")
 
 
 def _open(conv):
@@ -92,7 +111,7 @@ def no_agent(conv):
     lang = conv.language or conv.employee.primary_language
     from apps.providers import languages
 
-    Message.objects.create(
+    msg = Message.objects.create(
         company=conv.company,
         conversation=conv,
         role="ai",
@@ -100,6 +119,7 @@ def no_agent(conv):
         language=lang,
         meta={"no_agent": True, "ask_contact": not (conv.lead_id and conv.lead.phone)},
     )
+    _out(conv, msg)
 
 
 # ------------------------------------------------------------------ team side
@@ -143,6 +163,7 @@ def reply(conv, user, text, request=None):
     text = (text or "").strip()[: setting("ai.max_message_chars")]
     if not text:
         raise ValidationError("Type a message.")
+    _can_write(conv)
     if conv.handled_by != Conversation.HUMAN or conv.assigned_user_id != user.pk:
         take_over(conv, user, request)
     msg = Message.objects.create(
@@ -155,6 +176,7 @@ def reply(conv, user, text, request=None):
     )
     if conv.lead_id:
         Lead.objects.filter(pk=conv.lead_id).update(last_contact_at=timezone.now())
+    _out(conv, msg)
     return msg
 
 

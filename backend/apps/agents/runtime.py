@@ -569,6 +569,10 @@ def end(conv):
     conv.save()
     if conv.is_test:
         discard_test_data(conv)
+    elif conv.channel == "voice" and conv.lead_id:  # WA-04 follow-up on WhatsApp after a call (rule per employee)
+        from apps.whatsapp.services import after_conversation
+
+        after_conversation(conv)
     return conv
 
 

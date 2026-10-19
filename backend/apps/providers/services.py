@@ -120,10 +120,16 @@ def save_provider(provider, data, user=None, request=None):
     elif data.get("api_key"):
         provider.api_key = data["api_key"].strip()
         changes["api_key"] = "replaced"
+    if data.get("remove_webhook_secret"):
+        provider.webhook_secret = ""  # nosec B105 — clearing the stored secret
+        changes["webhook_secret"] = "removed"  # nosec B105 — audit note, not a secret
+    elif data.get("webhook_secret"):
+        provider.webhook_secret = data["webhook_secret"].strip()
+        changes["webhook_secret"] = "replaced"  # nosec B105 — audit note, not a secret
     if "api_key" in changes:
         provider.health = {}
     _validate(provider)
-    provider.full_clean(exclude=["api_key"])
+    provider.full_clean(exclude=["api_key", "webhook_secret"])
     provider.save()
     if changes or creating:
         record(

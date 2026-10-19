@@ -37,6 +37,16 @@
             {% else %}<p class="small text-muted mb-0">Your company has no phone number yet — ask the platform team.</p>{% endif %}
         </div></div>
         <div class="card border mt-3 mb-0"><div class="card-body">
+            <h6><i class="iconoir-chat-lines me-1"></i>WhatsApp number</h6>
+            {% if wa_numbers %}
+            <label class="form-label small" for="f-wa">Customers who message this number chat with {{ employee.name }}</label>
+            <select id="f-wa" class="form-select form-select-sm mb-1" name="whatsapp_number" {% if not can_whatsapp %}disabled{% endif %}>
+                <option value="">— No WhatsApp number —</option>
+                {% for n in wa_numbers %}<option value="{{ n.pk }}" {% if n.employee_id == employee.pk %}selected{% endif %}>{{ n.e164 }}{% if n.display_name %} · {{ n.display_name }}{% endif %}{% if n.employee_id and n.employee_id != employee.pk %} (now: {{ n.employee.name }}){% endif %}</option>{% endfor %}
+            </select>
+            {% else %}<p class="small text-muted mb-0">Your company has no WhatsApp number yet — ask the platform team.</p>{% endif %}
+        </div></div>
+        <div class="card border mt-3 mb-0"><div class="card-body">
             <h6><i class="iconoir-chat-bubble me-1"></i>Website chat</h6>
             <p class="small text-muted mb-2">A chat button for your website: visitors chat with {{ employee.name }}, your team can take over.</p>
             <a class="btn btn-sm btn-light" href="{% url 'panel:widget' employee.pk %}">Set up website chat</a>

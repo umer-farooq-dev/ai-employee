@@ -23,7 +23,7 @@
                 <dt class="col-5">Email</dt><dd class="col-7 text-break">{{ lead.email|default:"—" }}</dd>
                 <dt class="col-5">Source</dt><dd class="col-7">{{ lead.source.label|default:"—" }}</dd>
                 <dt class="col-5">Language</dt><dd class="col-7">{{ lead.preferred_language|default:"—" }}</dd>
-                <dt class="col-5">AI Employee</dt><dd class="col-7">{{ lead.assigned_ai_employee_id|default:"—" }}</dd>
+                <dt class="col-5">AI Employee</dt><dd class="col-7">{% if ai_employee %}<a href="{% url 'panel:ai_detail' ai_employee.pk %}">{{ ai_employee.name }}</a>{% else %}—{% endif %}</dd>
                 <dt class="col-5">Tags</dt><dd class="col-7">{% for t in lead.tags %}<span class="badge bg-light text-dark">{{ t }}</span> {% empty %}—{% endfor %}</dd>
                 <dt class="col-5">Consent</dt><dd class="col-7">{{ lead.get_consent_status_display }}</dd>
                 <dt class="col-5">Last contact</dt><dd class="col-7">{{ lead.last_contact_at|date:"d M Y H:i"|default:"—" }}</dd>
@@ -57,6 +57,40 @@
             </form>
             {% endif %}
             {% if calls %}<hr class="my-2"><div class="small">{% for c in calls %}<div class="d-flex justify-content-between"><a href="{% url 'panel:call_detail' c.pk %}">{{ c.queued_at|date:"d M H:i" }} · {{ c.get_direction_display }}</a><span>{% include 'panel/company/calls/_status.html' with call=c %}</span></div>{% endfor %}</div>{% endif %}
+        </div></div>
+        {% endif %}
+        {% if wa %}
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0"><i class="iconoir-chat-bubble me-1"></i>WhatsApp</h5>
+            <span class="badge {% if wa.consent == 'opted_in' %}bg-success-subtle text-success{% elif wa.consent == 'opted_out' %}bg-danger-subtle text-danger{% else %}bg-light text-dark{% endif %}">{% if wa.consent == 'opted_in' %}Opted in{% elif wa.consent == 'opted_out' %}Opted out{% else %}No consent yet{% endif %}</span></div><div class="card-body">
+            {% if not wa.has_numbers %}<p class="small text-muted mb-0">Your company has no WhatsApp number yet.</p>
+            {% elif wa.consent == 'opted_out' %}<p class="small text-danger mb-0">This customer asked not to receive WhatsApp messages.</p>
+            {% elif not wa.templates %}<p class="small text-muted mb-0">No approved template yet. {% load panel_tags %}{% company_can "whatsapp.manage" as wam %}{% if wam %}<a href="{% url 'panel:whatsapp_settings' %}">Create one</a>{% endif %}</p>
+            {% else %}
+            <form method="post" action="{% url 'panel:whatsapp_send' lead.pk %}">{% csrf_token %}
+                <label class="form-label small" for="wa-t">Template</label>
+                <select id="wa-t" name="template" class="form-select form-select-sm mb-2">{% for t in wa.templates %}<option value="{{ t.pk }}" data-vars="{{ t.variables|join:',' }}" data-header="{{ t.header_type }}">{{ t.name }} ({{ t.language }})</option>{% endfor %}</select>
+                <div class="wa-extra" data-need="item"><label class="form-label small" for="wa-i">Property / product</label><select id="wa-i" name="item" class="form-select form-select-sm mb-2"><option value="">—</option>{% for i in wa.items %}<option value="{{ i.pk }}">{{ i.title }}</option>{% endfor %}</select></div>
+                <div class="wa-extra" data-need="appointment"><label class="form-label small" for="wa-a">Appointment</label><select id="wa-a" name="appointment" class="form-select form-select-sm mb-2"><option value="">—</option>{% for a in wa.appointments %}<option value="{{ a.pk }}">{{ a.reference }} · {{ a.appointment_type.name }} · {{ a.starts_at|date:"d M H:i" }}</option>{% endfor %}</select></div>
+                <div class="wa-extra" data-need="text"><label class="form-label small" for="wa-x">Text for the template</label><input id="wa-x" name="text" class="form-control form-control-sm mb-2" maxlength="500"></div>
+                <button class="btn btn-sm btn-success w-100" {% if not lead.phone %}disabled{% endif %}><i class="iconoir-send me-1"></i>Send on WhatsApp</button>
+                {% if wa.consent != 'opted_in' %}<p class="form-text mb-0">Templates go only to customers who opted in (they messaged you first or opted in elsewhere).</p>{% endif %}
+            </form>
+            <script>
+            (function () {
+                var sel = document.getElementById("wa-t");
+                function show() {
+                    var o = sel.options[sel.selectedIndex], vars = (o.dataset.vars || "").split(","), h = o.dataset.header;
+                    document.querySelectorAll(".wa-extra").forEach(function (el) {
+                        var need = el.dataset.need;
+                        var on = vars.some(function (v) { return v.indexOf(need) === 0; }) || (need === "item" && (h === "image" || h === "document"));
+                        el.classList.toggle("d-none", !on);
+                    });
+                }
+                sel.addEventListener("change", show); show();
+            })();
+            </script>
+            {% endif %}
+            {% if wa.messages %}<hr class="my-2"><div class="small">{% for m in wa.messages %}<div class="d-flex justify-content-between"><span>{{ m.created_at|date:"d M H:i" }} · {% if m.direction == 'in' %}received{% else %}{{ m.template.name|default:m.kind }}{% endif %}</span><span class="badge {% if m.status == 'read' %}bg-success-subtle text-success{% elif m.status == 'failed' %}bg-danger-subtle text-danger{% else %}bg-light text-dark{% endif %}" title="{{ m.error }}">{{ m.get_status_display }}</span></div>{% endfor %}</div>{% endif %}
         </div></div>
         {% endif %}
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Next action</h5></div><div class="card-body">

@@ -10,6 +10,7 @@ from . import (
     crm_views,
     knowledge_views,
     views,
+    whatsapp_views,
 )
 
 app_name = "panel"
@@ -87,6 +88,10 @@ urlpatterns = [
     path("app/ai-employees/<uuid:pk>/website-chat/preview/", chat_views.widget_preview, name="widget_preview"),
     path("app/inbox/", chat_views.inbox_list, name="inbox"),
     path("app/inbox/<uuid:pk>/", chat_views.inbox_detail, name="inbox_conversation"),
+    path("app/settings/whatsapp/", whatsapp_views.settings_page, name="whatsapp_settings"),
+    path("app/settings/whatsapp/templates/new/", whatsapp_views.template_form, name="whatsapp_template_new"),
+    path("app/settings/whatsapp/templates/<uuid:pk>/", whatsapp_views.template_form, name="whatsapp_template"),
+    path("app/leads/<uuid:lead_pk>/whatsapp/", whatsapp_views.send_to_lead, name="whatsapp_send"),
     path("app/search/", crm_views.search, name="search"),
     path("app/settings/crm/", crm_views.crm_settings, name="crm_settings"),
     path("app/settings/crm/fields/new/", crm_views.company_field, name="crm_field_create"),

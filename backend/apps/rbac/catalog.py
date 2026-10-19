@@ -23,7 +23,8 @@ PERMISSIONS = {
     "holidays.manage": (PLATFORM, "Manage platform holidays"),
     "ai_providers.manage": (PLATFORM, "Manage AI providers, keys and model per task"),
     "voice_settings.manage": (PLATFORM, "Manage speech / telephony providers, languages and voices"),
-    "number_pool.manage": (PLATFORM, "Manage the phone-number pool and give numbers to companies"),
+    "number_pool.manage": (PLATFORM, "Manage the phone and WhatsApp number pool and give numbers to companies"),
+    "whatsapp_templates.manage": (PLATFORM, "Manage the default WhatsApp template library"),
     "calls_oversight.view": (PLATFORM, "View calls of all companies with quality metrics"),
     "recordings_oversight.listen": (PLATFORM, "Listen to call recordings of any company (audited)"),
     "tools.manage": (PLATFORM, "Manage the AI tool registry"),
@@ -74,6 +75,8 @@ PERMISSIONS = {
     "recordings.listen": (COMPANY, "Listen to call recordings"),
     "recordings.download": (COMPANY, "Download call recordings"),
     "handoffs.receive": (COMPANY, "Receive live calls and chats handed over by the AI"),
+    "whatsapp.manage": (COMPANY, "Connect WhatsApp numbers to AI Employees and manage message templates"),
+    "whatsapp.send": (COMPANY, "Send approved WhatsApp templates to leads"),
     "billing.view": (COMPANY, "View subscription and billing"),
     "billing.manage": (COMPANY, "Change subscription and billing"),
 }
@@ -112,6 +115,8 @@ MANAGER_P5 = [
     "handoffs.receive",
 ]
 AGENT_P5 = ["calls.view", "calls.make", "recordings.listen", "handoffs.receive"]
+MANAGER_P6 = ["whatsapp.manage", "whatsapp.send"]
+AGENT_P6 = ["whatsapp.send"]
 AGENT_P3 = ["leads.view", "leads.manage", "catalog.view", "calendar.view", "calendar.manage"]
 
 SEED_ROLES = [
@@ -134,6 +139,11 @@ SEED_ROLES = [
         ],
     ),
     (COMPANY, "owner", "Owner / Admin", COMPANY_KEYS),
-    (COMPANY, "manager", "Manager", ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4, *MANAGER_P5]),
-    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3, *AGENT_P4, *AGENT_P5]),
+    (
+        COMPANY,
+        "manager",
+        "Manager",
+        ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4, *MANAGER_P5, *MANAGER_P6],
+    ),
+    (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3, *AGENT_P4, *AGENT_P5, *AGENT_P6]),
 ]

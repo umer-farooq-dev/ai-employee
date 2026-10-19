@@ -574,6 +574,33 @@ def send_email(ctx, tool, args):
     return {"sent": True, "to": lead.email}
 
 
+def send_whatsapp(ctx, tool, args):
+    """TOOL-09: on a WhatsApp chat (window open) the item's photos, brochure and location; on calls and other chats
+    an approved template (item information or lead follow-up). Opt-out and opt-in are checked."""
+    from apps.whatsapp import services as whatsapp
+
+    lead = _need_lead(ctx)
+    if ctx.conversation.is_test:
+        return {"sent": False, "note": "Test conversation: nothing was sent on WhatsApp."}
+    item = None
+    if args.get("item_id"):
+        item = CatalogItem.objects.filter(company=ctx.company, pk=_uuid(args["item_id"])).first()
+        if not item:
+            raise ToolError("Unknown item_id.")
+    note = str(args.get("note") or "").strip()[:500]
+    try:
+        if ctx.conversation.channel == "whatsapp" and item:
+            return {"sent": True, "messages": whatsapp.send_item(ctx.conversation, item, note)}
+        purpose = "item_info" if item else "lead_follow_up"
+        template = whatsapp.find_template(ctx.company, purpose, ctx.conversation.language or lead.preferred_language)
+        if not template:
+            raise ToolError("No approved WhatsApp template for this yet; offer to send it by e-mail instead.")
+        whatsapp.send_template(template, lead, {"employee": ctx.employee, "item": item, "text": note})
+    except ValidationError as exc:
+        raise ToolError(_validation(exc)) from None
+    return {"sent": True, "template": template.name, "to": lead.phone}
+
+
 def _uuid(value):
     import uuid
 
@@ -692,6 +719,10 @@ HANDLERS = {
     "schedule_callback": (
         schedule_callback,
         lambda ctx, t: _s({"when": {"type": "string"}, "message": {"type": "string"}}, ["message"]),
+    ),
+    "send_whatsapp": (
+        send_whatsapp,
+        lambda ctx, t: _s({"item_id": {"type": "string"}, "note": {"type": "string"}}, []),
     ),
     "send_email": (
         send_email,

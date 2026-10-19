@@ -1,0 +1,38 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}WhatsApp template{% endblock %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-1">{% if row %}{{ row.title }}{% else %}New library template{% endif %}</h4><p class="text-muted mb-0">Use {% templatetag openvariable %}1{% templatetag closevariable %}, {% templatetag openvariable %}2{% templatetag closevariable %} … in the text and choose what fills each one.</p></div>
+    <a class="btn btn-sm btn-light" href="{% url 'superadmin:whatsapp_library' %}">All templates</a>
+</div>
+<form method="post" class="row">{% csrf_token %}
+    <div class="col-xl-5">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Template</h5></div><div class="card-body">
+            <label class="form-label small" for="l-title">Title</label><input id="l-title" class="form-control form-control-sm mb-2" name="title" maxlength="120" value="{{ row.title|default:'' }}" required>
+            <label class="form-label small" for="l-name">Name at Meta</label><input id="l-name" class="form-control form-control-sm mb-2 font-monospace" name="name" maxlength="60" pattern="[a-z0-9_]+" value="{{ row.name|default:'' }}" required>
+            <div class="row g-2">
+                <div class="col-6"><label class="form-label small" for="l-p">Used for</label><select id="l-p" class="form-select form-select-sm" name="purpose">{% for k, v in purposes %}<option value="{{ k }}" {% if row.purpose == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+                <div class="col-6"><label class="form-label small" for="l-c">Category</label><select id="l-c" class="form-select form-select-sm" name="category">{% for k, v in categories %}<option value="{{ k }}" {% if row.category == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+                <div class="col-6"><label class="form-label small" for="l-h">Header</label><select id="l-h" class="form-select form-select-sm" name="header_type">{% for k, v in headers %}<option value="{{ k }}" {% if row.header_type == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+                <div class="col-6"><label class="form-label small" for="l-o">Order</label><input id="l-o" type="number" min="0" class="form-control form-control-sm" name="sort_order" value="{{ row.sort_order|default:0 }}"></div>
+            </div>
+            <span class="form-label small d-block mt-3">Variables</span>
+            {% for v in chosen|slice:":6" %}<div class="input-group input-group-sm mb-1"><span class="input-group-text">{% templatetag openvariable %}{{ forloop.counter }}{% templatetag closevariable %}</span><select class="form-select" name="variable" aria-label="Variable {{ forloop.counter }}"><option value="">— not used —</option>{% for k, label in variables %}<option value="{{ k }}" {% if v == k %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endfor %}
+            <div class="form-check form-switch mt-3"><input class="form-check-input" type="checkbox" id="l-a" name="is_active" {% if not row or row.is_active %}checked{% endif %}><label class="form-check-label small" for="l-a">Shown to companies</label></div>
+        </div></div>
+    </div>
+    <div class="col-xl-7">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Text per language</h5></div><div class="card-body">
+            {% for code, name, t in languages %}
+            <div class="border rounded p-3 mb-2">
+                <div class="fw-medium mb-2">{{ name }}</div>
+                <input class="form-control form-control-sm mb-1" name="header_{{ code }}" maxlength="60" placeholder="Header text (only for a text header)" value="{{ t.header|default:'' }}" aria-label="Header ({{ name }})">
+                <textarea class="form-control form-control-sm mb-1" rows="3" name="body_{{ code }}" maxlength="1024" placeholder="Message (empty = not offered in {{ name }})" aria-label="Message ({{ name }})">{{ t.body|default:'' }}</textarea>
+                <input class="form-control form-control-sm" name="footer_{{ code }}" maxlength="60" placeholder="Footer (optional)" value="{{ t.footer|default:'' }}" aria-label="Footer ({{ name }})">
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card-footer d-flex justify-content-between"><button class="btn btn-primary">Save</button>{% if row %}<button class="btn btn-link text-danger" name="op" value="delete" formnovalidate onclick="return confirm('Remove from the library? Company copies stay.')">Delete</button>{% endif %}</div></div>
+    </div>
+</form>
+{% endblock page_content %}

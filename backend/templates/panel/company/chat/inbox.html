@@ -93,6 +93,19 @@
                         <div class="text-danger small d-none" id="ib-err" role="alert"></div>
                     </form>
                     {% endif %}
+                    {% if can_answer and conv.channel == 'whatsapp' %}
+                    <form class="p-3 border-top d-none" id="ib-tpl">
+                        <div class="small text-muted mb-2"><i class="iconoir-clock me-1"></i>More than 24 hours since the customer's last message: WhatsApp only allows an approved template now.</div>
+                        {% if wa_templates %}
+                        <div class="d-flex gap-2 align-items-end">
+                            <div class="flex-grow-1"><label class="visually-hidden" for="ib-tpl-sel">Template</label>
+                                <select id="ib-tpl-sel" class="form-select">{% for t in wa_templates %}<option value="{{ t.pk }}">{{ t.name }} ({{ t.language }}) — {{ t.body|truncatechars:60 }}</option>{% endfor %}</select></div>
+                            <button class="btn btn-success text-nowrap">Send template</button>
+                        </div>
+                        <input class="form-control form-control-sm mt-2" id="ib-tpl-text" maxlength="500" placeholder="Text for the template (if it asks for one)">
+                        {% else %}<p class="small mb-0">No approved template yet — create one in Settings → WhatsApp.</p>{% endif %}
+                    </form>
+                    {% endif %}
                     <div class="p-3 border-top small text-muted d-none" id="ib-ended">This chat has ended. The summary, requirement and score are saved{% if conv.lead %} on the lead{% endif %}.</div>
                 </div>
                 <div class="col-xl-4">
@@ -136,7 +149,7 @@
 (function () {
     "use strict";
     var box = document.getElementById("ib-conv"), URL_ = box.dataset.url, TOKEN = "{{ csrf_token }}", ME = "{{ request.user.pk }}";
-    var TZ = "{{ timezone|escapejs }}", thread = document.getElementById("ib-thread"), last = "", state = {}, POLL = {{ poll_seconds|default:4 }} * 1000;
+    var CUSTOMER = "{% if conv.channel == 'whatsapp' %}Customer{% else %}Visitor{% endif %}", TZ = "{{ timezone|escapejs }}", thread = document.getElementById("ib-thread"), last = "", state = {}, POLL = {{ poll_seconds|default:4 }} * 1000;
     var NOTICES = {chat_waiting: "Waiting for a person", chat_joined: "{name} took over", chat_ai_back: "Handed back to the AI", chat_ended: "Chat ended", chat_thanks: "Visitor sent the contact form"};
     var STATES = {ai: "{{ conv.employee.name|escapejs }} (AI) is answering", waiting: "Waiting for a person", human: "Answered by "};
     function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
@@ -157,7 +170,10 @@
         var b = document.createElement("div"); b.className = "ib-b " + m.role;
         b.innerHTML = esc(m.text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");  // the AI's light formatting
         var meta = document.createElement("div"); meta.className = "ib-m" + (m.role === "customer" ? "" : " r");
-        meta.textContent = (m.role === "customer" ? "Visitor" : m.role === "ai" ? "{{ conv.employee.name|escapejs }} (AI)" : (m.name || "Team")) + " · " + time(m.at);
+        var TICKS = {queued: "sending", sent: "✓ sent", delivered: "✓✓ delivered", read: "✓✓ read", failed: "✕ not delivered"};
+        meta.textContent = (m.role === "customer" ? CUSTOMER : m.role === "ai" ? "{{ conv.employee.name|escapejs }} (AI)" : (m.name || "Team")) + " · " + time(m.at) +
+            (m.voice_note ? " · voice note" : "") + (m.template ? " · template " + m.template : "") + (m.delivery && m.role !== "customer" ? " · " + (TICKS[m.delivery] || m.delivery) : "");
+        if (m.delivery === "failed") { meta.classList.add("text-danger"); meta.title = m.delivery_error || ""; }
         thread.appendChild(b); thread.appendChild(meta);
     }
     function paint(d) {
@@ -174,6 +190,9 @@
         var hint = document.getElementById("ib-hint");
         if (hint) hint.textContent = mine ? "You are answering. The AI is paused until you hand the chat back." : "Sending a reply takes the chat over from the AI.";
         document.getElementById("ib-ended").classList.toggle("d-none", open);
+        var tpl = document.getElementById("ib-tpl"), closed = open && d.window_open === false;
+        if (tpl) tpl.classList.toggle("d-none", !closed);
+        if (form) form.classList.toggle("d-none", !open || closed);
     }
     function err(e) {
         var el = document.getElementById("ib-err"); if (!el) return;
@@ -202,6 +221,13 @@
             op("reply", {text: v}).then(function () { text.value = ""; }).finally(function () { document.getElementById("ib-send").disabled = false; text.focus(); });
         });
         text.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+    }
+    var tplForm = document.getElementById("ib-tpl");
+    if (tplForm && document.getElementById("ib-tpl-sel")) {
+        tplForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            op("template", {template: document.getElementById("ib-tpl-sel").value, text: document.getElementById("ib-tpl-text").value.trim()});
+        });
     }
     refresh();
     setInterval(function () { if (!document.hidden && state.status !== "ended") refresh().catch(function () {}); }, POLL);
