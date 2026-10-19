@@ -1,0 +1,69 @@
+{% load panel_tags %}{# NOTI-02: the bell — unread count and the latest alerts, refreshed every notifications.poll_seconds. #}
+<li class="dropdown topbar-item">
+    <a class="nav-link dropdown-toggle arrow-none nav-icon position-relative" data-bs-toggle="dropdown" href="#" role="button"
+       aria-haspopup="true" aria-expanded="false" id="nb-btn" aria-label="Alerts">
+        <i class="iconoir-bell"></i>
+        <span class="position-absolute badge rounded-pill bg-danger d-none" id="nb-count" style="top:6px;right:2px;font-size:10px">0</span>
+    </a>
+    <div class="dropdown-menu dropdown-menu-end dropdown-lg py-0" aria-labelledby="nb-btn" style="width:360px;max-width:calc(100vw - 24px)">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+            <h6 class="m-0">Alerts</h6>
+            <button type="button" class="btn btn-link btn-sm p-0 d-none" id="nb-all-read">Mark all as read</button>
+        </div>
+        <div id="nb-list" style="max-height:380px;overflow-y:auto"><p class="text-muted text-center py-4 mb-0 small">Loading…</p></div>
+        <a class="dropdown-item text-center small fw-medium py-2 border-top" href="{% url 'panel:notifications' %}">See all alerts</a>
+    </div>
+</li>
+<script>
+(function () {
+    "use strict";
+    var TOKEN = "{{ csrf_token }}", LIST = "{% url 'api:notifications-list' %}", COUNT = "{% url 'api:notifications-unread-count' %}";
+    var READ_ALL = "{% url 'api:notifications-read-all' %}", OPEN = "{% url 'panel:notifications' %}";
+    var POLL = {% setting "notifications.poll_seconds" %} * 1000, ICONS = {handoff: "iconoir-headset-help text-danger", hot_lead: "iconoir-fire-flame text-warning",
+        appointment: "iconoir-calendar text-primary", campaign: "iconoir-megaphone text-success", usage: "iconoir-graph-up text-info"};
+    var last = -1;
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function req(method, url) {
+        return fetch(url, {method: method, credentials: "same-origin", headers: {"X-CSRFToken": TOKEN, "Accept": "application/json"}})
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r); });
+    }
+    function ago(iso) {
+        var s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+        if (s < 60) return "now"; if (s < 3600) return Math.floor(s / 60) + " min"; if (s < 86400) return Math.floor(s / 3600) + " h";
+        return Math.floor(s / 86400) + " d";
+    }
+    function badge(n) {
+        var el = document.getElementById("nb-count");
+        el.textContent = n > 99 ? "99+" : n;
+        el.classList.toggle("d-none", !n);
+        document.getElementById("nb-all-read").classList.toggle("d-none", !n);
+        if (navigator.setAppBadge) { (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(function () {}); }
+    }
+    function list() {
+        req("GET", LIST + "?page_size=8").then(function (data) {
+            var rows = data.results || data;
+            document.getElementById("nb-list").innerHTML = rows.length ? rows.map(function (n) {
+                return '<a class="dropdown-item d-flex gap-2 py-2 border-bottom text-wrap' + (n.read_at ? "" : " bg-light") + '" href="' + OPEN + n.id + '/open/">' +
+                    '<i class="fs-18 ' + (ICONS[n.kind] || "iconoir-bell") + '" aria-hidden="true"></i><span class="flex-grow-1" style="min-width:0">' +
+                    '<span class="d-flex justify-content-between gap-2"><span class="fw-semibold small text-truncate">' + esc(n.title) + "</span>" +
+                    '<span class="small text-muted text-nowrap">' + ago(n.created_at) + "</span></span>" +
+                    (n.body ? '<span class="d-block small text-muted text-truncate">' + esc(n.body) + "</span>" : "") + "</span></a>";
+            }).join("") : '<p class="text-muted text-center py-4 mb-0 small">No alerts yet.</p>';
+        }).catch(function () {});
+    }
+    function poll() {
+        if (document.hidden) return;
+        req("GET", COUNT).then(function (d) {
+            if (d.unread !== last) { last = d.unread; badge(d.unread); }
+        }).catch(function () { /* signed out or offline */ });
+    }
+    document.getElementById("nb-btn").addEventListener("show.bs.dropdown", list);
+    document.getElementById("nb-all-read").addEventListener("click", function (e) {
+        e.stopPropagation();
+        req("POST", READ_ALL).then(function () { last = 0; badge(0); list(); });
+    });
+    document.addEventListener("visibilitychange", poll);
+    setInterval(poll, POLL);
+    poll();
+})();
+</script>

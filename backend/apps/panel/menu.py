@@ -15,7 +15,7 @@ MENU = [
     ("calls", "Calls", "phone", "panel:calls", "calls.view", "calls", 5),
     ("inbox", "Inbox", "chat-bubble", "panel:inbox", "conversations.view", None, 6),
     ("conversations", "Conversations", "chat-lines", "panel:conversations", "conversations.view", None, 4),
-    ("campaigns", "Campaigns", "megaphone", None, "company.view", "campaigns", 6),
+    ("campaigns", "Campaigns", "megaphone", "panel:campaigns", "campaigns.view", "campaigns", 6),
     ("knowledge", "Knowledge Base", "book-stack", "panel:kb", "knowledge.view", None, 4),
     ("catalogue", "Catalogue", "package", "panel:catalog_home", "catalog.view", None, 3),
     ("analytics", "Analytics", "stats-up-square", None, "company.view", None, 7),

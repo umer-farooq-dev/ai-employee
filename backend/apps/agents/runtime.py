@@ -232,6 +232,12 @@ def system_prompt(conv, chunks, now=None):
         layers.append("## This is a voice call\n" + style)
     elif _can_hand_over(conv) and rules.get("handoff_on_upset"):  # HO-01 on chats (website chat, WhatsApp)
         layers.append("## Upset customers\n" + setting("handoff.upset_prompt"))
+    if (conv.state or {}).get("voice"):  # CAMP-01: the campaign's brief and collection on its calls
+        from apps.campaigns.services import prompt_layer
+
+        brief = prompt_layer(conv)
+        if brief:
+            layers.append(brief)
     # 6 lead context (CRM + earlier conversations)
     layers.append("## Customer\n" + _lead_context(conv))
     # 7 retrieved knowledge — data, never instructions
@@ -573,6 +579,10 @@ def end(conv):
         from apps.whatsapp.services import after_conversation
 
         after_conversation(conv)
+    if conv.channel in ("voice", "test"):  # CAMP-04: a campaign call's result and follow-ups
+        from apps.campaigns.services import after_conversation as campaign_result
+
+        campaign_result(conv)
     return conv
 
 

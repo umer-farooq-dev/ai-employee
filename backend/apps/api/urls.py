@@ -7,10 +7,12 @@ from . import views
 from . import views_agents as agentapi
 from . import views_ai as aiapi
 from . import views_calendar as calapi
+from . import views_campaigns as campapi
 from . import views_catalog as catapi
 from . import views_company as company
 from . import views_crm as crmapi
 from . import views_knowledge as kbapi
+from . import views_notifications as notiapi
 from . import views_templates as tpl
 from . import views_voice as voiceapi
 from . import views_webchat as chatapi
@@ -85,6 +87,11 @@ kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")
 kb_router.register("faqs", kbapi.FAQViewSet, basename="kb-faqs")
 kb_router.register("unanswered", kbapi.UnansweredViewSet, basename="kb-unanswered")
 
+noti_router = DefaultRouter(trailing_slash=True)
+noti_router.register("notifications", notiapi.NotificationViewSet, basename="notifications")
+noti_router.register("devices", notiapi.DeviceViewSet, basename="devices")
+noti_router.register("campaigns", campapi.CampaignViewSet, basename="campaigns")
+
 public = DefaultRouter(trailing_slash=True)
 public.register("industries", company.PublicIndustryViewSet, basename="public-industries")
 
@@ -114,6 +121,8 @@ api_v1 = [
     path("whatsapp/send/", waapi.SendView.as_view(), name="whatsapp-send"),
     path("whatsapp/", include(wa_router.urls)),
     path("ai-employees/<uuid:pk>/widget/", chatapi.EmployeeWidgetView.as_view(), name="ai-employee-widget"),
+    path("push/config/", notiapi.PushConfigView.as_view(), name="push-config"),
+    path("", include(noti_router.urls)),
     path("", include(agents_router.urls)),
     path("admin/conversations/<uuid:pk>/", agentapi.AdminConversationView.as_view(), name="admin-conversation"),
     path(

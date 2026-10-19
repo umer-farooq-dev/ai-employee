@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import record
+from apps.campaigns.models import Campaign
 from apps.crm import filters, imports
 from apps.crm import services as crm
 from apps.crm.models import AssignmentRule, LeadImport, SavedView, Task
@@ -59,7 +60,15 @@ def lead_list(request):
             "params": params.urlencode(),
             "p": request.GET,
             "now": timezone.now(),
-            "can": {k: _can(request, f"leads.{k}") for k in ("manage", "assign", "delete", "import", "export")},
+            "can": {
+                **{k: _can(request, f"leads.{k}") for k in ("manage", "assign", "delete", "import", "export")},
+                "campaigns": _can(request, "campaigns.manage"),
+            },
+            "draft_campaigns": (
+                Campaign.objects.filter(status=Campaign.DRAFT, test_mode=False)
+                if _can(request, "campaigns.manage")
+                else []
+            ),
         },
     )
 
@@ -88,7 +97,7 @@ def _list_post(request):
                 "status": "leads.assign",
                 "tag": "leads.manage",
                 "delete": "leads.delete",
-                "add_to_campaign": "leads.assign",
+                "add_to_campaign": "campaigns.manage",
                 "export": "leads.export",
             }.get(action)
             if not need or not _can(request, need):
@@ -99,7 +108,12 @@ def _list_post(request):
             if action == "export":
                 return _export_response(request, leads, request.POST.get("format", "csv"))
             count = crm.bulk(request.company, leads, action, request.POST.get("value"), request.user, request=request)
-            messages.success(request, f"{count} lead(s) updated.")
+            if action == "add_to_campaign":
+                messages.success(
+                    request, f"{count} lead(s) added to the campaign (already listed or no phone: left out)."
+                )
+            else:
+                messages.success(request, f"{count} lead(s) updated.")
     except ValidationError as exc:
         _errors(request, exc)
     return redirect(back if back.startswith("/") and not back.startswith("//") else reverse("panel:lead_list"))
@@ -358,6 +372,12 @@ def search(request):
 @company_perm("crm.configure")
 def crm_settings(request):
     company = request.company
+    if request.method == "POST" and request.POST.get("op") == "hot":
+        crm.save_hot_policy(
+            company, {k: request.POST.get(k) == "on" for k in crm.HOT_KEYS}, request.user, request=request
+        )
+        messages.success(request, "Hot-lead actions saved.")
+        return redirect("panel:crm_settings")
     template_rules = (
         list(ScoringRule.objects.filter(template_version=company.template_version_id, company__isnull=True))
         if company.template_version_id
@@ -380,6 +400,7 @@ def crm_settings(request):
             "template_rules": template_rules,
             "company_rules": ScoringRule.objects.filter(company=company),
             "assignment_rules": AssignmentRule.objects.all(),
+            "hot": crm.hot_policy(company),
         },
     )
 

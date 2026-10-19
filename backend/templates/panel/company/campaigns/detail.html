@@ -1,0 +1,121 @@
+{% extends 'panel/company/layout.html' %}
+{% load admin_tags %}
+{% block title %}{{ campaign.name }}{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/campaigns/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mt-3 mb-3">
+    <div style="min-width:0">
+        <div class="d-flex align-items-center gap-2 flex-wrap"><h4 class="mb-0">{{ campaign.name }}</h4><span class="camp-status {{ campaign.status }}" id="cp-status">{{ campaign.get_status_display }}</span>
+            {% if campaign.test_mode %}<span class="badge bg-warning-subtle text-warning">Test mode</span>{% endif %}</div>
+        <div class="small text-muted">{{ campaign.employee.name }}{% if campaign.description %} · {{ campaign.description }}{% endif %}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-sm btn-light" href="{% url 'panel:campaigns' %}">All campaigns</a>
+        {% if can.manage and campaign.editable %}<a class="btn btn-sm btn-light" href="{% url 'panel:campaign_edit' campaign.pk %}"><i class="iconoir-edit-pencil"></i> Edit</a>{% endif %}
+        {% if can.export %}<div class="btn-group"><a class="btn btn-sm btn-light" href="{% url 'panel:campaign_export' campaign.pk %}?format=csv"><i class="iconoir-download"></i> CSV</a><a class="btn btn-sm btn-light" href="{% url 'panel:campaign_export' campaign.pk %}?format=xlsx">Excel</a></div>{% endif %}
+    </div>
+</div>
+
+{# next step / controls #}
+{% if campaign.status == 'draft' %}
+<div class="alert {% if campaign.approval_requested_at %}alert-warning{% else %}alert-light border{% endif %} d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span>{% if campaign.approval_requested_at %}<strong>Waiting for approval</strong> — asked by {{ campaign.approval_requested_by|person }} {{ campaign.approval_requested_at|timesince }} ago.{% else %}<strong>Draft.</strong> Check the list below, then {% if can.approve %}approve to start calling{% else %}send it to a company admin for approval{% endif %}.{% endif %}</span>
+    <span class="d-flex gap-2">
+        {% if can.manage and not campaign.approval_requested_at and not can.approve %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="request_approval"><button class="btn btn-sm btn-primary">Send for approval</button></form>{% endif %}
+        {% if can.approve %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="approve"><button class="btn btn-sm btn-success"><i class="iconoir-check"></i> Approve &amp; start</button></form>{% endif %}
+    </span>
+</div>
+{% elif campaign.status == 'running' or campaign.status == 'scheduled' or campaign.status == 'paused' %}
+<div class="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span id="cp-note">{% if campaign.status == 'scheduled' %}Starts on {{ campaign.starts_on|date:"d M Y" }}.{% elif campaign.status == 'paused' %}Paused — no new calls.{% elif campaign.waiting_reason %}<i class="iconoir-clock"></i> Waiting: {{ campaign.waiting_reason }}{% elif not in_schedule %}<i class="iconoir-clock"></i> Outside the campaign's days / time windows — calls resume in the next window.{% else %}<i class="iconoir-phone-outcome text-success"></i> Calling now{% endif %}{% if campaign.approved_by %} · approved by {{ campaign.approved_by|person }}{% endif %}</span>
+    {% if can.manage %}<span class="d-flex flex-wrap gap-2">
+        {% if campaign.status == 'paused' %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="resume"><button class="btn btn-sm btn-primary"><i class="iconoir-play"></i> Resume</button></form>
+        {% else %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="pause"><button class="btn btn-sm btn-light"><i class="iconoir-pause"></i> Pause</button></form>{% endif %}
+        <form method="post" class="d-flex gap-2" onsubmit="return confirm('Stop this campaign? Leads not called yet are skipped.')">{% csrf_token %}<input type="hidden" name="op" value="stop">
+            <input class="form-control form-control-sm" name="reason" placeholder="Reason (optional)" aria-label="Reason" style="max-width:180px"><button class="btn btn-sm btn-outline-danger">Stop</button></form>
+    </span>{% endif %}
+</div>
+{% else %}
+<div class="alert alert-light border">{{ campaign.get_status_display }} {{ campaign.finished_at|date:"d M Y H:i" }}{% if campaign.stop_reason %} — {{ campaign.stop_reason }}{% endif %}.</div>
+{% endif %}
+
+{# CAMP-04 live progress #}
+<div class="card"><div class="card-body">
+    <div class="d-flex justify-content-between small mb-1"><span><strong id="s-done">{{ stats.done }}</strong> of <span id="s-total2">{{ stats.total }}</span> leads done</span><span id="s-percent">{{ stats.percent }}%</span></div>
+    <div class="progress mb-3" style="height:8px"><div class="progress-bar" id="s-bar" style="width:{{ stats.percent }}%;background:var(--brand-primary)"></div></div>
+    <div class="row g-2">
+        {% for key, label in stat_labels %}
+        <div class="col-6 col-md-4 col-xl"><div class="camp-stat"><div class="n" id="s-{{ key }}">{{ stats|get:key }}</div><div class="l">{{ label }}</div></div></div>{% endfor %}
+    </div>
+</div></div>
+
+<div class="row">
+    <div class="col-xl-8">
+        <div class="card"><div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="card-title mb-0">{% if campaign.test_mode %}Test numbers{% else %}Leads{% endif %}</h5>
+            <div class="d-flex flex-wrap gap-1">
+                <a class="btn btn-sm {% if not show %}btn-primary{% else %}btn-light{% endif %}" href="?">All</a>
+                {% for key, label in member_statuses %}<a class="btn btn-sm {% if show == key %}btn-primary{% else %}btn-light{% endif %}" href="?show={{ key }}">{{ label }}</a>{% endfor %}
+                <a class="btn btn-sm {% if show == 'hot' %}btn-primary{% else %}btn-light{% endif %}" href="?show=hot">Hot</a>
+                <a class="btn btn-sm {% if show == 'appointment' %}btn-primary{% else %}btn-light{% endif %}" href="?show=appointment">Appointments</a>
+            </div></div>
+            {% if campaign.status == 'draft' and can.manage and campaign.source != 'leads' and not campaign.test_mode %}
+            <form method="post" enctype="multipart/form-data" class="card-body border-bottom d-flex flex-wrap align-items-center gap-2 py-2">{% csrf_token %}<input type="hidden" name="op" value="build">
+                <span class="small text-muted">List from: <strong>{{ campaign.get_source_display }}</strong></span>
+                {% if campaign.source == 'csv' %}<input class="form-control form-control-sm w-auto" type="file" name="file" accept=".csv,.xlsx" required aria-label="File">{% endif %}
+                <button class="btn btn-sm btn-light"><i class="iconoir-refresh"></i> Rebuild the list</button></form>
+            {% elif campaign.status == 'draft' and campaign.source == 'leads' %}
+            <div class="card-body border-bottom py-2 small text-muted">Add leads from <a href="{% url 'panel:lead_list' %}">Leads</a>: tick them, then <strong>With selected → Add to campaign</strong>.</div>
+            {% endif %}
+            <div class="table-responsive"><table class="table mb-0 align-middle">
+                <thead class="table-light"><tr><th class="ps-3">{% if campaign.test_mode %}Number{% else %}Lead{% endif %}</th><th>Result</th><th class="text-center">Tries</th><th>Last call</th><th class="pe-3">Outcome</th></tr></thead>
+                <tbody>{% for m in page %}<tr>
+                    <td class="ps-3">{% if m.lead %}<a href="{% url 'panel:lead_detail' m.lead.pk %}">{{ m.name|default:m.lead.reference }}</a>{% else %}{{ m.name|default:"—" }}{% endif %}<div class="small text-muted">{{ m.phone }}</div></td>
+                    <td><span class="badge {% if m.status == 'done' %}bg-success-subtle text-success{% elif m.status == 'calling' %}bg-primary-subtle text-primary{% elif m.status == 'failed' %}bg-danger-subtle text-danger{% elif m.status == 'skipped' %}bg-secondary-subtle text-secondary{% else %}bg-light text-dark{% endif %}">{{ m.get_status_display }}</span>
+                        {% if m.skip_reason %}<div class="small text-muted">{{ m.skip_reason }}</div>{% endif %}</td>
+                    <td class="text-center">{{ m.attempts }}</td>
+                    <td class="small text-nowrap">{% if m.last_call %}<a href="{% url 'panel:call_detail' m.last_call.pk %}">{{ m.last_called_at|date:"d M H:i" }}</a>{% elif m.next_attempt_at %}next {{ m.next_attempt_at|date:"d M H:i" }}{% else %}—{% endif %}</td>
+                    <td class="pe-3 small">{% if m.last_call %}{{ m.last_call.get_status_display }}{% endif %}
+                        {% if m.hot %}<span class="badge bg-danger-subtle text-danger">Hot</span>{% elif m.qualified %}<span class="badge bg-warning-subtle text-warning">Qualified</span>{% endif %}
+                        {% if m.appointment %}<span class="badge bg-primary-subtle text-primary">Appointment</span>{% endif %}
+                        {% if m.summary %}<div class="text-muted text-truncate" style="max-width:260px" title="{{ m.summary }}">{{ m.summary }}</div>{% endif %}
+                        {% if campaign.status == 'draft' and can.manage %}<form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="op" value="remove"><input type="hidden" name="member" value="{{ m.pk }}"><button class="btn btn-link btn-sm text-danger p-0" aria-label="Remove from the list">Remove</button></form>{% endif %}</td>
+                </tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-5">Nobody here{% if campaign.status == 'draft' %} yet{% endif %}.</td></tr>{% endfor %}</tbody>
+            </table></div>
+        </div>
+        {% include 'panel/partials/pagination.html' %}
+    </div>
+    <div class="col-xl-4">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Plan</h5></div><div class="card-body small">
+            <dl class="row mb-0">
+                <dt class="col-5 fw-medium">Dates</dt><dd class="col-7">{{ campaign.starts_on|date:"d M Y"|default:"Once approved" }} → {{ campaign.ends_on|date:"d M Y"|default:"until done" }}</dd>
+                <dt class="col-5 fw-medium">Days</dt><dd class="col-7">{% if campaign.days %}{{ campaign.days|join:", "|title }}{% else %}Every day{% endif %}</dd>
+                <dt class="col-5 fw-medium">Time</dt><dd class="col-7">{% for w in campaign.windows %}{{ w.0 }}–{{ w.1 }}{% if not forloop.last %}, {% endif %}{% empty %}Calling hours{% endfor %}</dd>
+                <dt class="col-5 fw-medium">Attempts</dt><dd class="col-7">{{ campaign.max_attempts }} per lead, {{ campaign.retry_gap_minutes }} min apart{% if retry_labels %} ({{ retry_labels }}){% endif %}</dd>
+                <dt class="col-5 fw-medium">Limits</dt><dd class="col-7">{{ campaign.max_concurrent }} at a time · {{ campaign.daily_limit }} a day</dd>
+                <dt class="col-5 fw-medium">Offers</dt><dd class="col-7">{{ campaign.collection.name|default:"—" }}</dd>
+                <dt class="col-5 fw-medium">Follow-up</dt><dd class="col-7">{% if campaign.whatsapp_after_call %}WhatsApp after the call{% endif %}{% if campaign.follow_up_labels %}{% if campaign.whatsapp_after_call %} · {% endif %}call {{ campaign.follow_up_labels|join:", " }} leads again after {{ campaign.follow_up_after_days }} days{% endif %}{% if not campaign.whatsapp_after_call and not campaign.follow_up_labels %}—{% endif %}</dd>
+                <dt class="col-5 fw-medium">Created</dt><dd class="col-7">{{ campaign.created_at|date:"d M Y" }} by {{ campaign.created_by|person|default:"—" }}</dd>
+            </dl>
+            {% if campaign.brief %}<hr><div class="fw-medium mb-1">What the AI says</div><p class="mb-0 text-muted">{{ campaign.brief|linebreaksbr }}</p>{% endif %}
+        </div></div>
+    </div>
+</div>
+{% if campaign.status == 'running' or campaign.status == 'scheduled' %}
+<script>
+(function () {  // CAMP-04: live numbers without a reload
+    var URL = "{% url 'api:campaigns-progress' campaign.pk %}";
+    setInterval(function () {
+        if (document.hidden) return;
+        fetch(URL, {credentials: "same-origin", headers: {Accept: "application/json"}}).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+            if (!d) return;
+            Object.keys(d.stats).forEach(function (k) { var el = document.getElementById("s-" + k); if (el) el.textContent = d.stats[k]; });
+            document.getElementById("s-percent").textContent = d.stats.percent + "%";
+            document.getElementById("s-bar").style.width = d.stats.percent + "%";
+            if (d.status !== "{{ campaign.status }}") location.reload();
+        }).catch(function () {});
+    }, 10000);
+})();
+</script>
+{% endif %}
+{% endblock page_content %}

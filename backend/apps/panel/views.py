@@ -64,7 +64,34 @@ class ProfileForm(BootstrapMixin, forms.ModelForm):
 
 @login_required
 def profile(request):
-    """AUTH-08: own profile; password, email, 2FA and sessions use the secure allauth flows linked from here."""
+    """AUTH-08: own profile; password, email, 2FA and sessions use the secure allauth flows linked from here.
+    Company people also choose their alert channels and push devices here (CP-03, MOB-03)."""
+    from apps.notifications import alerts, push
+    from apps.providers.adapters import ProviderError
+
+    company = getattr(request, "company", None)
+    op = request.POST.get("op") if request.method == "POST" else None
+    if op and company:
+        if op == "alerts":
+            alerts.save_prefs(
+                request.user,
+                {k: [c for c in alerts.OPTIONAL if request.POST.get(f"{k}__{c}") == "on"] for k in alerts.KINDS},
+            )
+            record(request, "profile.alerts", "user", request.user.id)
+            messages.success(request, "Alert settings saved.")
+        elif op == "remove_device":
+            push.unregister(request.user, device_id=request.POST.get("device"))
+            messages.success(request, "Device removed: it no longer receives push alerts.")
+        elif op == "test_push":
+            try:
+                n = push.send(
+                    request.user,
+                    {"title": "Test alert", "body": "Push alerts work on this device.", "url": "/app/", "kind": "test"},
+                )
+                messages.success(request, f"Test alert sent to {n} device(s).")
+            except ProviderError as exc:
+                messages.error(request, f"No push alert sent: {exc}")
+        return redirect(reverse("panel:profile") + "#alerts")
     form = ProfileForm(request.POST or None, request.FILES or None, instance=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -72,7 +99,19 @@ def profile(request):
         messages.success(request, "Profile saved.")
         return redirect("panel:profile")
     layout = "panel/admin/layout.html" if request.user.is_staff else "panel/company/layout.html"
-    return render(request, "panel/profile.html", {"form": form, "layout": layout})
+    context = {"form": form, "layout": layout}
+    if company and not request.user.is_staff:
+        context.update(
+            alert_channels=[(c, label) for c, label in alerts.CHANNELS if c in alerts.OPTIONAL],
+            alert_rows=[
+                (kind, label, [(c, prefs[kind][c]) for c in alerts.OPTIONAL])
+                for prefs in [alerts.prefs(request.user)]
+                for kind, label in alerts.KINDS.items()
+            ],
+            devices=request.user.devices.all(),
+            push_key=push.public_key(),
+        )
+    return render(request, "panel/profile.html", context)
 
 
 @require_POST

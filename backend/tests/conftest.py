@@ -23,9 +23,11 @@ def _clear_cache():
 @pytest.fixture(autouse=True)
 def _appointment_messages_inline(monkeypatch):
     """Appointment confirmations run after commit in a thread on the server; in tests at once (or not at all)."""
+    from apps.notifications import alerts
     from apps.scheduling import notices
 
     monkeypatch.setattr(notices, "RUN_INLINE", True)
+    monkeypatch.setattr(alerts, "RUN_INLINE", True)
 
 
 @pytest.fixture

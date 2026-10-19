@@ -17,6 +17,7 @@ PURPOSES = [
     ("appointment_confirmation", "Appointment confirmation"),
     ("appointment_reminder", "Appointment reminder"),
     ("appointment_cancelled", "Appointment cancelled"),
+    ("team_alert", "Alert to your team"),
     ("item_info", "Property / product information"),
     ("callback", "Callback confirmation"),
     ("general", "Other"),

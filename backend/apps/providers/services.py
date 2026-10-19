@@ -126,6 +126,8 @@ def save_provider(provider, data, user=None, request=None):
     elif data.get("webhook_secret"):
         provider.webhook_secret = data["webhook_secret"].strip()
         changes["webhook_secret"] = "replaced"  # nosec B105 — audit note, not a secret
+    if vendors.prepare(provider):
+        changes["api_key"] = "generated"
     if "api_key" in changes:
         provider.health = {}
     _validate(provider)

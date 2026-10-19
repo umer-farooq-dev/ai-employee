@@ -124,9 +124,70 @@ company choices and validation (also the Super Admin value), AI booking tool vs 
 resend / permissions. Browser check: Calendar → Confirmations & reminders (desktop and phone, save, wrong value,
 back to defaults), appointment Messages card, Super Admin → System Settings → Calendar.
 
-## Next parts
+## Part 4 — Campaigns and outbound compliance
 
-| Part | IDs |
-|---|---|
-| 4. Campaigns | CAMP-01 … CAMP-06, COMP-03, COMP-04, COMP-05, SCORE-05 |
-| 5. Notifications & mobile | CP-03, NOTI-02, NOTI-03, CP-07, MOB-03, API-05 |
+| ID | Feature | Status | Where |
+|---|---|---|---|
+| CAMP-01 | Create campaign | Done | Campaigns → New campaign: name, description, what the AI says and offers (added to its instructions on these calls), AI Employee, lead list (lead-list filter — "Call these in a campaign" on the lead list —, saved view, CSV / Excel file, or leads picked with Leads → With selected → Add to campaign), dates, weekdays, time windows, attempts / gap / outcomes to call again, property / product collection (the AI is told to offer them), follow-up (WhatsApp template after the call, another call for hot / warm / cold leads after N days), calls at the same time, calls per day |
+| CAMP-02 | Controls | Done | Draft → (Send for approval) → Approve & start → Scheduled / Running → Pause / Resume → Stop; Completed when everyone is done or the end date passed. Statuses Draft, Scheduled, Running, Paused, Completed, Stopped |
+| CAMP-03 | Compliance before every dial | Done | The scheduler (`dial_due_calls`, every minute) dials through the same voice checks: calling hours, opt-out / Do-not-call, allowed countries, attempts per lead / per day, the company's daily cap, the plan's calls / minutes / concurrent calls; plus the campaign's windows, days, concurrency and daily limit. A block about one lead skips it with the reason; a company-wide block waits ("Waiting: …" on the campaign) |
+| CAMP-04 | Live progress | Done | Total, to call, dialled, connected, qualified, hot, appointments, not reached, skipped — refreshed every 10 seconds; per-lead result, attempts, last call (link), outcome, summary |
+| CAMP-05 | Report & export | Done | CSV / Excel per lead (result, attempts, last call, outcome, connected, qualified, hot, appointment, reason skipped, summary) with the campaign summary; audit-logged; needs "Export leads" |
+| CAMP-06 | Test mode | Done | Calls only internal test numbers that belong to team members (up to the setting), as test conversations (nothing written to the CRM) |
+| COMP-03 | DND / opt-out check | Done | Before every outbound call (campaign or not); the lead's Do-not-call / opt-out consent records. A DND-registry provider is an integration point in `voice.check_outbound` |
+| COMP-04 | Calling hours & attempt caps | Done | Platform limits in System Settings → Calling; the company tightens them in Settings → Calling; campaigns cannot exceed them |
+| COMP-05 | No unauthorised robocalling | Done | Only leads with a source or consent (setting: recorded opt-in only); every campaign needs a company admin's approval ("Approve campaigns" permission, owners) |
+| SCORE-05 | Hot-lead actions | Done | Settings → CRM → "When a lead becomes Hot": assign a salesperson (assignment rules) and alert them (or everyone who assigns leads); handing over the live call / chat is the AI Employee rule. Platform defaults in System Settings → CRM |
+
+Plan limit "Active campaigns" is enforced on approval / resume. Permissions: Campaigns view / manage (owner, manager),
+approve (owner).
+
+### REST API added
+
+`/api/v1/campaigns/` (GET, POST) · `<id>/` (GET, PATCH, DELETE draft) · `build/` · `request-approval/` · `approve/` ·
+`pause/` · `resume/` · `stop/` · `progress/` · `members/` · `export/`
+
+### Tests
+
+`tests/test_campaigns.py` (10, telephony faked): validation against calling rules / plan / team numbers; list from
+filter, CSV and picked leads; manager asks → admin approves, plan limit, pause / resume / stop; scheduled start;
+dialling one at a time, campaign retry after the gap, connected, completed with alert; DND / no-source skipped,
+opt-in setting; waiting outside windows / days / company cap; results and follow-ups from the conversation, the
+campaign brief in the AI prompt; test mode; export, API, panel, company isolation.
+
+## Part 5 — Team alerts, installable app and push
+
+| ID | Feature | Status | Where |
+|---|---|---|---|
+| NOTI-02 | In-app notifications | Done | The bell (unread count, latest alerts, mark all read) and the Alerts page (unread / kind filters); opening an alert marks it read |
+| CP-03 / NOTI-03 | Alerts to people | Done | Transfer requests, hot leads, bookings (CAL-10), campaigns (approval needed, finished / stopped) and usage alerts — in the bell, and by e-mail, WhatsApp ("Alert to your team" template to the person's mobile) and push as each person chooses in Profile → Alerts (platform default: System Settings → Team alerts). Delivery per channel is kept on each alert |
+| — | Usage alerts | Done | `send_usage_alerts` (hourly): voice minutes, calls, WhatsApp conversations and AI credits against the plan; company admins alerted once a month per limit and level (80 %, 100 % by setting) |
+| MOB-03 / CP-07 | Installable app | Done | Web app manifest (name, colour and icon from Branding), service worker (push alerts, offline page), "Install the app" button, app badge with the unread count, bottom navigation on phones (Leads, Follow-ups, Inbox, Calendar, Alerts) |
+| API-05 | Push devices | Done | `/api/v1/devices/` register / list / remove (web, Android, iPhone), `/api/v1/push/config/`; Web Push (VAPID key pair generated by the platform, RFC 8291 encryption) and Firebase Cloud Messaging for the mobile app — both in Super Admin → Voice & Channels |
+
+### Also changed
+
+- Plain-text e-mails keep link addresses ("Open in the panel (https://…)").
+- Handoff and booking alerts now go through the same alerts (one place, the person's channels).
+- Lead export writing moved to a shared table writer (also used by campaigns).
+
+### REST API added
+
+`/api/v1/notifications/` · `<id>/read/` · `read-all/` · `unread-count/` · `settings/` (GET, PATCH) ·
+`/api/v1/devices/` (GET, POST, DELETE) · `devices/remove/` · `/api/v1/push/config/`
+
+### Tests
+
+`tests/test_alerts.py` (10): bell + chosen channels, preferences validation, WhatsApp needs number / template /
+setting; Web Push encrypted for the browser (decrypted in the test as RFC 8291) and VAPID-signed, expired
+subscription removed; FCM message; hot lead assigned and alerted, no repeat, company switches; usage alerts once per
+level; API, centre, open-link safety, isolation, profile; manifest, service worker, offline page; test push.
+Browser check: bell, Alerts page, Profile → Alerts, Super Admin Web Push key generation, phone layouts (no sideways
+scroll) for dashboard, leads, follow-ups, inbox, calendar, alerts, campaigns.
+
+## Needed from the client for Phase 6 to go live
+
+- Meta: business verification, WhatsApp number, access token, app secret, App ID (Super Admin) and template approvals
+  (including "Alert to your team" and "Appointment cancelled").
+- A telephony provider with an outbound number (Super Admin → Phone Numbers) for campaigns.
+- Firebase project service account (only for the mobile app's push); Web Push needs nothing (keys are generated).

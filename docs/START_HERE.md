@@ -190,7 +190,7 @@ _Telephony aur STT / TTS provider client ka faisla — development mein test acc
 - Super Admin → System Settings → Registration → **Email verification = Mandatory** (development mein Optional)
 - **SMS provider** chun kar Super Admin mein lagana (client ka faisla) agar mobile OTP on karna hai
 - Demo / staging server par **"Allow search engines" off**, live par on
-- Cron mein har 5 minute: `process_knowledge`, `end_idle_conversations` aur `send_appointment_reminders` (README dekhein); har minute `dial_due_calls` (call retries / follow-ups); roz `apply_voice_retention` (recordings / transcripts retention)
+- Cron mein har 5 minute: `process_knowledge`, `end_idle_conversations` aur `send_appointment_reminders` (README dekhein); har minute `dial_due_calls` (call retries / follow-ups / campaigns); har ghante `send_usage_alerts`; roz `apply_voice_retention` (recordings / transcripts retention)
 - `.env` mein `PUBLIC_BASE_URL` (https) aur `VOICE_GATEWAY_URL` (wss); telephony provider console mein Super Admin → Phone Numbers ke callback URLs
 - `.env` mein `CLAMAV_ADDRESS` (upload virus scan, SEC-11) — ClamAV hosting par chalana
 - Hosting par PostgreSQL **vector** extension (pgvector) on karna

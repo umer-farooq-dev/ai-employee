@@ -105,7 +105,7 @@ def run(imp, mapping, duplicate_mode="skip", user=None, request=None) -> LeadImp
     seen_phone, seen_email = set(), set()
     rules = list(AssignmentRule.all_companies.select_for_update().filter(company=company, is_active=True))
     ctx, cache = crm.scoring_context(company), {}
-    to_create, errors, updated, skipped = [], [], 0, 0
+    to_create, errors, updated, skipped, touched = [], [], 0, 0, []
 
     for number, row in enumerate(_rows(imp), start=2):  # row 1 is the header line
         raw = {t: (row[index[h]] if index[h] < len(row) else "") for h, t in mapping.items()}
@@ -128,6 +128,7 @@ def run(imp, mapping, duplicate_mode="skip", user=None, request=None) -> LeadImp
         match = match or (by_email.get(email) if email else None)
         if match:
             if duplicate_mode != "update":
+                touched.append(match.pk)  # already in the CRM: still part of this file's list
                 skipped += 1
                 errors.append({"row": number, "reason": f"Already exists as {match.reference}"})
                 continue
@@ -144,6 +145,7 @@ def run(imp, mapping, duplicate_mode="skip", user=None, request=None) -> LeadImp
                 actor=user,
             )
             updated += 1
+            touched.append(match.pk)
             continue
         lead = Lead(company=company, custom=custom, created_via="import", **core)
         lead.status = core.get("status") or default_status
@@ -177,6 +179,7 @@ def run(imp, mapping, duplicate_mode="skip", user=None, request=None) -> LeadImp
     imp.failed = len([e for e in errors if not e["reason"].startswith(("Duplicate", "Already"))])
     imp.errors = errors[:MAX_ERRORS]
     imp.save()
+    imp.lead_ids = touched + [lead.pk for lead in to_create]  # the leads in this file (campaign lists)
     record(
         request,
         "lead.import",

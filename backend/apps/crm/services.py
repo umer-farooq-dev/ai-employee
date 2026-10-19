@@ -3,9 +3,7 @@
 Every function receives the company explicitly (from request.company or the lead) — never from user input.
 """
 
-import csv
-import io
-
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
@@ -326,7 +324,63 @@ def rescore(lead, user=None, source="rules"):
         source=source,
     )
     log(lead, "score_change", f"Score {value} ({label}{f', was {old}' if old else ''})", user, actor_type="system")
+    if label == Lead.HOT and old != Lead.HOT:
+        hot_lead_actions(lead, user)
     return True
+
+
+HOT_KEYS = {"notify": "crm.hot_lead_notify", "assign": "crm.hot_lead_assign"}
+
+
+def hot_policy(company):
+    """SCORE-05: what happens when a lead becomes hot — the company's choice or the platform default. (Handing the
+    live call / chat to a person is a rule per AI Employee.)"""
+    own = (company.settings or {}).get("hot_lead") or {}
+    return {k: bool(own[k]) if k in own else config.get(s) for k, s in HOT_KEYS.items()}
+
+
+def save_hot_policy(company, data, user=None, request=None):
+    own = {k: data[k] in (True, "on", "true", "1", 1) for k in HOT_KEYS if k in data}
+    company.settings = {**(company.settings or {}), "hot_lead": own}
+    company.save(update_fields=["settings", "updated_at"])
+    record(request, "crm.hot_lead_policy", "company", company.pk, own, user, company=company)
+    return hot_policy(company)
+
+
+def hot_lead_actions(lead, user=None):
+    """SCORE-05: assign a salesperson (assignment rules) and alert the people who should call back."""
+    from django.urls import reverse
+
+    from apps.notifications import alerts
+
+    rules = hot_policy(lead.company)
+    if rules["assign"] and not lead.assigned_user_id:
+        auto_assign(lead, user)
+    if not rules["notify"]:
+        return []
+    people = [lead.assigned_user] if lead.assigned_user_id else alerts.people_with(lead.company, "leads.assign")
+    people = [p for p in people if not (user and p.pk == user.pk)]  # not the person who made the change
+    url = reverse("panel:lead_detail", args=[lead.pk])
+    return alerts.notify(
+        lead.company,
+        people,
+        "hot_lead",
+        f"Hot lead: {lead.name or lead.reference} — score {lead.score_value}",
+        lead.score_reason,
+        url,
+        email=(
+            "alerts/hot_lead",
+            {
+                "lead_name": lead.name,
+                "lead_reference": lead.reference,
+                "lead_phone": lead.phone,
+                "score": lead.score_value,
+                "reason": lead.score_reason,
+                "url": f"{settings.PUBLIC_BASE_URL}{url}",
+            },
+        ),
+        data={"lead": str(lead.pk)},
+    )
 
 
 def pick_assignee(company, lead, rules=None, ctx=None):
@@ -609,8 +663,15 @@ def merge(primary, others, user=None, request=None):
 # ------------------------------------------------------------------ bulk actions (CRM-17)
 def bulk(company, leads, action, value=None, user=None, request=None):
     leads = list(leads)
-    if action == "add_to_campaign":
-        raise ValidationError("Campaigns are not available yet.")
+    if action == "add_to_campaign":  # CAMP-01: leads picked in the lead list
+        from apps.campaigns import services as campaigns
+        from apps.campaigns.models import Campaign
+
+        campaign = Campaign.objects.filter(company=company, pk=value or None).first() if value else None
+        if not campaign:
+            raise ValidationError("Choose a draft campaign (Campaigns → New campaign).")
+        added, _ = campaigns.add_leads(campaign, leads, user, request)
+        return added
     with transaction.atomic():
         for lead in leads:
             if action == "assign":
@@ -740,19 +801,9 @@ def export(company, leads, fmt="csv", user=None, request=None):
         category="security",
         changes={"format": fmt, "rows": len(leads)},
     )
-    if fmt == "xlsx":
-        from openpyxl import Workbook
+    from apps.core.tabular import write_table
 
-        wb = Workbook(write_only=True)
-        ws = wb.create_sheet("Leads")
-        for row in rows:
-            ws.append(row)
-        buf = io.BytesIO()
-        wb.save(buf)
-        return buf.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"
-    buf = io.StringIO()
-    csv.writer(buf).writerows(rows)
-    return buf.getvalue().encode("utf-8-sig"), "text/csv", "csv"
+    return write_table(rows, "xlsx" if fmt == "xlsx" else "csv", "Leads")
 
 
 # ------------------------------------------------------------------ global search (CP-04)

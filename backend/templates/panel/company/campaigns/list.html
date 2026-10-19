@@ -1,0 +1,45 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Campaigns{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/campaigns/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Campaigns</h4>
+        <span class="text-muted small">Planned outbound calls by an AI Employee to a lead list — within your calling hours, limits and consent rules.</span></div>
+    {% if can_manage %}<a class="btn btn-sm btn-primary" href="{% url 'panel:campaign_new' %}"><i class="iconoir-plus"></i> New campaign</a>{% endif %}
+</div>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-sm {% if not status %}btn-primary{% else %}btn-light{% endif %}" href="?">All</a>
+    {% for key, label in statuses %}<a class="btn btn-sm {% if status == key %}btn-primary{% else %}btn-light{% endif %}" href="?status={{ key }}">{{ label }}</a>{% endfor %}
+</div>
+<div class="row g-3">
+    {% for c, s in rows %}
+    <div class="col-xl-4 col-md-6">
+        <a class="card h-100 mb-0 text-reset text-decoration-none camp-card" href="{% url 'panel:campaign' c.pk %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                    <h5 class="mb-0 text-truncate">{{ c.name }}</h5>
+                    <span class="camp-status {{ c.status }}">{{ c.get_status_display }}</span>
+                </div>
+                <div class="small text-muted mb-3">{{ c.employee.name }}{% if c.test_mode %} · <span class="text-warning fw-medium">Test mode</span>{% endif %}{% if c.starts_on %} · from {{ c.starts_on|date:"d M" }}{% endif %}</div>
+                <div class="progress mb-2" style="height:6px" role="progressbar" aria-label="Progress" aria-valuenow="{{ s.percent }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" style="width:{{ s.percent }}%;background:var(--brand-primary)"></div></div>
+                <div class="d-flex justify-content-between small text-muted mb-3"><span>{{ s.done }} of {{ s.total }} done</span><span>{{ s.percent }}%</span></div>
+                <div class="row g-2 text-center">
+                    <div class="col-3"><div class="camp-mini"><strong>{{ s.connected }}</strong><span>Connected</span></div></div>
+                    <div class="col-3"><div class="camp-mini"><strong>{{ s.qualified }}</strong><span>Qualified</span></div></div>
+                    <div class="col-3"><div class="camp-mini"><strong>{{ s.hot }}</strong><span>Hot</span></div></div>
+                    <div class="col-3"><div class="camp-mini"><strong>{{ s.appointments }}</strong><span>Appts</span></div></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% empty %}
+    <div class="col-12"><div class="card"><div class="card-body text-center py-5">
+        <div class="mb-2"><i class="iconoir-megaphone fs-1 text-muted"></i></div>
+        <h5>No campaigns yet</h5>
+        <p class="text-muted mb-3">Choose a lead list, an AI Employee and when to call. A company admin approves it before the first call.</p>
+        {% if can_manage %}<a class="btn btn-primary btn-sm" href="{% url 'panel:campaign_new' %}">Create your first campaign</a>{% endif %}
+    </div></div></div>
+    {% endfor %}
+</div>
+{% endblock page_content %}

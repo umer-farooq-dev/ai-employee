@@ -38,9 +38,10 @@ from .models import Call, PhoneNumber
 class CallBlocked(ValidationError):
     """An outbound call may not be placed now; `retry_at` is set when it may be placed later (calling window)."""
 
-    def __init__(self, message, retry_at=None):
+    def __init__(self, message, retry_at=None, lead=False):
         super().__init__(message)
         self.retry_at = retry_at
+        self.lead = lead  # about this lead (opt-out, attempts, number) — not the company's limits
 
 
 # ------------------------------------------------------------------ signed URLs (webhooks, media stream)
@@ -284,11 +285,11 @@ def check_outbound(employee, lead, now=None):
     if not number.provider.is_active or (production() and number.provider.test_only):
         raise CallBlocked(f"The telephony provider {number.provider.name} is switched off.")
     if lead is None or not lead.phone:
-        raise CallBlocked("This lead has no phone number.")
+        raise CallBlocked("This lead has no phone number.", lead=True)
     if not any(lead.phone.startswith(code) for code in setting("calling.allowed_country_codes")):
-        raise CallBlocked("Calls to this country are not allowed.")
+        raise CallBlocked("Calls to this country are not allowed.", lead=True)
     if setting("calling.dnd_check_enabled") and (lead.dnd or lead.consent_status == "opted_out"):
-        raise CallBlocked("The customer has opted out of calls (Do not call).")
+        raise CallBlocked("The customer has opted out of calls (Do not call).", lead=True)
     local = timezone.localtime(now, company_tz(company)).strftime("%H:%M")
     if not (rules["window_start"] <= local < rules["window_end"]):
         raise CallBlocked(
@@ -301,9 +302,10 @@ def check_outbound(employee, lead, now=None):
         raise CallBlocked(
             "This lead was already called the maximum number of times today.",
             retry_at=next_window_start(company, _day_start(company, now) + timedelta(days=1)),
+            lead=True,
         )
     if outbound.count() >= rules["max_attempts_per_lead"]:
-        raise CallBlocked("This lead was already called the maximum number of times.")
+        raise CallBlocked("This lead was already called the maximum number of times.", lead=True)
     today = Call.objects.filter(company=company, direction="outbound", queued_at__gte=_day_start(company, now))
     if today.exclude(status=Call.CANCELED).count() >= rules["max_calls_per_day"]:
         raise CallBlocked("Your company reached today's call limit.")
@@ -315,9 +317,9 @@ def check_outbound(employee, lead, now=None):
 
 
 # ------------------------------------------------------------------ placing calls (VOICE-02)
-def place_call(employee, lead, reason="call_now", user=None, request=None):
+def place_call(employee, lead, reason="call_now", user=None, request=None, campaign_member=None, now=None):
     """Authorised outbound call: compliance first, then the provider dials; the media stream joins on answer."""
-    number = check_outbound(employee, lead)
+    number = check_outbound(employee, lead, now)
     call = Call.objects.create(
         company=employee.company,
         employee=employee,
@@ -329,6 +331,7 @@ def place_call(employee, lead, reason="call_now", user=None, request=None):
         from_e164=number.e164,
         to_e164=lead.phone,
         requested_by=user if user and user.is_authenticated else None,
+        campaign_member=campaign_member,
         events=[_event(Call.QUEUED, reason)],
     )
     _dial(call)
@@ -365,9 +368,10 @@ def _dial(call):
         finish(call)
 
 
-def place_test_call(employee, phone, user=None, request=None):
-    """EMP-10: the AI Employee calls the tester's own phone from its number (draft employees too). The tester asked
-    for it, so consent / DND and calling hours do not apply; plan limits and allowed countries do."""
+def place_test_call(employee, phone, user=None, request=None, campaign_member=None):
+    """EMP-10 / CAMP-06: the AI Employee calls a tester's or team member's own phone from its number (draft
+    employees too). They asked for it, so consent / DND and calling hours do not apply; plan limits and allowed
+    countries do."""
     if employee.status == AIEmployee.ARCHIVED:
         raise ValidationError(f"{employee.name} is archived.")
     number = number_for(employee, "outbound")
@@ -385,10 +389,11 @@ def place_test_call(employee, phone, user=None, request=None):
         phone_number=number,
         provider=number.provider,
         direction="outbound",
-        reason="test_call",
+        reason="campaign_test" if campaign_member else "test_call",
         from_e164=number.e164,
         to_e164=phone,
         requested_by=user if user and user.is_authenticated else None,
+        campaign_member=campaign_member,
         events=[_event(Call.QUEUED, "test call")],
     )
     _dial(call)
@@ -640,6 +645,10 @@ def finish(call):
             call=str(call.pk),
         )
     schedule_retry(call)
+    if call.campaign_member_id:
+        from apps.campaigns import services as campaigns
+
+        campaigns.after_call(call)
     if call.conversation_id and call.conversation.status == Conversation.ACTIVE:
         _later(call.company_id, _end_conversation, call.conversation_id)
 
@@ -670,8 +679,8 @@ def _later(company_id, fn, *args):
 
 def schedule_retry(call):
     """VOICE-17: busy / no answer / voicemail → another attempt after the configured gap, within the caps."""
-    if call.direction != "outbound" or not call.lead_id or call.reason in Call.TEST_REASONS:
-        return None
+    if call.direction != "outbound" or not call.lead_id or call.reason in Call.TEST_REASONS or call.campaign_member_id:
+        return None  # campaigns retry with their own rules (apps.campaigns.services.after_call)
     if call.status not in setting("calling.retry_outcomes"):
         return None
     rules = policy(call.company)

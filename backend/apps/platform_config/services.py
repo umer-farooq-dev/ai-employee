@@ -59,6 +59,16 @@ def clean(key, value):
                     ipaddress.ip_network(item, strict=False)
                 except ValueError:
                     raise ValidationError(f"{s.label}: {item!r} is not a valid IP or CIDR range.") from None
+        if key == "notifications.default_channels":
+            from apps.notifications.alerts import clean_channels
+
+            items = clean_channels(items)
+        if key == "notifications.usage_alert_percent":
+            try:
+                items = sorted({int(i) for i in items if 0 < int(i) <= 1000})
+            except ValueError:
+                raise ValidationError(f"{s.label}: whole numbers, e.g. 80 and 100.") from None
+            items = [str(i) for i in items]
         if key == "calendar.reminder_hours":
             from apps.scheduling.notices import clean_hours
 

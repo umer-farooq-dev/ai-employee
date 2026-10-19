@@ -18,4 +18,83 @@
         </div>
     </div></div>
 </div>
+{% if alert_rows %}
+<div class="row" id="alerts">
+    <div class="col-lg-7"><div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Alerts</h5>
+            <span class="small text-muted">Every alert is in the bell. Choose where else you get it.</span></div>
+        <form method="post" class="card-body p-0">{% csrf_token %}<input type="hidden" name="op" value="alerts">
+            <div class="table-responsive"><table class="table mb-0 align-middle">
+                <thead class="table-light"><tr><th class="ps-3">Alert</th>{% for c, label in alert_channels %}<th class="text-center">{{ label }}</th>{% endfor %}</tr></thead>
+                <tbody>{% for kind, label, cells in alert_rows %}<tr><td class="ps-3">{{ label }}</td>
+                    {% for c, on in cells %}<td class="text-center"><input class="form-check-input" type="checkbox" name="{{ kind }}__{{ c }}" {% if on %}checked{% endif %} aria-label="{{ label }}: {{ c }}"></td>{% endfor %}</tr>{% endfor %}</tbody>
+            </table></div>
+            <div class="p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="small text-muted">WhatsApp goes to the mobile number above{% if not request.user.phone %} (add one first){% endif %}; push goes to the devices on the right.</span>
+                <button class="btn btn-primary btn-sm">Save alerts</button>
+            </div>
+        </form>
+    </div></div>
+    <div class="col-lg-5"><div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Push on your devices</h5></div>
+        <div class="card-body">
+            <div id="push-state" class="small mb-3 text-muted">Checking this device…</div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-primary d-none" id="push-on"><i class="iconoir-bell"></i> Turn on push on this device</button>
+                <button type="button" class="btn btn-sm btn-light d-none" id="app-install"><i class="iconoir-download"></i> Install the app</button>
+                {% if devices %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="test_push"><button class="btn btn-sm btn-light">Send me a test alert</button></form>{% endif %}
+            </div>
+            <p class="small text-muted d-none" id="ios-hint">On iPhone: open this page in Safari, tap Share → <strong>Add to Home Screen</strong>, then open the app and turn push on here.</p>
+            <ul class="list-group">
+                {% for d in devices %}<li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                    <span class="small" style="min-width:0"><strong>{{ d.get_platform_display }}</strong><span class="d-block text-muted text-truncate">{{ d.name|truncatechars:60 }}</span>
+                        <span class="text-muted">{% if d.last_used_at %}last alert {{ d.last_used_at|timesince }} ago{% else %}added {{ d.created_at|date:"d M Y" }}{% endif %}</span></span>
+                    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="remove_device"><input type="hidden" name="device" value="{{ d.pk }}">
+                        <button class="btn btn-sm btn-outline-danger" aria-label="Remove this device">Remove</button></form></li>
+                {% empty %}<li class="list-group-item small text-muted">No device receives push alerts yet.</li>{% endfor %}
+            </ul>
+        </div>
+    </div></div>
+</div>
+<script>
+(function () {
+    "use strict";
+    var KEY = "{{ push_key|escapejs }}", TOKEN = "{{ csrf_token }}", DEVICES = "{% url 'api:devices-list' %}";
+    var state = document.getElementById("push-state"), on = document.getElementById("push-on");
+    function say(text) { state.textContent = text; }
+    function bytes(b64) {
+        var s = atob((b64 + "===".slice((b64.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+        return Uint8Array.from(s, function (c) { return c.charCodeAt(0); });
+    }
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent), standalone = window.matchMedia("(display-mode: standalone)").matches;
+    if (ios && !standalone) document.getElementById("ios-hint").classList.remove("d-none");
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) { say("This browser cannot receive push alerts" + (ios && !standalone ? " until the app is added to the Home Screen." : ".")); return; }
+    if (!KEY) { say("Push alerts are not set up on the platform yet (Super Admin → Voice & Channels → Web Push)."); return; }
+    navigator.serviceWorker.register("/sw.js", {scope: "/"}).then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (sub) {
+            if (sub && Notification.permission === "granted") { say("Push is on for this device."); save(sub); }
+            else if (Notification.permission === "denied") { say("Notifications are blocked for this site in the browser settings."); }
+            else { say("Push is off on this device."); on.classList.remove("d-none"); }
+            on.addEventListener("click", function () {
+                Notification.requestPermission().then(function (p) {
+                    if (p !== "granted") { say("Notifications were not allowed."); return; }
+                    reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: bytes(KEY)}).then(function (s) {
+                        save(s).then(function () { location.reload(); });
+                    }).catch(function (e) { say("Could not turn push on: " + e.message); });
+                });
+            });
+        });
+    });
+    function save(sub) {
+        var j = sub.toJSON();
+        return fetch(DEVICES, {method: "POST", credentials: "same-origin",
+            headers: {"X-CSRFToken": TOKEN, "Content-Type": "application/json", "Accept": "application/json"},
+            body: JSON.stringify({platform: "web", token: j.endpoint, keys: j.keys, name: navigator.userAgent})});
+    }
+    var install = document.getElementById("app-install"), deferred = null;
+    window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; install.classList.remove("d-none"); });
+    install.addEventListener("click", function () { if (deferred) { deferred.prompt(); deferred = null; install.classList.add("d-none"); } });
+})();
+</script>
+{% endif %}
 {% endblock %}

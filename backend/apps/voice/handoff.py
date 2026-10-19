@@ -22,7 +22,6 @@ from apps.audit.services import record
 from apps.crm import services as crm
 from apps.industries import fields as field_engine
 from apps.industries import services as templates
-from apps.notifications import services as notify
 from apps.platform_config.services import get as setting
 from apps.rbac.services import has_perm
 from apps.scheduling.models import Appointment
@@ -158,20 +157,39 @@ def next_agent(handoff):
 
 
 def _alert(handoff):
-    """HO-03 e-mail alert (the panel shows a screen pop from the live list)."""
+    """HO-03 / NOTI-03: alert to the agent being asked (bell, e-mail, WhatsApp, push as they chose); the open panel
+    also shows the screen pop from the live list."""
+    from django.urls import reverse
+
+    from apps.notifications import alerts
+
     user = handoff.assigned_user
-    if not user or not user.email:
+    if not user:
         return
-    notify.send(
-        "handoff/alert",
-        user.email,
-        {
-            "name": user.full_name or user.email,
-            "employee": handoff.conversation.employee.name,
-            "reason": handoff.get_reason_display(),
-            "summary": handoff.summary,
-            "lead": handoff.lead.reference if handoff.lead else "",
-        },
+    conv, lead = handoff.conversation, handoff.lead
+    if _is_chat(handoff):
+        url = reverse("panel:inbox_conversation", args=[conv.pk])
+    else:
+        url = reverse("panel:lead_detail", args=[lead.pk]) if lead else reverse("panel:inbox")
+    who = (lead.name or lead.reference) if lead else (conv.customer_name or "A customer")
+    alerts.notify(
+        handoff.company,
+        [user],
+        "handoff",
+        f"{who} wants a person ({'chat' if _is_chat(handoff) else 'call'})",
+        f"{conv.employee.name} · {handoff.get_reason_display()}. {handoff.summary}".strip(),
+        url,
+        email=(
+            "handoff/alert",
+            {
+                "name": user.full_name or user.email,
+                "employee": conv.employee.name,
+                "reason": handoff.get_reason_display(),
+                "summary": handoff.summary,
+                "lead": lead.reference if lead else "",
+            },
+        ),
+        data={"handoff": str(handoff.pk)},
     )
 
 

@@ -101,6 +101,24 @@ VENDORS = {
         "config": [("app_id", "App ID", "", False)],
         "base_url": "https://graph.facebook.com/v21.0",
     },
+    # MOB-03 / NOTI-03: push alerts to the team. The VAPID key pair is generated when saved without one.
+    "web_push": {
+        "label": "Web Push (browsers and the installed web app)",
+        "secret": "VAPID private key (leave empty: generated for you)",  # nosec B105 — field label, not a secret
+        "config": [
+            ("public_key", "VAPID public key", "generated with the private key", False),
+            ("subject", "Contact for push services", "mailto:support@example.com", False),
+        ],
+        "base_url": "https://push.invalid",
+        "generates_key": True,
+    },
+    "fcm": {
+        "label": "Firebase Cloud Messaging (mobile app)",
+        "secret": "Service account JSON",  # nosec B105 — field label, not a secret
+        "secret_multiline": True,
+        "config": [("project_id", "Firebase project ID", "from the JSON when empty", False)],
+        "base_url": "https://fcm.googleapis.com",
+    },
 }
 VENDOR_CHOICES = [(k, v["label"]) for k, v in VENDORS.items()]
 
@@ -112,6 +130,17 @@ def spec(provider):
 def needs_key(provider):
     s = spec(provider)
     return not (s and s.get("local"))
+
+
+def prepare(provider):
+    """Before saving: vendors whose key the platform makes itself (Web Push VAPID pair)."""
+    if (spec(provider) or {}).get("generates_key") and not provider.api_key:
+        from apps.notifications.push import vapid_keys
+
+        provider.api_key, public = vapid_keys()
+        provider.config = {**(provider.config or {}), "public_key": public}
+        return True
+    return False
 
 
 def missing_config(provider):
@@ -199,6 +228,14 @@ def test(provider, timeout=30):
             "GET", f"https://{host}/v1/Accounts/{sid}.json", _basic(_cfg(provider, "api_key"), key), timeout=timeout
         )
         return f"Connected · {sid}"
+    if v == "web_push":
+        if not _cfg(provider, "public_key"):
+            raise ProviderError("The VAPID public key is missing: remove the key and save to generate a new pair.")
+        return "Keys ready · browsers can subscribe"
+    if v == "fcm":
+        project = _cfg(provider, "project_id") or json.loads(key).get("project_id", "")
+        _google_token(provider, timeout)
+        return f"Connected · Firebase project {project}"
     if v == "meta_whatsapp":
         data = _request("GET", f"{base}/me?fields=id,name", {"Authorization": f"Bearer {key}"}, timeout=timeout)
         note = "" if provider.webhook_secret else " · add the app secret to receive messages"

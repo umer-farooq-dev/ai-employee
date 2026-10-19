@@ -75,6 +75,9 @@ PERMISSIONS = {
     "recordings.listen": (COMPANY, "Listen to call recordings"),
     "recordings.download": (COMPANY, "Download call recordings"),
     "handoffs.receive": (COMPANY, "Receive live calls and chats handed over by the AI"),
+    "campaigns.view": (COMPANY, "View campaigns and their results"),
+    "campaigns.manage": (COMPANY, "Create and run outbound calling campaigns"),
+    "campaigns.approve": (COMPANY, "Approve campaigns before they start calling (company admin)"),
     "whatsapp.manage": (COMPANY, "Connect WhatsApp numbers to AI Employees and manage message templates"),
     "whatsapp.send": (COMPANY, "Send approved WhatsApp templates to leads"),
     "billing.view": (COMPANY, "View subscription and billing"),
@@ -115,7 +118,7 @@ MANAGER_P5 = [
     "handoffs.receive",
 ]
 AGENT_P5 = ["calls.view", "calls.make", "recordings.listen", "handoffs.receive"]
-MANAGER_P6 = ["whatsapp.manage", "whatsapp.send"]
+MANAGER_P6 = ["whatsapp.manage", "whatsapp.send", "campaigns.view", "campaigns.manage"]
 AGENT_P6 = ["whatsapp.send"]
 AGENT_P3 = ["leads.view", "leads.manage", "catalog.view", "calendar.view", "calendar.manage"]
 

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.voice",
     "apps.webchat",
     "apps.whatsapp",
+    "apps.campaigns",
     "apps.knowledge",
     "apps.cms",
     "apps.notifications",

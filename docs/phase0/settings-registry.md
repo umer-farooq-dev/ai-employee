@@ -87,7 +87,17 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `calendar.reminder_hours` | list | 24, 2 | reminder times in hours before (0.5 = 30 min) |
 | `calendar.reminder_whatsapp` / `calendar.reminder_email` | boolean | on / on | reminder channels |
 | `calendar.reminder_max_hours` | number | 168 | limit for companies' own reminder times |
-| `calendar.notify_staff` | boolean | on | e-mail the assigned person about new / moved / cancelled bookings (CAL-10) |
+| `calendar.notify_staff` | boolean | on | alert the assigned person about new / moved / cancelled bookings (CAL-10) |
+| `crm.hot_lead_notify` / `crm.hot_lead_assign` | boolean | on / on | SCORE-05 hot-lead actions; company can change them in Settings → CRM |
+| `campaigns.default_max_attempts` / `default_retry_gap_minutes` / `default_retry_outcomes` | number / number / list | 3 / 120 / busy, no_answer, voicemail | defaults for a new campaign |
+| `campaigns.default_max_concurrent` / `default_daily_limit` | number | 1 / 100 | defaults; never above the plan / calling rules |
+| `campaigns.require_opt_in` | boolean | off | COMP-05: off = leads with a source or consent; on = recorded opt-in only |
+| `campaigns.qualified_labels` | list | hot, warm | score labels counted as "qualified" in campaign results |
+| `campaigns.max_test_numbers` / `campaigns.max_leads` | number | 5 / 20000 | test mode numbers; leads per campaign |
+| `notifications.default_channels` | list | email, push | alert channels besides the bell (email, whatsapp, push); each person can change theirs |
+| `notifications.whatsapp_enabled` | boolean | on | WhatsApp alerts to team members (company's "Alert to your team" template) |
+| `notifications.poll_seconds` / `notifications.push_ttl_seconds` | number | 30 / 3600 | bell refresh; how long push services keep an undelivered alert |
+| `notifications.usage_alert_percent` | list | 80, 100 | usage alert levels (% of the plan) |
 | `locale.default_phone_country` | text | in | flag + dial code pre-selected in phone fields |
 
 ## C2. SMS (mobile OTP) — Phase 2 · screen: Settings → SMS

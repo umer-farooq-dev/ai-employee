@@ -1,0 +1,109 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}{% if campaign %}Edit {{ campaign.name }}{% else %}New campaign{% endif %}{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/campaigns/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">{% if campaign %}Edit campaign{% else %}New campaign{% endif %}</h4>
+        <span class="text-muted small">Calls follow your calling hours {{ rules.window_start }}–{{ rules.window_end }}, opt-outs and limits (Settings → Calling). A company admin approves before the first call.</span></div>
+    <a class="btn btn-sm btn-light" href="{% if campaign %}{% url 'panel:campaign' campaign.pk %}{% else %}{% url 'panel:campaigns' %}{% endif %}">Cancel</a>
+</div>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<div class="row">
+    <div class="col-lg-7">
+        <div class="camp-section">
+            <h6>1. Campaign</h6><div class="hint">A name your team recognises and what the AI Employee should do on these calls.</div>
+            <div class="row g-3">
+                <div class="col-md-7"><label class="form-label" for="c-name">Name</label><input class="form-control" id="c-name" name="name" value="{{ v.name|default:'' }}" maxlength="120" required placeholder="e.g. New Town Property Leads"></div>
+                <div class="col-md-5"><label class="form-label" for="c-emp">AI Employee</label><select class="form-select" id="c-emp" name="employee" required>
+                    {% for e in employees %}<option value="{{ e.pk }}" {% if v.employee == e.pk|stringformat:'s' %}selected{% endif %}>{{ e.name }}{% if e.status != 'active' %} ({{ e.get_status_display }}){% endif %}</option>{% endfor %}</select></div>
+                <div class="col-12"><label class="form-label" for="c-desc">Description <span class="text-muted small">(for your team)</span></label><input class="form-control" id="c-desc" name="description" value="{{ v.description|default:'' }}"></div>
+                <div class="col-12"><label class="form-label" for="c-brief">What to say and offer</label>
+                    <textarea class="form-control" id="c-brief" name="brief" rows="3" placeholder="e.g. Tell them about the new 2 and 3 BHK launch in New Town, ask about budget and timeline, and offer a site visit this weekend.">{{ v.brief|default:'' }}</textarea>
+                    <div class="form-text">Added to the AI Employee's instructions on these calls only.</div></div>
+                <div class="col-md-7"><label class="form-label" for="c-coll">Properties / products to offer</label><select class="form-select" id="c-coll" name="collection">
+                    <option value="">None</option>{% for c in collections %}<option value="{{ c.pk }}" {% if v.collection == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+                    <div class="form-text">A catalogue collection (Catalogue → Collections).</div></div>
+            </div>
+        </div>
+        <div class="camp-section">
+            <h6>2. Who to call</h6><div class="hint">Only leads with a phone number. Opted-out / Do-not-call leads are never called.</div>
+            {% if campaign and campaign.status != 'draft' %}<p class="small text-muted mb-0">The list is fixed once the campaign is approved.</p>{% else %}
+            <div class="d-flex flex-wrap gap-2 mb-3" role="radiogroup" aria-label="Lead list source">
+                {% for key, label in sources %}<input type="radio" class="btn-check" name="source" id="src-{{ key }}" value="{{ key }}" {% if v.source == key %}checked{% endif %}>
+                <label class="btn btn-sm btn-outline-primary" for="src-{{ key }}">{{ label }}</label>{% endfor %}
+            </div>
+            <div class="src-pane" data-src="filter">
+                <label class="form-label" for="c-filter">Lead list filters</label>
+                <input class="form-control" id="c-filter" name="filter_params" value="{{ v.filter_params|default:'' }}" placeholder="e.g. score=warm&source=website">
+                <div class="form-text">Filter the <a href="{% url 'panel:lead_list' %}" target="_blank" rel="noopener">lead list</a> and use “Call these in a campaign”, or leave empty for all your leads.</div>
+            </div>
+            <div class="src-pane" data-src="view"><label class="form-label" for="c-view">Saved view</label><select class="form-select" id="c-view" name="saved_view">
+                {% for s in views %}<option value="{{ s.pk }}" {% if v.saved_view == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% empty %}<option value="">No saved views yet (Leads → Save view)</option>{% endfor %}</select></div>
+            <div class="src-pane" data-src="csv"><label class="form-label" for="c-file">CSV or Excel file</label><input class="form-control" type="file" id="c-file" name="file" accept=".csv,.xlsx">
+                <div class="form-text">Columns like Name, Phone, Email. New people become leads (source Import); existing leads are updated.</div></div>
+            <div class="src-pane" data-src="leads"><p class="small text-muted mb-0">Save this campaign, then in <a href="{% url 'panel:lead_list' %}">Leads</a> tick the leads and choose <strong>With selected → Add to campaign</strong>.</p></div>
+            {% endif %}
+        </div>
+        <div class="camp-section">
+            <h6>3. Test mode</h6><div class="hint">Run the whole campaign against your team's own phones first — no lead is called.</div>
+            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="c-test" name="test_mode" {% if v.test_mode %}checked{% endif %} {% if campaign and campaign.status != 'draft' %}disabled{% endif %}><label class="form-check-label" for="c-test">Test mode: call internal test numbers only</label></div>
+            <div id="test-box"><label class="form-label" for="c-tn">Test numbers</label><input class="form-control" id="c-tn" name="test_numbers" value="{{ v.test_numbers|default:'' }}" placeholder="+91…, +91…">
+                <div class="form-text">Up to {{ max_test }}; each must be a team member's mobile number{% if team %}: {% for phone, u in team.items %}{{ phone }} ({{ u.full_name|default:u.email }}){% if not forloop.last %}, {% endif %}{% endfor %}{% else %} (add them in Profile){% endif %}.</div></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="camp-section">
+            <h6>4. When to call</h6><div class="hint">Inside your calling hours and the dates below.</div>
+            <div class="row g-3">
+                <div class="col-6"><label class="form-label" for="c-start">Start</label><input class="form-control" type="date" id="c-start" name="starts_on" value="{{ v.starts_on|default:'' }}"><div class="form-text">Empty = once approved</div></div>
+                <div class="col-6"><label class="form-label" for="c-end">End</label><input class="form-control" type="date" id="c-end" name="ends_on" value="{{ v.ends_on|default:'' }}"><div class="form-text">Empty = until done</div></div>
+                <div class="col-12"><span class="form-label d-block">Days</span><div class="d-flex flex-wrap gap-1 day-pick">
+                    {% for key, label in weekdays %}<input type="checkbox" class="btn-check" name="days" id="d-{{ key }}" value="{{ key }}" {% if key in v.days %}checked{% endif %}><label class="btn btn-sm btn-outline-primary" for="d-{{ key }}">{{ label }}</label>{% endfor %}</div></div>
+                <div class="col-12"><label class="form-label" for="c-win">Time windows</label><input class="form-control" id="c-win" name="windows" value="{{ v.windows|default:'' }}" placeholder="10:00-13:00, 15:00-19:00">
+                    <div class="form-text">24-hour clock, within {{ rules.window_start }}–{{ rules.window_end }}.</div></div>
+            </div>
+        </div>
+        <div class="camp-section">
+            <h6>5. Retries</h6><div class="hint">When a lead does not pick up.</div>
+            <div class="row g-3">
+                <div class="col-6"><label class="form-label" for="c-att">Attempts per lead</label><input class="form-control" type="number" id="c-att" name="max_attempts" min="1" max="{{ rules.max_attempts_per_lead }}" value="{{ v.max_attempts }}"><div class="form-text">Up to {{ rules.max_attempts_per_lead }}</div></div>
+                <div class="col-6"><label class="form-label" for="c-gap">Gap (minutes)</label><input class="form-control" type="number" id="c-gap" name="retry_gap_minutes" min="5" value="{{ v.retry_gap_minutes }}"></div>
+                <div class="col-12"><span class="form-label d-block">Call again after</span><div class="d-flex flex-wrap gap-3">
+                    {% for key, label in outcomes %}<div class="form-check"><input class="form-check-input" type="checkbox" name="retry_outcomes" id="o-{{ key }}" value="{{ key }}" {% if key in v.retry_outcomes %}checked{% endif %}><label class="form-check-label" for="o-{{ key }}">{{ label }}</label></div>{% endfor %}</div></div>
+            </div>
+        </div>
+        <div class="camp-section">
+            <h6>6. Follow-up</h6><div class="hint">After a call that was answered.</div>
+            <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="c-wa" name="whatsapp_after_call" {% if v.whatsapp_after_call %}checked{% endif %}><label class="form-check-label" for="c-wa">Send the WhatsApp follow-up template</label></div>
+            <span class="form-label d-block">Call again later when the lead is</span>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                {% for key, label in labels %}<div class="form-check"><input class="form-check-input" type="checkbox" name="follow_up_labels" id="l-{{ key }}" value="{{ key }}" {% if key in v.follow_up_labels %}checked{% endif %}><label class="form-check-label" for="l-{{ key }}">{{ label }}</label></div>{% endfor %}
+                <span class="d-inline-flex align-items-center gap-2 small">after <input class="form-control form-control-sm" style="width:72px" type="number" name="follow_up_after_days" min="1" max="60" value="{{ v.follow_up_after_days }}" aria-label="Days"> days</span>
+            </div>
+        </div>
+        <div class="camp-section">
+            <h6>7. Limits</h6><div class="hint">Never above your plan and calling rules.</div>
+            <div class="row g-3">
+                <div class="col-6"><label class="form-label" for="c-conc">Calls at the same time</label><input class="form-control" type="number" id="c-conc" name="max_concurrent" min="1" value="{{ v.max_concurrent }}"></div>
+                <div class="col-6"><label class="form-label" for="c-day">Calls per day</label><input class="form-control" type="number" id="c-day" name="daily_limit" min="1" max="{{ rules.max_calls_per_day }}" value="{{ v.daily_limit }}"><div class="form-text">Up to {{ rules.max_calls_per_day }}</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="d-flex gap-2 mb-4"><button class="btn btn-primary">{% if campaign %}Save changes{% else %}Create campaign{% endif %}</button>
+    <a class="btn btn-light" href="{% if campaign %}{% url 'panel:campaign' campaign.pk %}{% else %}{% url 'panel:campaigns' %}{% endif %}">Cancel</a></div>
+</form>
+<script>
+(function () {
+    function src() {
+        var on = document.querySelector("[name=source]:checked");
+        document.querySelectorAll(".src-pane").forEach(function (p) { p.classList.toggle("d-none", !on || p.dataset.src !== on.value); });
+    }
+    document.querySelectorAll("[name=source]").forEach(function (r) { r.addEventListener("change", src); });
+    var test = document.getElementById("c-test");
+    function t() { document.getElementById("test-box").classList.toggle("d-none", !test.checked); }
+    test.addEventListener("change", t);
+    src(); t();
+})();
+</script>
+{% endblock page_content %}

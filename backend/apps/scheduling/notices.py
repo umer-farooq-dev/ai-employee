@@ -197,21 +197,18 @@ def _to_customer(appt, kind, channels, offset=None, **extra):
     return out
 
 
-def _to_staff(appt, event, actor_id, extra):
-    person = appt.assigned_user or appt.resource.user
-    if not person or not person.is_active or not person.email or person.pk == actor_id:
-        return None
-    from apps.accounts.models import User
+TITLES = {"booked": "New booking", "rescheduled": "Booking moved", "cancelled": "Booking cancelled"}
 
+
+def _to_staff(appt, event, actor_id, extra):
+    """CAL-10 through the team alerts (bell, and e-mail / WhatsApp / push as the person chose)."""
+    from apps.accounts.models import User
+    from apps.notifications import alerts
+
+    person = appt.assigned_user or appt.resource.user
+    if not person or not person.is_active or person.pk == actor_id:
+        return None
     actor = User.objects.filter(pk=actor_id).first() if actor_id else None
-    note = AppointmentNotice(
-        company_id=appt.company_id,
-        appointment=appt,
-        kind="staff",
-        channel="email",
-        recipient=person.email,
-        for_start=appt.starts_at,
-    )
     context = _context(
         appt,
         **extra,
@@ -219,14 +216,31 @@ def _to_staff(appt, event, actor_id, extra):
         name=person.full_name or person.email,
         changed_by=(actor.full_name or actor.email) if actor else "",
     )
-    try:
-        if not mail.send("appointment/staff_notice", person.email, context):
-            note.status, note.detail = AppointmentNotice.SKIPPED, "This e-mail is switched off in Email Templates."
-    except Exception as exc:  # noqa: BLE001
-        log.warning("appointment %s team alert failed: %s", appt.pk, exc)
-        note.status, note.detail = AppointmentNotice.FAILED, str(exc)[:255]
-    note.save()
-    return note
+    who = (appt.lead.name or appt.lead.reference) if appt.lead_id else appt.resource.name
+    alert = alerts.notify(
+        appt.company,
+        [person],
+        "appointment",
+        f"{TITLES[event]}: {appt.appointment_type.name} — {context['appointment_time']}",
+        f"{who} · {appt.reference}"
+        + (f" · {appt.cancel_reason}" if event == "cancelled" and appt.cancel_reason else ""),
+        reverse("panel:appointment", args=[appt.pk]),
+        email=("appointment/staff_notice", context),
+        data={"appointment": str(appt.pk), "event": event},
+        wait=True,
+    )[0]
+    result = alert.delivery.get("email", "skipped: E-mail alerts are off in this person's Profile → Alerts.")
+    status = result.split(":")[0]
+    return AppointmentNotice.objects.create(
+        company_id=appt.company_id,
+        appointment=appt,
+        kind="staff",
+        channel="email",
+        recipient=person.email,
+        for_start=appt.starts_at,
+        status=status if status in dict(AppointmentNotice.STATUSES) else AppointmentNotice.SENT,
+        detail="" if status == "sent" else result.split(":", 1)[-1].strip()[:255],
+    )
 
 
 def _changed(pk, event, actor_id, old_start):

@@ -35,6 +35,15 @@
             </tbody></table></div>
             <div class="card-footer small text-muted">Your rule with the same key replaces the industry rule. Rules in use now: {% for r in rules %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</div>
         </div>
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">When a lead becomes Hot</h5></div>
+            <form method="post" class="card-body">{% csrf_token %}<input type="hidden" name="op" value="hot">
+                <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="h-assign" name="assign" {% if hot.assign %}checked{% endif %}><label class="form-check-label" for="h-assign">Assign a salesperson when nobody is assigned</label>
+                    <div class="small text-muted">Uses the assignment rules on the left.</div></div>
+                <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="h-notify" name="notify" {% if hot.notify %}checked{% endif %}><label class="form-check-label" for="h-notify">Alert the salesperson</label>
+                    <div class="small text-muted">The assigned person — or everyone who may assign leads. In the panel, and by e-mail / WhatsApp / push as each person chose in Profile → Alerts.</div></div>
+                <p class="small text-muted mb-3">Handing a live call or chat to a person straight away is set per AI Employee (Setup → Rules → "Hand over hot leads").</p>
+                <button class="btn btn-sm btn-primary">Save</button>
+            </form></div>
     </div>
 </div>
 {% endblock page_content %}

@@ -1,0 +1,32 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Alerts{% endblock title %}
+{% block page_content %}
+<style>.nb-unread{background:rgba(var(--bs-primary-rgb),.045);box-shadow:inset 3px 0 0 var(--brand-primary)}</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Alerts</h4>
+        <span class="text-muted small">Transfer requests, hot leads, bookings, campaigns and usage. Choose where else you get them in <a href="{% url 'panel:profile' %}#alerts">Profile → Alerts</a>.</span></div>
+    {% if unread_count %}<form method="post">{% csrf_token %}<button class="btn btn-sm btn-light"><i class="iconoir-check"></i> Mark all as read</button></form>{% endif %}
+</div>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-sm {% if not unread and not kind %}btn-primary{% else %}btn-light{% endif %}" href="?">All</a>
+    <a class="btn btn-sm {% if unread %}btn-primary{% else %}btn-light{% endif %}" href="?show=unread">Unread{% if unread_count %} <span class="badge bg-danger ms-1">{{ unread_count }}</span>{% endif %}</a>
+    {% for key, label in kinds.items %}<a class="btn btn-sm {% if kind == key %}btn-primary{% else %}btn-light{% endif %}" href="?kind={{ key }}">{{ label }}</a>{% endfor %}
+</div>
+<div class="card"><div class="list-group list-group-flush">
+    {% for n in page %}
+    <a class="list-group-item list-group-item-action d-flex gap-3 py-3 {% if not n.read_at %}nb-unread{% endif %}" href="{% url 'panel:notification_open' n.pk %}">
+        <span class="flex-shrink-0 rounded-circle d-inline-flex align-items-center justify-content-center bg-light" style="width:38px;height:38px" aria-hidden="true">
+            <i class="fs-18 {% if n.kind == 'handoff' %}iconoir-headset-help text-danger{% elif n.kind == 'hot_lead' %}iconoir-fire-flame text-warning{% elif n.kind == 'appointment' %}iconoir-calendar text-primary{% elif n.kind == 'campaign' %}iconoir-megaphone text-success{% else %}iconoir-graph-up text-info{% endif %}"></i></span>
+        <span class="flex-grow-1" style="min-width:0">
+            <span class="d-flex justify-content-between gap-2"><span class="fw-semibold text-dark">{{ n.title }}</span>
+                <span class="small text-muted text-nowrap" title="{{ n.created_at|date:'d M Y H:i' }}">{{ n.created_at|timesince }} ago</span></span>
+            {% if n.body %}<span class="d-block small text-muted text-truncate">{{ n.body }}</span>{% endif %}
+            <span class="small text-muted">{{ n.get_kind_display }}{% if not n.read_at %} · <span class="text-primary fw-medium">new</span>{% endif %}</span>
+        </span>
+    </a>
+    {% empty %}
+    <div class="text-center text-muted py-5"><div class="mb-2"><i class="iconoir-bell fs-1"></i></div>No alerts{% if unread %} unread{% endif %}.</div>
+    {% endfor %}
+</div></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock page_content %}

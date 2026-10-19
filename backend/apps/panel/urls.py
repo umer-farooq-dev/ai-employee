@@ -2,13 +2,16 @@ from django.urls import path
 
 from . import (
     ai_views,
+    alerts_views,
     calendar_views,
     calls_views,
+    campaign_views,
     catalog_views,
     chat_views,
     company_views,
     crm_views,
     knowledge_views,
+    pwa_views,
     views,
     whatsapp_views,
 )
@@ -17,6 +20,16 @@ app_name = "panel"
 
 urlpatterns = [
     path("dashboard/", views.after_login, name="home"),
+    path("manifest.webmanifest", pwa_views.manifest, name="pwa_manifest"),
+    path("sw.js", pwa_views.service_worker, name="pwa_sw"),
+    path("offline/", pwa_views.offline, name="pwa_offline"),
+    path("app/notifications/", alerts_views.notifications, name="notifications"),
+    path("app/campaigns/", campaign_views.campaign_list, name="campaigns"),
+    path("app/campaigns/new/", campaign_views.campaign_form, name="campaign_new"),
+    path("app/campaigns/<uuid:pk>/", campaign_views.campaign_detail, name="campaign"),
+    path("app/campaigns/<uuid:pk>/edit/", campaign_views.campaign_form, name="campaign_edit"),
+    path("app/campaigns/<uuid:pk>/export/", campaign_views.campaign_export, name="campaign_export"),
+    path("app/notifications/<uuid:pk>/open/", alerts_views.open_notification, name="notification_open"),
     path("profile/", views.profile, name="profile"),
     path("support/stop/", views.stop_impersonation, name="stop_impersonation"),
     path("invite/<str:token>/", company_views.accept_invitation, name="accept_invitation"),

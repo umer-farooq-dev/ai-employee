@@ -42,7 +42,8 @@ python backend/manage.py runserver
   - `python backend/manage.py process_knowledge` — queued knowledge, website re-syncs, re-embedding (KB-01, KB-07)
   - `python backend/manage.py end_idle_conversations` — closes idle AI conversations so summary, CRM and score update
   - `python backend/manage.py send_appointment_reminders` — appointment reminders on WhatsApp / e-mail (CAL-07)
-  - every minute: `python backend/manage.py dial_due_calls` — call retries (busy / no answer / voicemail) and follow-up calls; chat handoffs nobody answered move to the next agent
+  - every minute: `python backend/manage.py dial_due_calls` — call retries (busy / no answer / voicemail), follow-up calls and campaign calls; chat handoffs nobody answered move to the next agent
+  - hourly: `python backend/manage.py send_usage_alerts` — usage alerts to company admins at the levels in System Settings → Team alerts
   - daily: `python backend/manage.py apply_voice_retention` — deletes recordings / voice transcripts past each company's retention
 - Voice load test (ENGR-07): `python backend/manage.py voice_load_test --employee <id> --calls 20 --audio caller.wav` against a running gateway.
 - AI quality gate (ENG-12): `python backend/manage.py run_ai_eval [--only real-estate] [--output report.json]` on the

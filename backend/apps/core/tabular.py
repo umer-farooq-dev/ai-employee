@@ -21,3 +21,20 @@ def read_table(name, data: bytes):
     else:
         raise ValidationError("Upload a .csv or .xlsx file.")
     return [r for r in rows if any(str(c).strip() for c in r)]
+
+
+def write_table(rows, fmt="csv", sheet="Sheet1"):
+    """rows → (bytes, content type, extension) as .xlsx or .csv (UTF-8 with BOM so Excel shows Indian scripts)."""
+    if fmt == "xlsx":
+        from openpyxl import Workbook
+
+        wb = Workbook(write_only=True)
+        ws = wb.create_sheet(sheet[:31])
+        for row in rows:
+            ws.append(row)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"
+    buf = io.StringIO()
+    csv.writer(buf).writerows(rows)
+    return buf.getvalue().encode("utf-8-sig"), "text/csv", "csv"

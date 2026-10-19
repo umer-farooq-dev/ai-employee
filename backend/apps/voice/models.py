@@ -69,10 +69,11 @@ class Call(TenantModel):
         ("follow_up", "Scheduled follow-up"),
         ("retry", "Retry"),
         ("campaign", "Campaign"),
+        ("campaign_test", "Campaign test"),
         ("browser_test", "Browser test"),
         ("test_call", "Test call to own phone"),
     ]
-    TEST_REASONS = ("browser_test", "test_call")  # EMP-10: test data is removed, never retried
+    TEST_REASONS = ("browser_test", "test_call", "campaign_test")  # test data is removed, never retried
     TRANSFER = [
         ("none", "No transfer"),
         ("requested", "Requested"),
@@ -107,6 +108,9 @@ class Call(TenantModel):
     status = models.CharField(max_length=15, choices=STATUSES, default=QUEUED, db_index=True)
     attempt = models.PositiveSmallIntegerField(default=1)
     retry_of = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="retries")
+    campaign_member = models.ForeignKey(
+        "campaigns.CampaignMember", null=True, blank=True, on_delete=models.SET_NULL, related_name="calls"
+    )
     next_retry_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text="Queued call: dial at")
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"

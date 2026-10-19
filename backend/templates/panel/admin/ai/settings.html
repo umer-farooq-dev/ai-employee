@@ -12,6 +12,7 @@
     .ai-chip.embedding,.ai-chip.tts{background:#e9f9f1;color:#0f9f61}
     .ai-chip.telephony{background:#eaf4ff;color:#1d6fd6}
     .ai-chip.whatsapp{background:#e8f8ee;color:#128c4a}
+    .ai-chip.push{background:#fff1f2;color:#d61f45}
     .ai-chip.test{background:#fff6e5;color:#b26b00}
     .vendor-switch .form-check-input{width:2.8em;height:1.5em;cursor:pointer;margin:0}
     .ai-section{border:1px solid var(--bs-border-color);border-radius:14px;padding:18px;margin-bottom:16px}
@@ -25,7 +26,7 @@
 <div class="mt-3 mb-3">
     {% if data.page == "voice" %}
     <h4 class="mb-1">Voice &amp; Channels</h4>
-    <p class="text-muted mb-0">Speech-to-text, voice, telephony and WhatsApp providers and their keys. Which provider speaks each language is set in <a href="{% url 'superadmin:languages' %}">Languages &amp; Voices</a>.</p>
+    <p class="text-muted mb-0">Speech-to-text, voice, telephony, WhatsApp and push-alert providers and their keys. Which provider speaks each language is set in <a href="{% url 'superadmin:languages' %}">Languages &amp; Voices</a>.</p>
     {% else %}
     <h4 class="mb-1">AI Settings</h4>
     <p class="text-muted mb-0">AI providers, their keys and the model the AI Employees use for each task.</p>
@@ -121,7 +122,7 @@
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label" for="pm-name">Name</label><input class="form-control" id="pm-name" required maxlength="120"></div>
                         <div class="col-md-6" id="pm-key-wrap"><label class="form-label" for="pm-slug">Key</label><input class="form-control" id="pm-slug" pattern="[a-z0-9-]+" maxlength="60" placeholder="e.g. my-gateway"><div class="form-text">Lower-case letters, numbers and dashes. Cannot be changed later.</div></div>
-                        <div class="col-12"><label class="form-label" for="pm-url">Base URL</label><input class="form-control" id="pm-url" required placeholder="https://…/v1"></div>
+                        <div class="col-12" id="pm-url-wrap"><label class="form-label" for="pm-url">Base URL</label><input class="form-control" id="pm-url" required placeholder="https://…/v1"></div>
                         <div class="col-md-6" id="pm-adapter-wrap"><label class="form-label" for="pm-adapter">API type</label><select class="form-select" id="pm-adapter"></select></div>
                         <div class="col-md-6" id="pm-vendor-wrap"><label class="form-label" for="pm-vendor">Vendor</label><select class="form-select" id="pm-vendor"></select><div class="form-text">Decides how the Voice Gateway talks to this provider.</div></div>
                         <div class="col-md-6"><span class="form-label d-block">Offers</span><div id="pm-caps" class="d-flex gap-3 pt-1"></div></div>
@@ -233,7 +234,7 @@
         if (p.has_key) return '<span class="vendor-status text-primary">Key saved · not tested</span>';
         return '<span class="vendor-status text-muted">Not connected</span>';
     }
-    var ICONS = {chat: "iconoir-chat-lines", embedding: "iconoir-database", stt: "iconoir-microphone", tts: "iconoir-sound-high", telephony: "iconoir-phone", whatsapp: "iconoir-chat-bubble"};
+    var ICONS = {chat: "iconoir-chat-lines", embedding: "iconoir-database", stt: "iconoir-microphone", tts: "iconoir-sound-high", telephony: "iconoir-phone", whatsapp: "iconoir-chat-bubble", push: "iconoir-bell"};
     function chips(p) {
         var out = [];
         p.capabilities.filter(function (cap) { return D.capabilities[cap]; }).forEach(function (cap) {
@@ -341,6 +342,7 @@
         $("pm-key").classList.toggle("d-none", !!(s && s.secret_multiline));
         $("pm-key-section").classList.toggle("d-none", local);
         $("pm-local-note").classList.toggle("d-none", !local);
+        $("pm-url-wrap").classList.toggle("d-none", !!(s && s.generates_key));  // browsers give their own push address
         var cfg = p.config || {};
         $("pm-config").innerHTML = (s ? s.config : []).map(function (f) {
             return '<div class="col-md-6"><label class="form-label" for="cfg-' + f.name + '">' + esc(f.label) + (f.required ? ' <span class="text-danger">*</span>' : "") + "</label>" +

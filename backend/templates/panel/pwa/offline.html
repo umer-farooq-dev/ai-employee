@@ -1,0 +1,10 @@
+{% extends 'panel/auth.html' %}
+{% block title %}Offline{% endblock title %}
+{% block auth_content %}
+<div class="text-center py-4">
+    <h4 class="mb-2">You are offline</h4>
+    <p class="text-muted mb-4">Leads, calls and chats need a connection. This page reloads when you are back online.</p>
+    <button class="btn btn-primary" type="button" onclick="location.reload()">Try again</button>
+</div>
+<script>window.addEventListener("online", function () { location.reload(); });</script>
+{% endblock auth_content %}

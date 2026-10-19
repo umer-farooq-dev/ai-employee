@@ -584,6 +584,21 @@ def send_template(template, lead, ctx=None, user=None, conversation=None, reques
     return row
 
 
+def send_alert(company, phone, text):
+    """NOTI-03: an alert to a team member's own WhatsApp (the company's approved "Team alert" template). Team members
+    are not customers: no consent record or CRM entry, only the message log."""
+    template = find_template(company, "team_alert", company.default_language or setting("locale.default_language"))
+    if not template:
+        raise ValidationError('No approved WhatsApp "Alert to your team" template (Settings → WhatsApp).')
+    params = params_for(template, {"company": company, "text": text})
+    number = template.number
+    row = _log_out(number, company, phone, "template", template=template)
+    _deliver(row, lambda: cloud.for_provider(number.provider).send_template(number, phone, template, params, ""))
+    if row.status == WaMessage.FAILED:
+        raise ValidationError(f"WhatsApp did not accept the alert: {row.error}")
+    return row
+
+
 # ------------------------------------------------------------------ inbound (webhook)
 def handle_webhook(provider, payload):
     """Meta's webhook body → messages and statuses. Each message is processed once (WebhookEvent)."""

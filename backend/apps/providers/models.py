@@ -17,6 +17,7 @@ VOICE_CAPABILITIES = [
     ("tts", "Text-to-speech"),
     ("telephony", "Telephony"),
     ("whatsapp", "WhatsApp"),
+    ("push", "Push notifications"),
 ]
 CAPABILITIES = LLM_CAPABILITIES + VOICE_CAPABILITIES
 

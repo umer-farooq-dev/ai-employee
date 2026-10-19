@@ -245,7 +245,7 @@ def test_bulk_actions_merge_and_export(owner, realty, agent_a):
     assert xlsx.content[:2] == b"PK"
     assert AuditLog.objects.filter(action="lead.export").count() == 2
     camp = owner.post("/app/leads/", {"op": "bulk", "action": "add_to_campaign", "ids": ids}, follow=True)
-    assert b"Campaigns are not available yet" in camp.content
+    assert b"Choose a draft campaign" in camp.content  # no campaign chosen (Phase 6: tests/test_campaigns.py)
 
 
 @pytest.mark.django_db

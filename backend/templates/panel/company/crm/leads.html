@@ -13,6 +13,7 @@
         {% if can.import %}<a class="btn btn-sm btn-light" href="{% url 'panel:lead_import' %}">Import</a>{% endif %}
         {% if can.export %}<div class="btn-group"><a class="btn btn-sm btn-light" href="{% url 'panel:lead_export' %}?{{ params }}">Export CSV</a>
             <a class="btn btn-sm btn-light" href="{% url 'panel:lead_export' %}?{{ params }}&format=xlsx">Excel</a></div>{% endif %}
+        {% if can.campaigns %}<a class="btn btn-sm btn-light" href="{% url 'panel:campaign_new' %}?filters={{ params|urlencode }}" title="A calling campaign for the leads in this list (current filters)"><i class="iconoir-megaphone"></i> Call these in a campaign</a>{% endif %}
         {% if can.delete %}<a class="btn btn-sm btn-light" href="{% url 'panel:lead_duplicates' %}">Duplicates</a>
             <a class="btn btn-sm btn-light" href="?deleted=1">Deleted</a>{% endif %}
     </div>
@@ -68,7 +69,7 @@
 <div class="card mb-2"><div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
     <span class="small text-muted">With selected:</span>
     <select class="form-select form-select-sm w-auto" name="action" id="bulk-action" aria-label="Bulk action">
-        {% if can.assign %}<option value="assign">Assign to…</option><option value="status">Change status…</option><option value="add_to_campaign">Add to campaign</option>{% endif %}
+        {% if can.assign %}<option value="assign">Assign to…</option><option value="status">Change status…</option>{% if can.campaigns %}<option value="add_to_campaign">Add to campaign…</option>{% endif %}{% endif %}
         {% if can.manage %}<option value="tag">Add tag…</option>{% endif %}
         {% if can.export %}<option value="export">Export</option>{% endif %}
         {% if can.delete %}<option value="delete">Delete</option>{% endif %}
@@ -76,6 +77,7 @@
     <select class="form-select form-select-sm w-auto bulk-value" data-for="assign" name="value" aria-label="Assign to"><option value="">Unassign</option>{% for u in members %}<option value="{{ u.pk }}">{{ u|person }}</option>{% endfor %}</select>
     <select class="form-select form-select-sm w-auto bulk-value d-none" data-for="status" name="value" disabled aria-label="Status">{% for s in statuses %}<option value="{{ s.key }}">{{ s.label }}</option>{% endfor %}</select>
     <input class="form-control form-control-sm w-auto bulk-value d-none" data-for="tag" name="value" disabled placeholder="Tag" aria-label="Tag">
+    {% if can.campaigns %}<select class="form-select form-select-sm w-auto bulk-value d-none" data-for="add_to_campaign" name="value" disabled aria-label="Campaign">{% for c in draft_campaigns %}<option value="{{ c.pk }}">{{ c.name }}</option>{% empty %}<option value="">No draft campaign yet</option>{% endfor %}</select>{% endif %}
     <button class="btn btn-sm btn-primary">Apply</button>
 </div></div>
 {% endif %}
