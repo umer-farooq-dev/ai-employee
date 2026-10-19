@@ -33,7 +33,7 @@ from apps.roles_tools.models import Tool
 from apps.scheduling import services as calendar
 from apps.scheduling.models import Appointment, Resource
 
-from .models import ToolInvocation
+from .models import Conversation, ToolInvocation
 
 log = logging.getLogger(__name__)
 MAX_RESULTS = 10
@@ -275,11 +275,17 @@ def assign_salesperson(ctx, tool, args):
     return {"assigned": True, "salesperson": person.split(" ")[0]}
 
 
+def can_hand_over(conv):
+    """Live calls (and the browser voice test) and the typed channels with the shared inbox (HO-01)."""
+    return bool((conv.state or {}).get("voice")) or (conv.channel in Conversation.CHAT_CHANNELS and not conv.is_test)
+
+
 def transfer_call(ctx, tool, args):
     """TOOL-08 / VOICE-11: hand the live call to a person. The Voice Gateway connects the caller after the AI's
-    sentence (warm transfer); routing, no-agent handling and the log are in apps.voice.handoff."""
-    if not (ctx.conversation.state or {}).get("voice"):
-        raise ToolError("Transfers work on phone calls only; use assign_salesperson in chats.")
+    sentence (warm transfer); on chats a team member takes over in the shared inbox (apps.agents.inbox). Routing,
+    no-agent handling and the log are in apps.voice.handoff."""
+    if not can_hand_over(ctx.conversation):
+        raise ToolError("Handing over works on calls and live chats only; use assign_salesperson here.")
     reason = str(args.get("reason") or "").strip()[:200] or "Customer asked for a person"
     why = "negative_sentiment" if reason.lower().startswith("upset") else "customer_request"  # handoff.upset_prompt
     ctx.conversation.state = {
@@ -742,9 +748,9 @@ def enabled(employee):
 def definitions(ctx, tools):
     """What the model sees (layer 8 of the prompt)."""
     out = []
-    voice = bool((ctx.conversation.state or {}).get("voice"))
+    live = can_hand_over(ctx.conversation)
     for tool in tools:
-        if tool.handler == "transfer_call" and not voice:  # only offered on calls
+        if tool.handler == "transfer_call" and not live:  # only offered on calls and live chats
             continue
         schema = _schema_or_none(ctx, tool)
         if schema is not None:

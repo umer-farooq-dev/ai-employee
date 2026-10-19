@@ -82,7 +82,10 @@ class ConfigVersion(TenantModel):
 
 class Conversation(TenantModel):
     CHANNELS = [("test", "Test console"), ("web_chat", "Website chat"), ("whatsapp", "WhatsApp"), ("voice", "Voice")]
+    CHAT_CHANNELS = ("web_chat", "whatsapp")  # typed channels with the shared inbox (WA-06, CHAT-06)
     ACTIVE, ENDED = "active", "ended"
+    AI, WAITING, HUMAN = "ai", "waiting", "human"
+    HANDLERS = [(AI, "AI Employee"), (WAITING, "Waiting for a person"), (HUMAN, "Team member")]
 
     employee = models.ForeignKey(AIEmployee, on_delete=models.CASCADE, related_name="conversations")
     employee_version = models.PositiveIntegerField(default=1)
@@ -110,10 +113,19 @@ class Conversation(TenantModel):
     started_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
+    # shared inbox: who answers now (the AI pauses while a person has taken over) and the team member in charge
+    handled_by = models.CharField(max_length=10, choices=HANDLERS, default=AI, db_index=True)
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="inbox_conversations"
+    )
 
     class Meta:
         ordering = ["-started_at"]
         indexes = [models.Index(fields=["company", "employee", "-started_at"])]
+
+    @property
+    def customer_name(self):
+        return (self.lead.name if self.lead_id else "") or (self.customer or {}).get("name", "")
 
 
 class Message(TenantModel):

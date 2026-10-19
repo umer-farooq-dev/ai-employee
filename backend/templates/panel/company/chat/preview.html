@@ -1,0 +1,31 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Chat preview · {{ employee.name }}</title>
+    <link rel="icon" href="{{ platform.favicon }}">
+    <style>
+        body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f4f6fb;color:#1f2433}
+        .bar{background:#fff;border-bottom:1px solid #e6e8ef;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+        .bar a{color:inherit;font-size:14px}
+        main{max-width:860px;margin:40px auto;padding:0 16px}
+        .ph{background:#fff;border:1px solid #e6e8ef;border-radius:16px;padding:28px}
+        .ln{height:12px;background:#eceef5;border-radius:6px;margin:12px 0}
+        .note{font-size:14px;color:#5b6175;line-height:1.5}
+    </style>
+</head>
+<body>
+    <div class="bar"><strong>{{ request.company.name }}</strong><a href="{% url 'panel:widget' employee.pk %}">← Website chat settings</a></div>
+    <main>
+        <div class="ph">
+            <h1 style="font-size:22px;margin:0 0 6px">Preview of your website chat</h1>
+            <p class="note">This page loads the same code your website uses. Open the button in the corner and chat with {{ employee.name }} as a visitor would. Chats from this preview are real chats and appear in your Inbox.</p>
+            {% if not widget.is_enabled %}<p class="note" style="color:#b45309">The chat is switched off.</p>{% elif employee.status != 'active' %}<p class="note" style="color:#b45309">{{ employee.name }} is not active yet, so the button does not appear.</p>{% endif %}
+            <div class="ln" style="width:90%"></div><div class="ln" style="width:75%"></div><div class="ln" style="width:82%"></div><div class="ln" style="width:60%"></div>
+        </div>
+    </main>
+    <script src="{{ script }}" data-key="{{ widget.key }}" async></script>
+</body>
+</html>

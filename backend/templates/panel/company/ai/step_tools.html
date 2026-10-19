@@ -34,7 +34,12 @@
                 {% for n in numbers %}<option value="{{ n.pk }}" {% if n.employee_id == employee.pk %}selected{% endif %}>{{ n.e164 }}{% if n.label %} · {{ n.label }}{% endif %}{% if n.employee_id and n.employee_id != employee.pk %} (now: {{ n.employee.name }}){% endif %}</option>{% endfor %}
             </select>
             <p class="small text-muted mb-0">Choosing a number that another AI Employee uses moves it to {{ employee.name }}.</p>
-            {% else %}<p class="small text-muted mb-0">Your company has no phone number yet — ask the platform team. WhatsApp and the website chat widget are coming soon.</p>{% endif %}
+            {% else %}<p class="small text-muted mb-0">Your company has no phone number yet — ask the platform team.</p>{% endif %}
+        </div></div>
+        <div class="card border mt-3 mb-0"><div class="card-body">
+            <h6><i class="iconoir-chat-bubble me-1"></i>Website chat</h6>
+            <p class="small text-muted mb-2">A chat button for your website: visitors chat with {{ employee.name }}, your team can take over.</p>
+            <a class="btn btn-sm btn-light" href="{% url 'panel:widget' employee.pk %}">Set up website chat</a>
         </div></div>
     </div>
 </div>

@@ -13,6 +13,7 @@ from . import views_crm as crmapi
 from . import views_knowledge as kbapi
 from . import views_templates as tpl
 from . import views_voice as voiceapi
+from . import views_webchat as chatapi
 
 admin = DefaultRouter(trailing_slash=True)
 admin.register("companies", views.CompanyViewSet, basename="admin-companies")
@@ -69,6 +70,7 @@ agents_router.register("conversations", agentapi.ConversationViewSet, basename="
 agents_router.register("phone-numbers", voiceapi.PhoneNumberViewSet, basename="phone-numbers")
 agents_router.register("calls", voiceapi.CallViewSet, basename="calls")
 agents_router.register("handoffs", voiceapi.HandoffViewSet, basename="handoffs")
+agents_router.register("inbox", chatapi.InboxViewSet, basename="inbox")
 
 kb_router = DefaultRouter(trailing_slash=True)
 kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")
@@ -100,6 +102,7 @@ api_v1 = [
     path("kb/test-query/", kbapi.TestQueryView.as_view(), name="kb-test-query"),
     path("kb/", include(kb_router.urls)),
     path("calling-policy/", voiceapi.CallingPolicyView.as_view(), name="calling-policy"),
+    path("ai-employees/<uuid:pk>/widget/", chatapi.EmployeeWidgetView.as_view(), name="ai-employee-widget"),
     path("", include(agents_router.urls)),
     path("admin/conversations/<uuid:pk>/", agentapi.AdminConversationView.as_view(), name="admin-conversation"),
     path(
@@ -122,5 +125,11 @@ public_v1 = [
     path("enquiries/", company.PublicEnquiryView.as_view(), name="public-enquiries"),
     path("registration-options/", company.RegistrationOptionsView.as_view(), name="public-registration-options"),
     path("invitations/<str:token>/", company.InvitationPublicView.as_view(), name="public-invitation"),
+    path("chat/<str:key>/", chatapi.PublicChatConfigView.as_view(), name="chat-config"),
+    path("chat/<str:key>/sessions/", chatapi.PublicChatSessionView.as_view(), name="chat-sessions"),
+    path("chat/<str:key>/messages/", chatapi.PublicChatMessagesView.as_view(), name="chat-messages"),
+    path("chat/<str:key>/human/", chatapi.PublicChatHumanView.as_view(), name="chat-human"),
+    path("chat/<str:key>/contact/", chatapi.PublicChatContactView.as_view(), name="chat-contact"),
+    path("chat/<str:key>/end/", chatapi.PublicChatEndView.as_view(), name="chat-end"),
     path("", include(public.urls)),
 ]

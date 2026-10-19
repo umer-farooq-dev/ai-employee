@@ -6,7 +6,7 @@
             "Receive handoffs" permission, availability Online, not in an appointment right now (calendar)
 3 notify    screen pop in the panel (polled) + e-mail with summary, requirement and score
 4 connect   voice: warm transfer (the agent hears the summary before the caller is connected); cold when the
-            telephony vendor cannot whisper
+            telephony vendor cannot whisper. Chat: the agent accepts and takes the chat over (apps.agents.inbox)
 5 no answer next agent after the ring time; nobody → message to the customer, callback task, lead flagged
 6 record    Handoff row (reason, agent, time to answer, outcome), lead timeline, call / conversation status
 """
@@ -164,7 +164,7 @@ def _alert(handoff):
         return
     notify.send(
         "handoff/alert",
-        [user.email],
+        user.email,
         {
             "name": user.full_name or user.email,
             "employee": handoff.conversation.employee.name,
@@ -197,12 +197,40 @@ def no_agent(handoff):
     handoff.save()
     if handoff.call_id:
         Call.objects.filter(pk=handoff.call_id).update(transfer_status="no_agent")
+    elif _is_chat(handoff):
+        from apps.agents import inbox
+
+        inbox.no_agent(handoff.conversation)
     return handoff
+
+
+def _is_chat(handoff):
+    return not handoff.call_id and handoff.conversation.channel in Conversation.CHAT_CHANNELS
+
+
+def expire_ringing(conversation=None, now=None):
+    """Chat handoffs: an agent who has not answered within the ring time is skipped (calls learn it from the
+    telephony result). Run by the widget / inbox polls and the minute cron."""
+    cutoff = (now or timezone.now()) - timedelta(seconds=setting("handoff.agent_ring_seconds"))
+    due = dict(status=Handoff.RINGING, call__isnull=True, channel__in=Conversation.CHAT_CHANNELS, updated_at__lt=cutoff)
+    if conversation is not None:
+        for handoff in Handoff.objects.filter(conversation=conversation, **due).select_related("conversation"):
+            missed(handoff)
+        return
+    with platform_context():
+        rows = list(Handoff.all_companies.filter(**due).values_list("pk", "company_id"))
+    for pk, company_id in rows:
+        with company_context(company_id):
+            missed(Handoff.objects.select_related("conversation").get(pk=pk))
 
 
 def answered(handoff):
     handoff.status, handoff.accepted_at = Handoff.ACCEPTED, handoff.accepted_at or timezone.now()
     handoff.save(update_fields=["status", "accepted_at", "updated_at"])
+    if _is_chat(handoff):
+        from apps.agents import inbox
+
+        inbox.join(handoff.conversation, handoff.assigned_user)
     if handoff.call_id:
         call = Call.objects.get(pk=handoff.call_id)
         services.transition(call, Call.TRANSFERRED, f"agent {handoff.assigned_user_id}")
@@ -242,10 +270,14 @@ def finish(handoff, outcome=Handoff.COMPLETED):
 
 
 def live_for(user, company):
-    """Screen pop: handoffs ringing / just accepted for this agent."""
-    return Handoff.objects.filter(
-        company=company, assigned_user=user, status__in=[Handoff.RINGING, Handoff.ACCEPTED], ended_at__isnull=True
-    ).select_related("lead", "conversation__employee", "call")
+    """Screen pop: handoffs ringing / just accepted for this agent (an accepted chat lives in the inbox)."""
+    return (
+        Handoff.objects.filter(
+            company=company, assigned_user=user, status__in=[Handoff.RINGING, Handoff.ACCEPTED], ended_at__isnull=True
+        )
+        .exclude(status=Handoff.ACCEPTED, channel__in=Conversation.CHAT_CHANNELS)
+        .select_related("lead", "conversation__employee", "call")
+    )
 
 
 # ------------------------------------------------------------------ telephony transfer (warm / cold)

@@ -123,8 +123,15 @@ def _auto_done(company, key):
             )
         if key == "catalogue":
             return CatalogItem.all_companies.filter(company=company).exists()
-        if key == "channel":  # phone now; WhatsApp and website chat join in Phase 6
-            return PhoneNumber.objects.filter(company=company, employee__isnull=False, status="active").exists()
+        if key == "channel":  # a connected phone number or a website chat placed on the company's site
+            from apps.webchat.models import ChatWidget
+
+            return (
+                PhoneNumber.objects.filter(company=company, employee__isnull=False, status="active").exists()
+                or ChatWidget.all_companies.filter(company=company, is_enabled=True)
+                .exclude(allowed_domains=[])
+                .exists()
+            )
         if key == "test":
             return any(e.test_passed for e in employees)
         if key == "activate":

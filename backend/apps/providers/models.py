@@ -110,7 +110,28 @@ LANGUAGE_TEXTS = [
     ("voicemail", "Voicemail message (outbound)"),
     ("silence", "When the caller is silent"),
     ("goodbye", "Goodbye"),
+    # website chat widget (CHAT-02 / CHAT-03); {name} = the team member
+    ("chat_launcher", "Chat widget: launcher button"),
+    ("chat_placeholder", "Chat widget: message box"),
+    ("chat_send", "Chat widget: send button"),
+    ("chat_human", "Chat widget: talk to a person"),
+    ("chat_callback", "Chat widget: request a callback"),
+    ("chat_enquiry", "Chat widget: send an enquiry"),
+    ("chat_book", "Chat widget: book an appointment"),
+    ("chat_waiting", "Chat widget: connecting to a person"),
+    ("chat_joined", "Chat widget: a person joined ({name})"),
+    ("chat_ai_back", "Chat widget: back with the AI"),
+    ("chat_ended", "Chat widget: chat ended"),
+    ("chat_restart", "Chat widget: start a new chat"),
+    ("chat_name", "Chat widget form: name"),
+    ("chat_phone", "Chat widget form: mobile number"),
+    ("chat_email", "Chat widget form: e-mail"),
+    ("chat_message", "Chat widget form: message"),
+    ("chat_submit", "Chat widget form: submit"),
+    ("chat_thanks", "Chat widget form: thank you"),
+    ("chat_error", "Chat widget: something went wrong"),
 ]
+CHAT_TEXT_KEYS = [k for k, _ in LANGUAGE_TEXTS if k.startswith("chat_")]
 
 
 class Language(BaseModel):

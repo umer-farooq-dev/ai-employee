@@ -13,6 +13,7 @@ MENU = [
     ("tasks", "Follow-ups", "task-list", "panel:tasks", "leads.view", None, 3),
     ("calendar", "Calendar", "calendar", "panel:calendar", "calendar.view", None, 3),
     ("calls", "Calls", "phone", "panel:calls", "calls.view", "calls", 5),
+    ("inbox", "Inbox", "chat-bubble", "panel:inbox", "conversations.view", None, 6),
     ("conversations", "Conversations", "chat-lines", "panel:conversations", "conversations.view", None, 4),
     ("campaigns", "Campaigns", "megaphone", None, "company.view", "campaigns", 6),
     ("knowledge", "Knowledge Base", "book-stack", "panel:kb", "knowledge.view", None, 4),

@@ -84,9 +84,9 @@ COMMON_HANDOFF = [
     {"trigger": "Price negotiation or discount request", "action": "Do not promise; hand over to the sales team"},
 ]
 DISCLOSURE = {
-    "en": "I am {{ employee_name }}, an AI assistant for {{ company_name }}. This call may be recorded.",
-    "hi": "मैं {{ employee_name }}, {{ company_name }} की AI सहायक हूँ। यह कॉल रिकॉर्ड हो सकती है।",
-    "bn": "আমি {{ employee_name }}, {{ company_name }}-এর একজন AI সহকারী। এই কলটি রেকর্ড করা হতে পারে।",
+    "en": "I am {{ employee_name }}, an AI assistant for {{ company_name }}.",
+    "hi": "मैं {{ employee_name }}, {{ company_name }} की AI सहायक हूँ।",
+    "bn": "আমি {{ employee_name }}, {{ company_name }}-এর একজন AI সহকারী।",
 }
 
 

@@ -1,6 +1,16 @@
 from django.urls import path
 
-from . import ai_views, calendar_views, calls_views, catalog_views, company_views, crm_views, knowledge_views, views
+from . import (
+    ai_views,
+    calendar_views,
+    calls_views,
+    catalog_views,
+    chat_views,
+    company_views,
+    crm_views,
+    knowledge_views,
+    views,
+)
 
 app_name = "panel"
 
@@ -72,6 +82,11 @@ urlpatterns = [
     path("app/calls/<uuid:pk>/", calls_views.call_detail, name="call_detail"),
     path("app/leads/<uuid:lead_pk>/call/", calls_views.call_now, name="call_now"),
     path("app/settings/calling/", calls_views.calling_settings, name="calling_settings"),
+    # Website chat and the shared inbox (Phase 6)
+    path("app/ai-employees/<uuid:pk>/website-chat/", chat_views.widget_settings, name="widget"),
+    path("app/ai-employees/<uuid:pk>/website-chat/preview/", chat_views.widget_preview, name="widget_preview"),
+    path("app/inbox/", chat_views.inbox_list, name="inbox"),
+    path("app/inbox/<uuid:pk>/", chat_views.inbox_detail, name="inbox_conversation"),
     path("app/search/", crm_views.search, name="search"),
     path("app/settings/crm/", crm_views.crm_settings, name="crm_settings"),
     path("app/settings/crm/fields/new/", crm_views.company_field, name="crm_field_create"),

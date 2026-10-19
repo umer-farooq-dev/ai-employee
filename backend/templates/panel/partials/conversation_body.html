@@ -11,9 +11,10 @@
     <div class="col-lg-7">
         <div class="card"><div class="card-header"><h4 class="card-title mb-0">Transcript</h4></div><div class="card-body bg-light rounded-bottom">
         {% for m in msgs %}
+            {% if m.role == 'system' %}{% if m.meta.notice %}<div class="text-center my-2"><span class="badge bg-white text-muted border fw-normal">{% if m.meta.notice == 'chat_joined' %}{{ m.meta.name }} took over{% elif m.meta.notice == 'chat_waiting' %}Waiting for a person{% elif m.meta.notice == 'chat_ai_back' %}Handed back to the AI{% elif m.meta.notice == 'chat_ended' %}Chat ended{% elif m.meta.notice == 'chat_thanks' %}Visitor sent the {{ m.meta.form }} form{% endif %} · {{ m.created_at|date:"H:i:s" }}</span></div>{% endif %}{% else %}
             <div class="bubble {% if m.role == 'customer' %}customer{% else %}ai{% endif %}">{{ m.content }}</div>
             <div class="meta {% if m.role == 'customer' %}right{% endif %}">
-                {{ m.get_role_display }} · {{ m.created_at|date:"H:i:s" }}{% if m.meta.model %} · {{ m.meta.provider }}/{{ m.meta.model }}{% endif %}
+                {% if m.role == 'human' and m.meta.name %}{{ m.meta.name }} (team){% else %}{{ m.get_role_display }}{% endif %} · {{ m.created_at|date:"H:i:s" }}{% if m.meta.model %} · {{ m.meta.provider }}/{{ m.meta.model }}{% endif %}
                 {% if m.meta.disclosure %} · AI disclosure{% endif %}
                 {% if m.meta.grounding_blocked %} · <span class="text-danger">blocked invented amount {{ m.meta.grounding_blocked|join:", " }}</span>{% endif %}
                 {% if m.meta.fallback %} · <span class="text-warning">fallback (facts missing)</span>{% endif %}
@@ -22,7 +23,7 @@
                 {% if m.meta.silence %} · silence prompt{% endif %}{% if m.meta.goodbye %} · goodbye{% endif %}{% if m.meta.voicemail %} · voicemail message{% endif %}{% if m.meta.no_agent %} · no agent available{% endif %}
                 {% if m.meta.handoff_trigger %} · <span class="text-primary">handoff: {{ m.meta.handoff_trigger }}</span>{% endif %}
                 {% if m.citations %}<br>Knowledge: {% for c in m.citations %}<span class="badge bg-primary-subtle text-primary">{{ c.source_title }}{% if c.title and c.title != c.source_title %} — {{ c.title|truncatechars:40 }}{% endif %}</span> {% endfor %}{% endif %}
-            </div>
+            </div>{% endif %}
         {% endfor %}
         </div></div>
     </div>

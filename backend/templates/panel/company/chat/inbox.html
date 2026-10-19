@@ -1,0 +1,211 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Inbox{% endblock title %}
+{% block page_content %}
+<style>
+    .ib-wrap{min-height:calc(100vh - 210px)}
+    .ib-list .list-group-item{border-left:3px solid transparent;padding:.7rem .9rem}
+    .ib-list .list-group-item.active{background:var(--bs-primary-bg-subtle);color:inherit;border-color:var(--bs-border-color);border-left-color:var(--bs-primary)}
+    .ib-list .pv{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .ib-tabs .nav-link{padding:.35rem .7rem;font-size:13px}
+    .ib-thread{height:calc(100vh - 380px);min-height:320px;overflow-y:auto;background:var(--bs-light);padding:16px;display:flex;flex-direction:column;gap:6px}
+    .ib-b{max-width:78%;padding:9px 13px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;line-height:1.45}
+    .ib-b.customer{background:#fff;border:1px solid var(--bs-border-color);align-self:flex-start;border-bottom-left-radius:5px}
+    .ib-b.ai{background:var(--bs-primary-bg-subtle);align-self:flex-end;border-bottom-right-radius:5px}
+    .ib-b.human{background:var(--brand-primary);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+    .ib-m{font-size:11px;color:var(--bs-secondary-color);margin-bottom:6px}
+    .ib-m.r{text-align:right}
+    .ib-n{align-self:center;font-size:12px;background:#fff;border:1px solid var(--bs-border-color);border-radius:999px;padding:3px 12px;color:var(--bs-secondary-color)}
+    @media (max-width:991.98px){.ib-thread{height:calc(100vh - 320px)}}
+</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Inbox</h4><span class="text-muted small">Live chats with your AI Employees. Take over from the AI, reply, hand back, or give a chat to a colleague.</span></div>
+</div>
+<div class="row ib-wrap">
+    <div class="col-lg-4 {% if conv %}d-none d-lg-block{% endif %}">
+        <div class="card ib-list">
+            <div class="card-body pb-2">
+                <form method="get" class="mb-2" role="search"><input type="hidden" name="view" value="{{ view }}"><label class="visually-hidden" for="ib-q">Search chats</label><input id="ib-q" class="form-control form-control-sm" type="search" name="q" value="{{ q }}" placeholder="Search name, phone or message"></form>
+                <ul class="nav nav-pills ib-tabs flex-wrap gap-1">
+                    {% for k, label, n in views %}<li class="nav-item"><a class="nav-link {% if view == k %}active{% endif %}" href="?view={{ k }}">{{ label }}{% if n %} <span class="badge {% if k == 'waiting' %}bg-danger{% elif view == k %}bg-white text-primary{% else %}bg-secondary-subtle text-secondary{% endif %} ms-1">{{ n }}</span>{% endif %}</a></li>{% endfor %}
+                </ul>
+            </div>
+            <div class="list-group list-group-flush" id="ib-rows">
+                {% for c in rows %}
+                <a class="list-group-item list-group-item-action {% if conv and conv.pk == c.pk %}active{% endif %}" href="{% url 'panel:inbox_conversation' c.pk %}?view={{ view }}">
+                    <div class="d-flex justify-content-between gap-2">
+                        <strong class="text-truncate text-body">{{ c.customer_name|default:"Website visitor" }}</strong>
+                        <span class="small text-muted text-nowrap">{{ c.last_message_at|date:"d M H:i" }}</span>
+                    </div>
+                    <div class="small text-muted pv">{% if c.last_role == 'human' or c.last_role == 'ai' %}<i class="iconoir-reply me-1"></i>{% endif %}{{ c.last_text|default:c.summary|cut:"**"|truncatechars:140 }}</div>
+                    <div class="d-flex gap-1 mt-1 flex-wrap">
+                        {% if c.status == 'ended' %}<span class="badge bg-light text-dark">Ended</span>
+                        {% elif c.handled_by == 'waiting' %}<span class="badge bg-danger">Waiting for a person</span>
+                        {% elif c.handled_by == 'human' %}<span class="badge bg-primary">{{ c.assigned_user.full_name|default:c.assigned_user.email }}</span>
+                        {% else %}<span class="badge bg-info-subtle text-info">{{ c.employee.name }} (AI)</span>{% endif %}
+                        <span class="badge bg-light text-dark">{{ c.get_channel_display }}</span>
+                        {% if c.lead.score_label %}<span class="badge {% if c.lead.score_label == 'hot' %}bg-danger-subtle text-danger{% elif c.lead.score_label == 'warm' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">{{ c.lead.score_label|upper }}</span>{% endif %}
+                    </div>
+                </a>
+                {% empty %}
+                <div class="list-group-item text-center text-muted py-5 small"><i class="iconoir-chat-bubble fs-3 d-block mb-2"></i>No chats here.{% if view == 'open' %}<br>Add the website chat to your site from an AI Employee’s page.{% endif %}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+    {% if conv %}
+        <div class="card mb-0" id="ib-conv" data-url="{% url 'api:inbox-detail' conv.pk %}">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                    <a class="btn btn-sm btn-light d-lg-none" href="{% url 'panel:inbox' %}?view={{ view }}" aria-label="Back to the list"><i class="iconoir-nav-arrow-left"></i></a>
+                    <div class="min-w-0">
+                        <h5 class="mb-0 text-truncate">{{ conv.customer_name|default:"Website visitor" }}{% if conv.lead %} <span class="small text-muted">{{ conv.lead.reference }}</span>{% endif %}</h5>
+                        <div class="small text-muted"><span id="ib-state"></span> · {{ conv.get_channel_display }} · started {{ conv.started_at|date:"d M Y H:i" }}{% if conv.customer.page %} · <span class="text-truncate" title="{{ conv.customer.page }}">{{ conv.customer.page|truncatechars:48 }}</span>{% endif %}</div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" id="ib-actions">
+                    {% if can_answer %}
+                    <button type="button" class="btn btn-sm btn-primary" data-op="take-over" hidden><i class="iconoir-user me-1"></i>Take over</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-op="hand-back" hidden><i class="iconoir-sparks me-1"></i>Hand back to AI</button>
+                    <div class="dropdown" data-when-open>
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="iconoir-user-plus me-1"></i>Assign</button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            {% for u in team %}<button class="dropdown-item" type="button" data-assign="{{ u.pk }}">{{ u.full_name|default:u.email }}{% if u.pk == request.user.pk %} (me){% endif %}</button>{% empty %}<span class="dropdown-item-text small text-muted">Nobody in your team receives handoffs yet.</span>{% endfor %}
+                            <div class="dropdown-divider"></div><button class="dropdown-item" type="button" data-assign="">Nobody</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-light text-danger" data-op="end" data-when-open data-confirm="End this chat? The summary and score are saved to the lead."><i class="iconoir-xmark-circle me-1"></i>End</button>
+                    {% endif %}
+                    {% if conv.lead %}<a class="btn btn-sm btn-light" href="{% url 'panel:lead_detail' conv.lead.pk %}">Open lead</a>{% endif %}
+                </div>
+            </div>
+            <div class="row g-0">
+                <div class="col-xl-8 border-end">
+                    <div class="ib-thread" id="ib-thread" aria-live="polite"></div>
+                    {% if can_answer %}
+                    <form class="p-3 border-top" id="ib-form" data-when-open>
+                        <div class="d-flex gap-2 align-items-end">
+                            <label class="visually-hidden" for="ib-text">Reply</label>
+                            <textarea id="ib-text" class="form-control" rows="2" placeholder="Write a reply… (Enter sends, Shift+Enter for a new line)" maxlength="2000"></textarea>
+                            <button class="btn btn-primary" id="ib-send">Send</button>
+                        </div>
+                        <div class="form-text" id="ib-hint">Sending a reply takes the chat over from the AI.</div>
+                        <div class="text-danger small d-none" id="ib-err" role="alert"></div>
+                    </form>
+                    {% endif %}
+                    <div class="p-3 border-top small text-muted d-none" id="ib-ended">This chat has ended. The summary, requirement and score are saved{% if conv.lead %} on the lead{% endif %}.</div>
+                </div>
+                <div class="col-xl-4">
+                    <div class="p-3 small">
+                        {% if handoff %}
+                        <div class="mb-3"><div class="text-muted text-uppercase fw-semibold" style="font-size:11px">Handoff</div>
+                            <div>{{ handoff.get_reason_display }} · {{ handoff.get_status_display }}</div>
+                            {% if handoff.summary %}<div class="text-muted mt-1">{{ handoff.summary }}</div>{% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:11px">Customer</div>
+                        {% if conv.lead %}
+                        <dl class="row mb-2">
+                            <dt class="col-5 fw-normal text-muted">Name</dt><dd class="col-7">{{ conv.lead.name|default:"—" }}</dd>
+                            <dt class="col-5 fw-normal text-muted">Phone</dt><dd class="col-7">{{ conv.lead.phone|default:"—" }}</dd>
+                            {% if conv.lead.email %}<dt class="col-5 fw-normal text-muted">E-mail</dt><dd class="col-7 text-break">{{ conv.lead.email }}</dd>{% endif %}
+                            <dt class="col-5 fw-normal text-muted">Status</dt><dd class="col-7">{{ conv.lead.status.label }}</dd>
+                            <dt class="col-5 fw-normal text-muted">Score</dt><dd class="col-7">{% if conv.lead.score_label %}{{ conv.lead.score_label|upper }} {{ conv.lead.score_value }}{% else %}—{% endif %}</dd>
+                            {% for k, v in conv.lead.custom.items %}{% if v %}<dt class="col-5 fw-normal text-muted">{% for fk, fl in field_labels.items %}{% if fk == k %}{{ fl }}{% endif %}{% endfor %}</dt><dd class="col-7">{{ v }}</dd>{% endif %}{% endfor %}
+                        </dl>
+                        {% else %}<p class="text-muted">No lead yet — the AI saves one when the visitor shares their details.</p>{% endif %}
+                        <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:11px">AI Employee</div>
+                        <p class="mb-2">{{ conv.employee.name }}</p>
+                        {% if conv.summary %}<div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:11px">Summary</div><p class="mb-2">{{ conv.summary }}</p>{% endif %}
+                        <a href="{% url 'panel:conversation' conv.pk %}">Full record with tool log</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card d-none d-lg-flex h-100"><div class="card-body d-flex flex-column align-items-center justify-content-center text-center text-muted py-5">
+            <i class="iconoir-chat-lines fs-1 mb-2"></i>
+            <h5 class="text-body">Choose a chat</h5>
+            <p class="small mb-0" style="max-width:360px">Chats waiting for a person are marked red. Keep your status Online (top bar) to receive new handoffs.</p>
+        </div></div>
+    {% endif %}
+    </div>
+</div>
+{% if conv %}
+<script>
+(function () {
+    "use strict";
+    var box = document.getElementById("ib-conv"), URL_ = box.dataset.url, TOKEN = "{{ csrf_token }}", ME = "{{ request.user.pk }}";
+    var TZ = "{{ timezone|escapejs }}", thread = document.getElementById("ib-thread"), last = "", state = {}, POLL = {{ poll_seconds|default:4 }} * 1000;
+    var NOTICES = {chat_waiting: "Waiting for a person", chat_joined: "{name} took over", chat_ai_back: "Handed back to the AI", chat_ended: "Chat ended", chat_thanks: "Visitor sent the contact form"};
+    var STATES = {ai: "{{ conv.employee.name|escapejs }} (AI) is answering", waiting: "Waiting for a person", human: "Answered by "};
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function time(iso) {  // the company's timezone, like the rest of the panel
+        try { return new Date(iso).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit", timeZone: TZ}); }
+        catch (e) { return new Date(iso).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}); }
+    }
+    function req(method, url, body) {
+        return fetch(url, {method: method, credentials: "same-origin", headers: {"X-CSRFToken": TOKEN, "Content-Type": "application/json", "Accept": "application/json"}, body: body ? JSON.stringify(body) : undefined})
+            .then(function (r) { return r.json().then(function (d) { return r.ok ? d : Promise.reject(d); }); });
+    }
+    function add(m) {
+        if (m.role === "system") {
+            if (!NOTICES[m.notice]) return;
+            var n = document.createElement("div"); n.className = "ib-n"; n.textContent = NOTICES[m.notice].replace("{name}", m.name || "");
+            thread.appendChild(n); return;
+        }
+        var b = document.createElement("div"); b.className = "ib-b " + m.role;
+        b.innerHTML = esc(m.text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");  // the AI's light formatting
+        var meta = document.createElement("div"); meta.className = "ib-m" + (m.role === "customer" ? "" : " r");
+        meta.textContent = (m.role === "customer" ? "Visitor" : m.role === "ai" ? "{{ conv.employee.name|escapejs }} (AI)" : (m.name || "Team")) + " · " + time(m.at);
+        thread.appendChild(b); thread.appendChild(meta);
+    }
+    function paint(d) {
+        var bottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 60;
+        (d.messages || []).forEach(function (m) { add(m); last = m.id; });
+        if (bottom || !state.status) thread.scrollTop = thread.scrollHeight;
+        state = d;
+        var open = d.status === "active", mine = d.handled_by === "human" && String(d.assigned_user) === ME;
+        document.getElementById("ib-state").textContent = open ? (STATES[d.handled_by] + (d.handled_by === "human" ? d.assigned_name : "")) : "Ended";
+        box.querySelectorAll("[data-when-open]").forEach(function (el) { el.classList.toggle("d-none", !open); });
+        var t = box.querySelector("[data-op=take-over]"), h = box.querySelector("[data-op=hand-back]");
+        if (t) t.hidden = !open || mine;
+        if (h) h.hidden = !open || d.handled_by !== "human";
+        var hint = document.getElementById("ib-hint");
+        if (hint) hint.textContent = mine ? "You are answering. The AI is paused until you hand the chat back." : "Sending a reply takes the chat over from the AI.";
+        document.getElementById("ib-ended").classList.toggle("d-none", open);
+    }
+    function err(e) {
+        var el = document.getElementById("ib-err"); if (!el) return;
+        var x = (e && e.error) || {}; el.textContent = (Array.isArray(x.details) && x.details[0]) || x.message || "Something went wrong.";
+        el.classList.remove("d-none");
+    }
+    function refresh() { return req("GET", URL_ + "?after=" + encodeURIComponent(last)).then(paint); }
+    function op(name, body) {
+        body = body || {}; body.after = last;
+        document.getElementById("ib-err") && document.getElementById("ib-err").classList.add("d-none");
+        return req("POST", URL_ + name + "/", body).then(paint, err);
+    }
+    box.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-op]");
+        if (b) { if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; op(b.dataset.op); }
+        var a = e.target.closest("[data-assign]");
+        if (a) op("assign", {user: a.dataset.assign});
+    });
+    var form = document.getElementById("ib-form");
+    if (form) {
+        var text = document.getElementById("ib-text");
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var v = text.value.trim(); if (!v) return;
+            document.getElementById("ib-send").disabled = true;
+            op("reply", {text: v}).then(function () { text.value = ""; }).finally(function () { document.getElementById("ib-send").disabled = false; text.focus(); });
+        });
+        text.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+    }
+    refresh();
+    setInterval(function () { if (!document.hidden && state.status !== "ended") refresh().catch(function () {}); }, POLL);
+})();
+</script>
+{% endif %}
+{% endblock page_content %}

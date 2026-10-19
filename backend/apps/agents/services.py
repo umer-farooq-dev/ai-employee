@@ -354,8 +354,9 @@ def mark_tested(employee, user=None, request=None):
 
 
 def readiness(employee):
-    """EMP-11 checklist. Channels: phone now; WhatsApp and website chat join in Phase 6."""
+    """EMP-11 checklist. Channels: a connected phone number or the website chat (WhatsApp joins with its part)."""
     from apps.knowledge.services import usable_chunks
+    from apps.webchat.models import ChatWidget
 
     company = employee.company
     used = AIEmployee.objects.filter(company=company, status=AIEmployee.ACTIVE).exclude(pk=employee.pk).count()
@@ -388,9 +389,10 @@ def readiness(employee):
         {
             "key": "channel",
             "label": "Channel connected (phone, WhatsApp or website chat)",
-            "ok": employee.phone_numbers.filter(status="active").exists(),
+            "ok": employee.phone_numbers.filter(status="active").exists()
+            or ChatWidget.objects.filter(employee=employee, is_enabled=True).exclude(allowed_domains=[]).exists(),
             "required": False,
-            "help": "Connect a phone number in step 7 (Tools). WhatsApp and the website chat widget are coming soon.",
+            "help": "Connect a phone number or set up the website chat in step 7 (Tools).",
         },
     ]
 

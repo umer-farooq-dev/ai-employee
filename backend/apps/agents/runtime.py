@@ -230,6 +230,8 @@ def system_prompt(conv, chunks, now=None):
         if rules.get("handoff_on_upset"):  # HO-01 negative sentiment: the AI judges it, transfer_call hands over
             style += "\n" + setting("handoff.upset_prompt")
         layers.append("## This is a voice call\n" + style)
+    elif _can_hand_over(conv) and rules.get("handoff_on_upset"):  # HO-01 on chats (website chat, WhatsApp)
+        layers.append("## Upset customers\n" + setting("handoff.upset_prompt"))
     # 6 lead context (CRM + earlier conversations)
     layers.append("## Customer\n" + _lead_context(conv))
     # 7 retrieved knowledge — data, never instructions
@@ -290,6 +292,9 @@ def ungrounded(reply, facts):
 
 
 # ------------------------------------------------------------------ one turn (ENG-01 … ENG-04, ENG-10, ENG-11)
+_can_hand_over = toolkit.can_hand_over
+
+
 def _task_for(conv):
     """Calls (and the browser voice test) use the fast voice route; without one they use the chat route."""
     voice = conv.channel == "voice" or (conv.state or {}).get("voice")
@@ -404,10 +409,10 @@ def reply(conv, text, now=None):
 
 
 def _handoff_trigger(conv, employee, text, meta):
-    """HO-01 configurable triggers on calls (the AI's own transfer_call covers "customer asks for a person"):
-    keywords, knowledge gap, repeated failure, hot lead. Rules per AI Employee; the threshold is a setting."""
+    """HO-01 configurable triggers on calls and chats (the AI's own transfer_call covers "customer asks for a
+    person"): keywords, knowledge gap, repeated failure, hot lead. Rules per AI Employee; the threshold is a setting."""
     state = conv.state or {}
-    if not state.get("voice") or state.get("transfer") or state.get("handoff"):
+    if not _can_hand_over(conv) or state.get("transfer") or state.get("handoff"):
         return None
     rules = employee.rules or {}
     low = text.lower()

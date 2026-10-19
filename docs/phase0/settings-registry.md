@@ -122,9 +122,13 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `handoff.agent_ring_seconds` / `handoff.max_agents` | number | 25 / 3 | HO-02 routing |
 | `handoff.repeat_failures` / `handoff.callback_minutes` | number | 2 / 30 | HO-01 trigger, HO-04 callback task |
 | `handoff.upset_prompt` | textarea | "If the customer is clearly angry…" | HO-01 negative-sentiment trigger (added on calls when the employee's rule is on) |
+| `chat.require_allowed_domains` | boolean | on | CHAT-05: the widget opens only on the company's listed websites |
+| `chat.rate_sessions` / `chat.rate_messages` | text | 20/hour per IP / 20/minute per chat | CHAT-05 rate limits |
+| `chat.bot_min_seconds` | number | 2 | CHAT-05: a first message faster than this is refused (bot protection) |
+| `chat.poll_seconds` | number | 4 | widget and inbox check for new messages |
 | `whatsapp.opt_out_keywords` | list | STOP, UNSUBSCRIBE, BAND KARO | Phase 6 |
 
-Per-language phrases — AI disclosure, recording announcement, default greeting, fillers, transfer, no agent, voicemail, silence, goodbye — live on each language in **Languages & Voices** (a new language brings all its texts with it).
+Per-language phrases — AI disclosure, recording announcement, default greeting, fillers, transfer, no agent, voicemail, silence, goodbye, and every text of the website chat widget (button, message box, quick actions, "connecting you", form labels) — live on each language in **Languages & Voices** (a new language brings all its texts with it).
 
 ## F. AI — Phase 4 · screen: Super Admin → System Settings → AI / Knowledge base (providers: AI Settings)
 

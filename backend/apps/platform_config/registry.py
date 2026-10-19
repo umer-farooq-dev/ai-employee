@@ -38,6 +38,7 @@ GROUPS = {
     "calling": ("system", "Calling"),
     "voice": ("system", "Voice conversations"),
     "handoff": ("system", "Human handoff"),
+    "chat": ("system", "Website chat"),
     "retention": ("system", "Data retention"),
 }
 
@@ -554,6 +555,43 @@ SETTINGS = [
         "handoff",
         min=0,
         max=10080,
+    ),
+    # Website chat widget (CHAT-05 security, CHAT-06 takeover, CHAT-07)
+    Setting(
+        "chat.require_allowed_domains",
+        "boolean",
+        True,
+        "Show the widget only on the company's allowed websites",
+        "chat",
+        help="Each company lists its website domains on the widget page. Off = any website may show a widget.",
+    ),
+    Setting(
+        "chat.rate_sessions",
+        "text",
+        "20/hour",
+        "New chats per visitor IP (rate)",
+        "chat",
+        help="Format: number/second|minute|hour|day",
+    ),
+    Setting("chat.rate_messages", "text", "20/minute", "Messages per chat (rate)", "chat"),
+    Setting(
+        "chat.bot_min_seconds",
+        "number",
+        2,
+        "Ignore a first message sent faster than (seconds after opening)",
+        "chat",
+        help="Bot protection: people need a moment to type. 0 = off.",
+        min=0,
+        max=30,
+    ),
+    Setting(
+        "chat.poll_seconds",
+        "number",
+        4,
+        "Widget and inbox check for new messages every (seconds)",
+        "chat",
+        min=2,
+        max=60,
     ),
     # D. Retention (REC-03, COMP-06). Companies may choose shorter.
     Setting("retention.recordings_days", "number", 90, "Keep call recordings (days)", "retention", min=1, max=3650),

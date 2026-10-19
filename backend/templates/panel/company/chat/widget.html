@@ -1,0 +1,111 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Website chat · {{ employee.name }}{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Website chat</h4><span class="text-muted small">A “Chat with our AI Employee” button for your website. Visitors chat with {{ employee.name }}; your team can take over from the inbox.</span></div>
+    <div class="d-flex gap-2"><a class="btn btn-sm btn-light" href="{% url 'panel:ai_detail' employee.pk %}">Back to {{ employee.name }}</a><a class="btn btn-sm btn-outline-primary" href="{% url 'panel:widget_preview' employee.pk %}" target="_blank" rel="noopener"><i class="iconoir-open-new-window me-1"></i>Preview</a></div>
+</div>
+{% if employee.status != 'active' %}<div class="alert alert-warning small"><i class="iconoir-warning-triangle me-1"></i>{{ employee.name }} is {{ employee.get_status_display|lower }}. The chat button appears on your website once the AI Employee is active. <a href="{% url 'panel:ai_step' employee.pk 'activate' %}">Activate</a></div>{% endif %}
+<div class="row">
+    <div class="col-xl-7">
+        <form method="post" enctype="multipart/form-data" class="card">{% csrf_token %}
+            <div class="card-header d-flex justify-content-between align-items-center"><h4 class="card-title mb-0">Appearance &amp; behaviour</h4>
+                <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="w-on" name="is_enabled" {% if widget.is_enabled %}checked{% endif %} {% if not can_manage %}disabled{% endif %}><label class="form-check-label small" for="w-on">Chat switched on</label></div>
+            </div>
+            <fieldset class="card-body" {% if not can_manage %}disabled{% endif %}>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label small" for="w-title">Name in the chat header</label><input id="w-title" class="form-control form-control-sm" name="title" maxlength="80" value="{{ widget.title }}" placeholder="{{ employee.name }}"></div>
+                    <div class="col-md-6"><label class="form-label small" for="w-sub">Line under the name</label><input id="w-sub" class="form-control form-control-sm" name="subtitle" maxlength="120" value="{{ widget.subtitle }}" placeholder="{{ request.company.name }}"></div>
+                    <div class="col-md-6">
+                        <label class="form-label small" for="w-av">Avatar</label>
+                        <div class="d-flex align-items-center gap-2">
+                            {% with av=widget.avatar|default:employee.avatar %}{% if av %}<img src="{{ av }}" alt="" width="40" height="40" class="rounded-circle object-fit-cover border">{% else %}<span class="avatar-sm rounded-circle bg-light d-inline-flex align-items-center justify-content-center"><i class="iconoir-chat-bubble"></i></span>{% endif %}{% endwith %}
+                            <input id="w-av" type="file" accept="image/png,image/jpeg,image/webp" class="form-control form-control-sm" name="avatar">
+                        </div>
+                        <div class="form-text">Empty = {{ employee.name }}’s picture.{% if widget.avatar %} <label class="ms-1"><input type="checkbox" name="remove_avatar" class="form-check-input me-1">Use it again</label>{% endif %}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small" for="w-color">Colour</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input class="form-check-input mt-0" type="checkbox" id="w-own" name="own_color" {% if widget.color %}checked{% endif %} aria-label="Use my own colour">
+                            <input id="w-color" type="color" class="form-control form-control-color form-control-sm" name="color" value="{{ widget.color|default:platform_color }}" title="Chat colour">
+                            <label class="small text-muted" for="w-own">Own colour (else the platform colour)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6"><span class="form-label small d-block">Button position</span>
+                        {% for k, label in widget.POSITIONS %}<div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="position" id="w-pos-{{ k }}" value="{{ k }}" {% if widget.position == k %}checked{% endif %}><label class="form-check-label small" for="w-pos-{{ k }}">{{ label }}</label></div>{% endfor %}
+                    </div>
+                    <div class="col-md-6"><label class="form-label small" for="w-lang">Opening language</label>
+                        <select id="w-lang" class="form-select form-select-sm" name="language"><option value="">{{ employee.name }}’s main language</option>{% for l in languages %}<option value="{{ l.code }}" {% if widget.language == l.code %}selected{% endif %}>{{ l.name }}</option>{% endfor %}</select>
+                        <div class="form-text">Visitors can switch to any language {{ employee.name }} speaks.</div>
+                    </div>
+                </div>
+                <hr>
+                <h6 class="mb-2">Texts per language</h6>
+                <p class="small text-muted">Empty fields use the defaults shown in grey. The AI disclosure is always said first.</p>
+                {% for l in languages %}
+                <div class="row g-2 mb-2">
+                    <div class="col-md-3 small fw-medium pt-md-2">{{ l.name }}</div>
+                    <div class="col-md-4"><label class="visually-hidden" for="w-l-{{ l.code }}">Button text ({{ l.name }})</label><input id="w-l-{{ l.code }}" class="form-control form-control-sm" name="launcher_{{ l.code }}" maxlength="60" value="{{ l.launcher }}" placeholder="{{ l.launcher_default }}"></div>
+                    <div class="col-md-5"><label class="visually-hidden" for="w-g-{{ l.code }}">Greeting ({{ l.name }})</label><textarea id="w-g-{{ l.code }}" class="form-control form-control-sm" rows="1" name="greeting_{{ l.code }}" placeholder="{{ l.greeting_default }}">{{ l.greeting }}</textarea></div>
+                </div>
+                {% endfor %}
+                <div class="row g-2 small text-muted"><div class="col-md-3"></div><div class="col-md-4">Button text</div><div class="col-md-5">Greeting</div></div>
+                <hr>
+                <h6 class="mb-2">What visitors can do</h6>
+                <p class="small text-muted mb-2">Shown as quick buttons. Questions and approved information are always answered by {{ employee.name }}.</p>
+                <div class="row g-2">
+                {% for k, label, on in actions %}<div class="col-sm-6"><div class="form-check"><input class="form-check-input" type="checkbox" id="w-a-{{ k }}" name="action_{{ k }}" {% if on %}checked{% endif %}><label class="form-check-label small" for="w-a-{{ k }}">{{ label }}</label></div></div>{% endfor %}
+                </div>
+                <hr>
+                <h6 class="mb-1">Your websites</h6>
+                <label class="form-label small text-muted" for="w-dom">The chat only opens on these websites (one per line, e.g. example.com — sub-domains included).</label>
+                <textarea id="w-dom" class="form-control form-control-sm font-monospace" rows="3" name="allowed_domains" placeholder="example.com">{{ widget.allowed_domains|join:"&#10;" }}</textarea>
+                {% if not widget.allowed_domains and require_domains %}<div class="form-text text-warning"><i class="iconoir-warning-circle me-1"></i>Add your website, otherwise the chat will not open there.</div>{% endif %}
+            </fieldset>
+            {% if can_manage %}<div class="card-footer"><button class="btn btn-primary">Save website chat</button></div>{% endif %}
+        </form>
+    </div>
+    <div class="col-xl-5">
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Add it to your website</h4></div>
+            <div class="card-body">
+                <ol class="small ps-3 mb-3">
+                    <li>Copy this code.</li>
+                    <li>Paste it into your website just before <code>&lt;/body&gt;</code> (on every page, or in the site template).</li>
+                    <li>Add the website above under “Your websites”.</li>
+                </ol>
+                <label class="visually-hidden" for="w-snip">Embed code</label>
+                <textarea id="w-snip" class="form-control font-monospace small mb-2" rows="3" readonly>{{ snippet }}</textarea>
+                <button type="button" class="btn btn-sm btn-primary" id="w-copy"><i class="iconoir-copy me-1"></i>Copy code</button>
+                <span class="small text-success ms-2 d-none" id="w-copied" role="status">Copied</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h4 class="card-title mb-0">Where chats go</h4></div>
+            <div class="card-body small">
+                <p class="mb-2">Every chat creates or updates a lead (source: Website Chat) with the summary, requirement and score when it ends.</p>
+                <p class="mb-2">When a visitor asks for a person, an online team member who receives handoffs gets a pop-up and an e-mail and can take over in the <a href="{% url 'panel:inbox' %}">Inbox</a>.</p>
+                <p class="mb-0 text-muted">Hand-over rules (keywords, hot lead, upset customer) are in <a href="{% url 'panel:ai_step' employee.pk 'rules' %}">{{ employee.name }} → Rules</a>.</p>
+            </div>
+        </div>
+        {% if can_manage %}
+        <form method="post" class="card border-danger-subtle" onsubmit="return confirm('The chat stops working on websites that use the old code until you paste the new code. Continue?');">{% csrf_token %}<input type="hidden" name="op" value="regenerate">
+            <div class="card-body small d-flex justify-content-between align-items-center gap-2">
+                <span>Code copied somewhere it should not be? Create a new key.</span>
+                <button class="btn btn-sm btn-outline-danger text-nowrap">New key</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+<script>
+document.getElementById("w-copy").addEventListener("click", function () {
+    var t = document.getElementById("w-snip");
+    t.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.resolve(document.execCommand("copy"))).then(function () {
+        document.getElementById("w-copied").classList.remove("d-none");
+    });
+});
+</script>
+{% endblock page_content %}
