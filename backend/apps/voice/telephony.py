@@ -14,7 +14,7 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
-from xml.sax.saxutils import escape, quoteattr
+from xml.sax.saxutils import escape, quoteattr  # nosec B406 — builds XML, never parses it
 
 from apps.providers.adapters import ProviderError, _request
 

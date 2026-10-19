@@ -9,7 +9,7 @@ Status callbacks are de-duplicated (providers retry).
 
 import hmac
 import logging
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape  # nosec B406 — builds XML, never parses it
 
 from django.conf import settings
 from django.db import IntegrityError, transaction

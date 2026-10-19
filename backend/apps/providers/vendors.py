@@ -15,44 +15,64 @@ from .adapters import ProviderError, _request
 VENDORS = {
     "sarvam": {
         "label": "Sarvam AI",
-        "secret": "API subscription key",
+        "secret": "API subscription key",  # nosec B105 — field label, not a secret
         "config": [],
         "base_url": "https://api.sarvam.ai",
     },
-    "deepgram": {"label": "Deepgram", "secret": "API key", "config": [], "base_url": "https://api.deepgram.com"},
-    "elevenlabs": {"label": "ElevenLabs", "secret": "API key", "config": [], "base_url": "https://api.elevenlabs.io"},
-    "cartesia": {"label": "Cartesia", "secret": "API key", "config": [], "base_url": "https://api.cartesia.ai"},
-    "openai": {"label": "OpenAI", "secret": "API key", "config": [], "base_url": "https://api.openai.com/v1"},
+    "deepgram": {
+        "label": "Deepgram",
+        "secret": "API key",
+        "config": [],
+        "base_url": "https://api.deepgram.com",
+    },  # nosec B105 — field label, not a secret
+    "elevenlabs": {
+        "label": "ElevenLabs",
+        "secret": "API key",
+        "config": [],
+        "base_url": "https://api.elevenlabs.io",
+    },  # nosec B105 — field label, not a secret
+    "cartesia": {
+        "label": "Cartesia",
+        "secret": "API key",
+        "config": [],
+        "base_url": "https://api.cartesia.ai",
+    },  # nosec B105 — field label, not a secret
+    "openai": {
+        "label": "OpenAI",
+        "secret": "API key",
+        "config": [],
+        "base_url": "https://api.openai.com/v1",
+    },  # nosec B105 — field label, not a secret
     "google": {
         "label": "Google Cloud Speech",
-        "secret": "Service account JSON",
-        "secret_multiline": True,
+        "secret": "Service account JSON",  # nosec B105 — field label, not a secret
+        "secret_multiline": True,  # nosec B105 — field label, not a secret
         "config": [],
         "base_url": "https://texttospeech.googleapis.com",
     },
     "azure": {
         "label": "Azure AI Speech",
-        "secret": "Speech resource key",
+        "secret": "Speech resource key",  # nosec B105 — field label, not a secret
         "config": [("region", "Region", "centralindia", True)],
         "base_url": "https://centralindia.tts.speech.microsoft.com",
     },
     "whisper_local": {
         "label": "Whisper (runs in the Voice Gateway)",
-        "secret": "",
+        "secret": "",  # nosec B105 — field label, not a secret
         "config": [],
         "base_url": "http://localhost",
         "local": True,
     },
     "kokoro_local": {
         "label": "Kokoro (runs in the Voice Gateway)",
-        "secret": "",
+        "secret": "",  # nosec B105 — field label, not a secret
         "config": [],
         "base_url": "http://localhost",
         "local": True,
     },
     "exotel": {
         "label": "Exotel",
-        "secret": "API token",
+        "secret": "API token",  # nosec B105 — field label, not a secret
         "config": [
             ("account_sid", "Account SID", "", True),
             ("api_key", "API key (username)", "", True),
@@ -63,13 +83,13 @@ VENDORS = {
     },
     "plivo": {
         "label": "Plivo",
-        "secret": "Auth token",
+        "secret": "Auth token",  # nosec B105 — field label, not a secret
         "config": [("auth_id", "Auth ID", "", True)],
         "base_url": "https://api.plivo.com",
     },
     "twilio": {
         "label": "Twilio",
-        "secret": "Auth token",
+        "secret": "Auth token",  # nosec B105 — field label, not a secret
         "config": [("account_sid", "Account SID", "AC…", True)],
         "base_url": "https://api.twilio.com",
     },
