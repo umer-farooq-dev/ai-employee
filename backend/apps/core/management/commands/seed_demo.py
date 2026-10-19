@@ -14,6 +14,8 @@ from django.utils import timezone
 
 from apps.providers.services import production
 
+rng = random.Random()  # nosec B311 — demo data only, not security related
+
 FIRST = [
     "Rohit",
     "Priya",
@@ -91,7 +93,7 @@ class Command(BaseCommand):
             )
         if not company:
             raise CommandError(f"No company {options['company']!r}.")
-        random.seed(7)
+        rng.seed(7)
         with company_context(company.id):
             from apps.crm.models import Lead
 
@@ -138,17 +140,17 @@ class Command(BaseCommand):
             name = f"{FIRST[i % len(FIRST)]} {LAST[i % len(LAST)]}"
             data = {
                 "name": name,
-                "phone": f"+9198{random.randint(10000000, 99999999)}",
+                "phone": f"+9198{rng.randint(10000000, 99999999)}",
                 "email": f"{name.split()[0].lower()}.{name.split()[1].lower()}{i}@example.com",
-                "source": random.choice(["inbound_call", "website_chat", "whatsapp", "manual", "import"]),
+                "source": rng.choice(["inbound_call", "website_chat", "whatsapp", "manual", "import"]),
                 "tags": ["demo"],
                 "custom": {
-                    "budget": random.choice(["45 lakh", "65 lakh", "85 lakh", "1.2 crore", "2 crore"]),
-                    "location": random.choice(CITIES),
-                    "bhk": random.choice(["1 BHK", "2 BHK", "3 BHK", "4 BHK"]),
-                    "property_type": random.choice(["Apartment", "Apartment", "Villa", "Plot"]),
-                    "purpose": random.choice(["Self use", "Investment"]),
-                    "timeline": random.choice(["Within 30 days", "1-3 months", "3-6 months", "Just exploring"]),
+                    "budget": rng.choice(["45 lakh", "65 lakh", "85 lakh", "1.2 crore", "2 crore"]),
+                    "location": rng.choice(CITIES),
+                    "bhk": rng.choice(["1 BHK", "2 BHK", "3 BHK", "4 BHK"]),
+                    "property_type": rng.choice(["Apartment", "Apartment", "Villa", "Plot"]),
+                    "purpose": rng.choice(["Self use", "Investment"]),
+                    "timeline": rng.choice(["Within 30 days", "1-3 months", "3-6 months", "Just exploring"]),
                 },
             }
             if key in statuses:
@@ -159,7 +161,7 @@ class Command(BaseCommand):
                 self.stderr.write(f"lead skipped: {exc}")
                 continue
             if i % 3 == 0:
-                crm.add_note(lead, random.choice(NOTES))
+                crm.add_note(lead, rng.choice(NOTES))
             Lead.objects.filter(pk=lead.pk).update(created_at=now - datetime.timedelta(days=i % 19, hours=i))
             leads.append(lead)
         self.stdout.write(f"  {len(leads)} leads")
