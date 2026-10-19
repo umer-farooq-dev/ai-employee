@@ -59,6 +59,10 @@ def clean(key, value):
                     ipaddress.ip_network(item, strict=False)
                 except ValueError:
                     raise ValidationError(f"{s.label}: {item!r} is not a valid IP or CIDR range.") from None
+        if key == "calendar.reminder_hours":
+            from apps.scheduling.notices import clean_hours
+
+            items = clean_hours(items, get("calendar.reminder_max_hours"))
         return items
     if s.type == "translations":
         if not isinstance(value, dict):

@@ -15,8 +15,9 @@ from rest_framework.views import APIView
 from apps.crm import services as crm
 from apps.industries import services as templates
 from apps.industries.models import Holiday
+from apps.scheduling import notices
 from apps.scheduling import services as calendar
-from apps.scheduling.models import Appointment, Resource
+from apps.scheduling.models import Appointment, AppointmentNotice, Resource
 
 from .base import TenantContextMixin, perm
 from .views_templates import AppointmentTypeSerializer
@@ -49,8 +50,18 @@ class ResourceSerializer(serializers.ModelSerializer):
         ]
 
 
+class NoticeSerializer(serializers.ModelSerializer):
+    delivery = serializers.CharField(source="wa_message.status", default="", read_only=True)
+
+    class Meta:
+        model = AppointmentNotice
+        fields = ["kind", "channel", "recipient", "status", "detail", "offset_minutes", "for_start", "delivery"]
+        read_only_fields = fields
+
+
 class AppointmentSerializer(serializers.ModelSerializer):
     reference = serializers.CharField(read_only=True)
+    notices = NoticeSerializer(many=True, read_only=True)
     type = serializers.CharField(source="appointment_type.key", read_only=True)
     type_name = serializers.CharField(source="appointment_type.name", read_only=True)
 
@@ -74,6 +85,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_by_type",
             "channel",
             "created_at",
+            "notices",
         ]
         read_only_fields = fields
 
@@ -149,7 +161,7 @@ class AppointmentViewSet(TenantContextMixin, mixins.ListModelMixin, mixins.Retri
         return [permissions.IsAuthenticated(), perm(key)()]
 
     def get_queryset(self):
-        qs = Appointment.objects.select_related("appointment_type")
+        qs = Appointment.objects.select_related("appointment_type").prefetch_related("notices__wa_message")
         p = self.request.query_params
         if parse_datetime(p.get("from") or ""):
             qs = qs.filter(ends_at__gt=parse_datetime(p["from"]))
@@ -207,6 +219,36 @@ class AppointmentViewSet(TenantContextMixin, mixins.ListModelMixin, mixins.Retri
             request._request,
         )
         return Response(AppointmentSerializer(appt).data)
+
+    @extend_schema(request=None, responses=NoticeSerializer(many=True))
+    @action(detail=True, methods=["post"])
+    def resend(self, request, pk=None):
+        """Send the customer confirmation again on the channels switched on (CAL-07)."""
+        notes = _errors(notices.resend, self.get_object(), request.user, request._request)
+        return Response(NoticeSerializer(notes, many=True).data)
+
+
+class MessagesSettingsView(TenantContextMixin, APIView):
+    """CAL-07 / CAL-10: GET the effective confirmations, reminders and team alerts; PATCH any of confirm_whatsapp,
+    confirm_email, cancel_notice, reminder_hours (list of hours), reminder_whatsapp, reminder_email, notify_staff —
+    or {"use_platform": true} for the platform defaults."""
+
+    def get_permissions(self):
+        key = "calendar.view" if self.request.method in permissions.SAFE_METHODS else "calendar.configure"
+        return [permissions.IsAuthenticated(), perm(key)()]
+
+    def _out(self, rules):
+        own = bool((self.request.company.settings or {}).get("appointments"))
+        return {**rules, "uses_platform_defaults": not own}
+
+    @extend_schema(responses=dict)
+    def get(self, request):
+        return Response(self._out(notices.policy(request.company)))
+
+    @extend_schema(request=dict, responses=dict)
+    def patch(self, request):
+        rules = _errors(notices.save_policy, request.company, request.data, request.user, request._request)
+        return Response(self._out(rules))
 
 
 class CalendarConfigView(TenantContextMixin, APIView):

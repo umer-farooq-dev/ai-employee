@@ -16,6 +16,7 @@ from apps.industries import services as templates
 from apps.industries.models import Holiday
 from apps.platform_config import services as config
 
+from . import notices
 from .models import Appointment, AppointmentCounter, AvailabilityException, Resource
 
 WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -208,7 +209,9 @@ def book(
     notes="",
     assigned_user=None,
     request=None,
+    notify=True,
 ):
+    """notify=False for test conversations: nothing is sent to the customer or the team."""
     appt_type = _type(company, appt_type)
     if resource.company_id != company.id or (lead and lead.company_id != company.id):
         raise ValidationError("Not found.")
@@ -231,6 +234,7 @@ def book(
         created_by_type=created_by_type,
         created_by=user if user and user.is_authenticated else None,
         channel=channel,
+        time_set_at=timezone.now(),
     )
     if lead:
         from apps.crm import services as crm
@@ -245,11 +249,13 @@ def book(
         )
         crm.apply_event(lead, "appointment_booked", user, actor_type=created_by_type)
     record(request, "appointment.book", "appointment", appt.id, company=company)
+    if notify:
+        notices.changed(appt, "booked", user)
     return appt
 
 
 @transaction.atomic
-def reschedule(appt, start, user=None, request=None):
+def reschedule(appt, start, user=None, request=None, notify=True):
     if appt.status not in Appointment.ACTIVE:
         raise ValidationError("Only upcoming appointments can be rescheduled.")
     resource = Resource.all_companies.select_for_update().get(pk=appt.resource_id)
@@ -257,8 +263,8 @@ def reschedule(appt, start, user=None, request=None):
         start = start.replace(tzinfo=tz_for(resource))
     old = appt.starts_at
     appt.ends_at = check_slot(resource, appt.appointment_type, start, exclude=appt)
-    appt.starts_at, appt.status = start, Appointment.RESCHEDULED
-    appt.save(update_fields=["starts_at", "ends_at", "status", "updated_at"])
+    appt.starts_at, appt.status, appt.time_set_at = start, Appointment.RESCHEDULED, timezone.now()
+    appt.save(update_fields=["starts_at", "ends_at", "status", "time_set_at", "updated_at"])
     if appt.lead_id:
         from apps.crm import services as crm
 
@@ -270,14 +276,17 @@ def reschedule(appt, start, user=None, request=None):
             user,
         )
     record(request, "appointment.reschedule", "appointment", appt.id, company=appt.company)
+    if notify:
+        notices.changed(appt, "rescheduled", user, old_start=old)
     return appt
 
 
-def set_status(appt, status, reason="", user=None, request=None):
+def set_status(appt, status, reason="", user=None, request=None, notify=True):
     if status not in dict(Appointment.STATUSES) or status == Appointment.RESCHEDULED:
         raise ValidationError("Unknown status.")
     if status == Appointment.CANCELLED and not (reason or "").strip():
         raise ValidationError("Give a reason for cancelling.")
+    was_active = appt.status in Appointment.ACTIVE
     appt.status = status
     appt.cancel_reason = (reason or "")[:255] if status == Appointment.CANCELLED else appt.cancel_reason
     appt.save(update_fields=["status", "cancel_reason", "updated_at"])
@@ -291,6 +300,8 @@ def set_status(appt, status, reason="", user=None, request=None):
             user,
         )
     record(request, f"appointment.{status}", "appointment", appt.id, company=appt.company)
+    if notify and status == Appointment.CANCELLED and was_active:
+        notices.changed(appt, "cancelled", user)
     return appt
 
 

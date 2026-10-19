@@ -14,7 +14,8 @@
     <div class="d-flex flex-wrap gap-2">
         <form method="get"><select name="resource" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Calendar">
             <option value="">All calendars</option>{% for r in resources %}<option value="{{ r.pk }}" {% if resource_id == r.pk|stringformat:'s' %}selected{% endif %}>{{ r.name }}</option>{% endfor %}</select></form>
-        {% if can_configure %}<a class="btn btn-sm btn-light" href="{% url 'panel:calendar_resources' %}">Calendars &amp; availability</a>{% endif %}
+        {% if can_configure %}<a class="btn btn-sm btn-light" href="{% url 'panel:calendar_resources' %}">Calendars &amp; availability</a>
+        <a class="btn btn-sm btn-light" href="{% url 'panel:calendar_messages' %}"><i class="iconoir-bell"></i> Confirmations &amp; reminders</a>{% endif %}
         {% if can_book %}<a class="btn btn-sm btn-primary" href="{% url 'panel:calendar_book' %}{% if resource_id %}?resource={{ resource_id }}{% endif %}"><i class="iconoir-plus"></i> Book appointment</a>{% endif %}
     </div>
 </div>

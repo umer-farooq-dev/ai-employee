@@ -1,0 +1,43 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Confirmations &amp; reminders{% endblock title %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Confirmations &amp; reminders</h4>
+        <span class="text-muted small">What customers and your team receive when an appointment is booked, moved or cancelled — by the AI Employee, the team or the API.</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'panel:calendar' %}">Back to calendar</a>
+</div>
+<div class="alert {% if own %}alert-light border{% else %}alert-info{% endif %} small d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span>{% if own %}Your company uses its own choices below.{% else %}You are using the platform defaults. Saving this page keeps your own choices.{% endif %}</span>
+    {% if own %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="reset"><button class="btn btn-sm btn-outline-secondary">Use platform defaults</button></form>{% endif %}
+</div>
+<form method="post">{% csrf_token %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">To the customer when booked or moved</h5></div><div class="card-body">
+            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="m-cw" name="confirm_whatsapp" {% if rules.confirm_whatsapp %}checked{% endif %}><label class="form-check-label" for="m-cw">WhatsApp confirmation</label>
+                {% if not wa_ready.confirmation %}<div class="small text-warning">Needs an approved "Appointment confirmation" template{% if can_whatsapp %} — <a href="{% url 'panel:whatsapp_settings' %}">Settings → WhatsApp</a>{% endif %}.</div>{% endif %}</div>
+            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="m-ce" name="confirm_email" {% if rules.confirm_email %}checked{% endif %}><label class="form-check-label" for="m-ce">E-mail confirmation</label>
+                <div class="small text-muted">Sent when the customer has an e-mail address.</div></div>
+            <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="m-cn" name="cancel_notice" {% if rules.cancel_notice %}checked{% endif %}><label class="form-check-label" for="m-cn">Tell the customer when a booking is cancelled</label>
+                <div class="small text-muted">On the channels above.{% if not wa_ready.cancelled %} WhatsApp needs an approved "Appointment cancelled" template.{% endif %}</div></div>
+        </div></div>
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">To your team</h5></div><div class="card-body">
+            <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="m-ns" name="notify_staff" {% if rules.notify_staff %}checked{% endif %}><label class="form-check-label" for="m-ns">E-mail the person the appointment is with about new, moved and cancelled bookings</label>
+                <div class="small text-muted">Not sent to the person who made the change.</div></div>
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Reminders to the customer</h5></div><div class="card-body">
+            <label class="form-label" for="m-rh">Hours before the appointment</label>
+            <input class="form-control" id="m-rh" name="reminder_hours" value="{{ rules.reminder_hours|join:', ' }}" placeholder="24, 2" aria-describedby="m-rh-help">
+            <div class="form-text mb-3" id="m-rh-help">Separate with commas; 0.5 = 30 minutes; up to {{ max_hours }} hours. Leave empty for no reminders. A reminder whose time has already passed when the booking is made is not sent.</div>
+            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="m-rw" name="reminder_whatsapp" {% if rules.reminder_whatsapp %}checked{% endif %}><label class="form-check-label" for="m-rw">On WhatsApp</label>
+                {% if not wa_ready.reminder %}<div class="small text-warning">Needs an approved "Appointment reminder" template.</div>{% endif %}</div>
+            <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="m-re" name="reminder_email" {% if rules.reminder_email %}checked{% endif %}><label class="form-check-label" for="m-re">By e-mail</label></div>
+        </div></div>
+        <div class="text-muted small mb-3">E-mail texts are set by the platform (Email Templates); WhatsApp texts are your approved templates. Every message sent, or why it was not, shows on the appointment.</div>
+    </div>
+</div>
+<button class="btn btn-primary">Save</button>
+</form>
+{% endblock page_content %}

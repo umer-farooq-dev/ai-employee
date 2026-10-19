@@ -24,10 +24,22 @@
             <form method="post">{% csrf_token %}<input type="hidden" name="status" value="confirmed"><button class="btn btn-sm btn-outline-primary">Confirm</button></form>
             <form method="post">{% csrf_token %}<input type="hidden" name="status" value="completed"><button class="btn btn-sm btn-outline-success">Mark completed</button></form>
             <form method="post">{% csrf_token %}<input type="hidden" name="status" value="no_show"><button class="btn btn-sm btn-outline-secondary">No-show</button></form>
+            {% if upcoming and appt.lead %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="resend"><button class="btn btn-sm btn-outline-info" title="WhatsApp / e-mail, as set in Confirmations &amp; reminders">Send confirmation again</button></form>{% endif %}
             <form method="post" class="d-flex gap-2 w-100 mt-2">{% csrf_token %}<input type="hidden" name="status" value="cancelled">
                 <input class="form-control form-control-sm" name="reason" placeholder="Reason for cancelling" required aria-label="Reason"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
         </div></div>
         {% endif %}
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0">Messages</h5>
+            {% if can_configure %}<a class="small" href="{% url 'panel:calendar_messages' %}">Confirmations &amp; reminders</a>{% endif %}</div>
+            <div class="card-body p-0"><table class="table table-sm mb-0 align-middle"><thead class="table-light"><tr><th class="ps-3">Message</th><th>To</th><th>Status</th><th class="pe-3">When</th></tr></thead><tbody>
+            {% for n in notices %}<tr>
+                <td class="ps-3">{{ n.get_kind_display }}{% if n.offset_minutes %} <span class="text-muted small text-nowrap">({{ n.offset_hours }} h before)</span>{% endif %}<div class="text-muted small">{{ n.get_channel_display }}</div></td>
+                <td class="small">{{ n.recipient|default:"—" }}</td>
+                <td>{% if n.status == 'sent' %}<span class="badge bg-success-subtle text-success">{% if n.wa_message %}{{ n.wa_message.get_status_display }}{% else %}Sent{% endif %}</span>{% elif n.status == 'failed' %}<span class="badge bg-danger-subtle text-danger">Failed</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Not sent</span>{% endif %}
+                    {% if n.detail %}<div class="text-muted small">{{ n.detail }}</div>{% endif %}</td>
+                <td class="small text-nowrap pe-3">{{ n.created_at|date:"d M H:i" }}</td></tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">No messages yet.</td></tr>{% endfor %}
+            </tbody></table></div></div>
     </div>
     {% if can_manage and upcoming %}
     <div class="col-lg-6">

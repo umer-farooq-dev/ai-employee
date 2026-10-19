@@ -106,6 +106,7 @@ api_v1 = [
     path("catalog/imports/<uuid:pk>/", catapi.CatalogImportView.as_view(), name="catalog-import-run"),
     path("catalog/", include(catalog_router.urls)),
     path("calendar/config/", calapi.CalendarConfigView.as_view(), name="calendar-config"),
+    path("calendar/messages/", calapi.MessagesSettingsView.as_view(), name="calendar-messages"),
     path("calendar/", include(calendar_router.urls)),
     path("kb/test-query/", kbapi.TestQueryView.as_view(), name="kb-test-query"),
     path("kb/", include(kb_router.urls)),

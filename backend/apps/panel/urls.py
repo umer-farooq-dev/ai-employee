@@ -45,6 +45,7 @@ urlpatterns = [
     path("app/calendar/book/", calendar_views.book, name="calendar_book"),
     path("app/calendar/appointments/<uuid:pk>/", calendar_views.appointment, name="appointment"),
     path("app/calendar/resources/", calendar_views.resources, name="calendar_resources"),
+    path("app/calendar/messages/", calendar_views.messages_settings, name="calendar_messages"),
     path("app/calendar/resources/new/", calendar_views.resource_form, name="calendar_resource_create"),
     path("app/calendar/resources/<uuid:pk>/", calendar_views.resource_form, name="calendar_resource_edit"),
     # Catalogue (Phase 3)

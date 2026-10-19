@@ -485,6 +485,7 @@ def book_appointment(ctx, tool, args):
             created_by_type="ai",
             channel=ctx.conversation.channel,
             notes=str(args.get("notes") or "")[:500],
+            notify=not ctx.conversation.is_test,
         )
     except ValidationError as exc:
         raise ToolError(f"Not booked: {_validation(exc)} Check availability again.") from None
@@ -501,7 +502,7 @@ def book_appointment(ctx, tool, args):
 def reschedule_appointment(ctx, tool, args):
     appt = _lead_appointment(ctx, args)
     try:
-        calendar.reschedule(appt, _parse_start(args.get("start"), appt.resource))
+        calendar.reschedule(appt, _parse_start(args.get("start"), appt.resource), notify=not ctx.conversation.is_test)
     except ValidationError as exc:
         raise ToolError(f"Not moved: {_validation(exc)}") from None
     return {
@@ -514,7 +515,12 @@ def reschedule_appointment(ctx, tool, args):
 def cancel_appointment(ctx, tool, args):
     appt = _lead_appointment(ctx, args)
     try:
-        calendar.set_status(appt, Appointment.CANCELLED, str(args.get("reason") or "Cancelled by the customer"))
+        calendar.set_status(
+            appt,
+            Appointment.CANCELLED,
+            str(args.get("reason") or "Cancelled by the customer"),
+            notify=not ctx.conversation.is_test,
+        )
     except ValidationError as exc:
         raise ToolError(_validation(exc)) from None
     return {"cancelled": True, "appointment_number": appt.reference}

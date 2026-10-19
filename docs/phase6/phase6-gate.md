@@ -1,8 +1,8 @@
 # Phase 6 Gate — WhatsApp, Website Chat, Appointments, Handoff & Campaigns
 
 Scope from PRD-01 Phase 6. **Done** = built and tested; **Next** = a later part of this phase.
-Phase 6 is built in parts: **1. Website chat + shared inbox** → **2. WhatsApp** → 3. Appointment confirmations and
-reminders → 4. Campaigns → 5. Notifications, PWA and push.
+Phase 6 is built in parts: **1. Website chat + shared inbox** → **2. WhatsApp** → **3. Appointment confirmations and
+reminders** → 4. Campaigns → 5. Notifications, PWA and push.
 
 ## Part 1 — Website chat widget and shared inbox
 
@@ -51,7 +51,7 @@ screen pop, inbox reply seen by the visitor, hand back, callback form.
 | WA-01 / COMP-07 | Official API only | Done | Provider "Meta WhatsApp Cloud API" (Super Admin → Voice & Channels: access token, app secret, App ID). Adapter interface, so an approved BSP is one more vendor class |
 | WA-02 | Connect number | Done (pool) | Super Admin → WhatsApp Numbers: phone number ID + business account ID, given to a company, webhook URL and verify token shown. Company → Settings → WhatsApp / wizard step 7 connects it to an AI Employee. Meta embedded signup needs the client's Meta Tech Provider approval — added when the client has it |
 | WA-03 | Template management | Done | Company → Settings → WhatsApp: library copy, editor with live WhatsApp preview, variables mapped to data (customer, company, appointment, item, typed text), category, language, header (text / image / PDF), footer, quick replies; submit to Meta (sample upload for media headers), check approval, rejected reason, delete. Super Admin → WhatsApp Templates: the default library (5 templates, en / hi / bn) |
-| WA-04 | Automated approved messages | Done (follow-up, item info) | Lead follow-up after a call (rule per AI Employee); property / product details with photo; templates from the lead page and the inbox. Appointment confirmation / reminder templates are ready in the library and are sent automatically with part 3 |
+| WA-04 | Automated approved messages | Done | Lead follow-up after a call (rule per AI Employee); property / product details with photo; templates from the lead page and the inbox; appointment confirmation, reminder and cancellation (part 3) |
 | WA-05 | AI replies | Done | Customer message → the same engine and knowledge; the AI disclosure is sent first in a new conversation; returning customers are matched by number |
 | WA-06 | Shared inbox | Done | WhatsApp chats in the Inbox with delivery ticks; outside the 24-hour window the reply box turns into an approved-template sender |
 | WA-07 | Human handover | Done | Same rules as chats (customer asks, hand-over tool, keywords, knowledge gap, hot lead, upset); "connecting / joined / back with the AI" phrases are sent on WhatsApp in the customer's language |
@@ -92,10 +92,41 @@ number and paused employee.
 A Meta Business account with a verified business, a WhatsApp number not used in the WhatsApp app, the app's access
 token, app secret and App ID (entered in Super Admin), and approval of the templates by Meta.
 
+## Part 3 — Appointment confirmations, reminders and team alerts
+
+| ID | Feature | Status | Where |
+|---|---|---|---|
+| CAL-07 | Confirmations | Done | Every booking or new time — by the AI Employee (call, chat, WhatsApp), the team or the API — is confirmed to the customer on WhatsApp (approved "Appointment confirmation" template, in the customer's language) and by e-mail. A cancellation is told on the same channels (new library template "Appointment cancelled"). Sent after the booking is saved, never for one that failed |
+| CAL-07 | Reminders | Done | Reminder times in hours before (default 24 and 2; 0.5 = 30 minutes) on WhatsApp ("Appointment reminder" template) and / or e-mail. Each reminder goes once per appointment time; a moved appointment gets them again for the new time; reminder times that were already past when the booking was made are skipped; if the job was stopped, only the latest due reminder goes. Cron: `send_appointment_reminders` every 5 minutes |
+| CAL-07 | Settings | Done | Platform defaults in System Settings → Calendar; each company can choose its own in Calendar → Confirmations & reminders (warnings when the needed WhatsApp template is not approved yet), or go back to the defaults |
+| CAL-10 | Team alerts | Done | The person the appointment is with gets an e-mail for new, moved and cancelled bookings (who changed it, customer, link to the appointment) — not when they made the change themselves |
+| — | Message log | Done | Appointment page → Messages: every confirmation, reminder and team alert with channel, recipient, WhatsApp delivery status, or the reason it was not sent (no e-mail address, opted out, no approved template, e-mail template switched off). "Send confirmation again" button |
+
+Rules kept: WhatsApp opt-out / opt-in and e-mail opt-out are respected; test conversations send nothing; a failed
+message never breaks the booking. E-mail texts (5, editable in Super Admin → Email Templates): confirmation, new time,
+cancellation, reminder, team alert.
+
+### Also changed
+
+- WhatsApp template dates now use the calendar's own timezone (same as the e-mails).
+
+### REST API added
+
+`/api/v1/calendar/messages/` (GET; PATCH any setting or `{"use_platform": true}`) · appointments now include `notices`
+· `/api/v1/calendar/appointments/<id>/resend/`
+
+### Tests
+
+`tests/test_appointment_messages.py` (6): WhatsApp + e-mail confirmation and team alert after commit (nothing for a
+rolled-back booking), new time and cancellation (no alert to the person who changed it, skipped WhatsApp without a
+template), reminders once per offset / latest only / not before the booking / not for cancelled or suspended,
+company choices and validation (also the Super Admin value), AI booking tool vs test conversation, panel page / API /
+resend / permissions. Browser check: Calendar → Confirmations & reminders (desktop and phone, save, wrong value,
+back to defaults), appointment Messages card, Super Admin → System Settings → Calendar.
+
 ## Next parts
 
 | Part | IDs |
 |---|---|
-| 3. Appointments | CAL-07 confirmations and reminders, CAL-10 notifications to humans |
 | 4. Campaigns | CAMP-01 … CAMP-06, COMP-03, COMP-04, COMP-05, SCORE-05 |
 | 5. Notifications & mobile | CP-03, NOTI-02, NOTI-03, CP-07, MOB-03, API-05 |

@@ -101,6 +101,7 @@ class Appointment(TenantModel):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     channel = models.CharField(max_length=10, choices=CHANNELS, default="manual")
+    time_set_at = models.DateTimeField(null=True, blank=True, help_text="When this time was booked")
 
     class Meta:
         ordering = ["starts_at"]
@@ -115,3 +116,42 @@ class Appointment(TenantModel):
         from apps.platform_config import services as config
 
         return f"{config.get('calendar.appointment_prefix')}{self.number:06d}"
+
+
+class AppointmentNotice(TenantModel):
+    """CAL-07 / CAL-10: every confirmation, reminder and team alert sent (or not) for an appointment."""
+
+    KINDS = [
+        ("confirmation", "Confirmation"),
+        ("rescheduled", "New time"),
+        ("cancelled", "Cancellation"),
+        ("reminder", "Reminder"),
+        ("staff", "Team alert"),
+    ]
+    CHANNELS = [("whatsapp", "WhatsApp"), ("email", "E-mail")]
+    SENT, FAILED, SKIPPED = "sent", "failed", "skipped"
+    STATUSES = [(SENT, "Sent"), (FAILED, "Failed"), (SKIPPED, "Not sent")]
+
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name="notices")
+    kind = models.CharField(max_length=12, choices=KINDS)
+    channel = models.CharField(max_length=10, choices=CHANNELS)
+    recipient = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=10, choices=STATUSES, default=SENT)
+    detail = models.CharField(max_length=255, blank=True)
+    offset_minutes = models.PositiveIntegerField(null=True, blank=True, help_text="Reminders: minutes before the start")
+    for_start = models.DateTimeField(help_text="The appointment time this notice was about")
+    wa_message = models.ForeignKey("whatsapp.WaMessage", null=True, blank=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [  # one reminder per offset, channel and appointment time (the cron may run twice)
+            models.UniqueConstraint(
+                fields=["appointment", "channel", "offset_minutes", "for_start"],
+                condition=models.Q(kind="reminder"),
+                name="uniq_appointment_reminder",
+            )
+        ]
+
+    @property
+    def offset_hours(self):
+        return f"{self.offset_minutes / 60:g}" if self.offset_minutes else ""

@@ -501,10 +501,10 @@ def _value(source, ctx):
     if source == "employee.name":
         return employee.name if employee else ""
     if source.startswith("appointment.") and appointment:
-        from apps.agents.tools import company_tz
+        from apps.scheduling.services import tz_for
 
         if source == "appointment.when":
-            return f"{appointment.starts_at.astimezone(company_tz(company)):%a %d %b %Y, %H:%M}"
+            return f"{appointment.starts_at.astimezone(tz_for(appointment.resource)):%a %d %b %Y, %H:%M}"
         if source == "appointment.number":
             return appointment.reference
         return appointment.appointment_type.name

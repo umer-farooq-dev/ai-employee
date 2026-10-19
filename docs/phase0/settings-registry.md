@@ -82,6 +82,12 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 | `crm.export_max_rows` | number | 50000 | |
 | `crm.task_reminder_minutes` | number | 30 | reminder before a follow-up is due |
 | `calendar.appointment_prefix` | text | APT- | APT-000123 |
+| `calendar.confirm_whatsapp` / `calendar.confirm_email` | boolean | on / on | customer confirmation when booked or moved (CAL-07); company can change under Calendar → Confirmations & reminders |
+| `calendar.cancel_notice` | boolean | on | tell the customer when a booking is cancelled |
+| `calendar.reminder_hours` | list | 24, 2 | reminder times in hours before (0.5 = 30 min) |
+| `calendar.reminder_whatsapp` / `calendar.reminder_email` | boolean | on / on | reminder channels |
+| `calendar.reminder_max_hours` | number | 168 | limit for companies' own reminder times |
+| `calendar.notify_staff` | boolean | on | e-mail the assigned person about new / moved / cancelled bookings (CAL-10) |
 | `locale.default_phone_country` | text | in | flag + dial code pre-selected in phone fields |
 
 ## C2. SMS (mobile OTP) — Phase 2 · screen: Settings → SMS

@@ -286,6 +286,45 @@ SETTINGS = [
     Setting("crm.task_reminder_minutes", "number", 30, "Task reminder (minutes before due)", "crm", min=0, max=10080),
     # Calendar (CAL-*)
     Setting("calendar.appointment_prefix", "text", "APT-", "Appointment number prefix", "calendar"),
+    # Appointment messages (CAL-07 / CAL-10) — platform defaults; each company can change them under Calendar → Messages
+    Setting("calendar.confirm_whatsapp", "boolean", True, "Confirm bookings on WhatsApp", "calendar"),
+    Setting("calendar.confirm_email", "boolean", True, "Confirm bookings by e-mail", "calendar"),
+    Setting(
+        "calendar.cancel_notice",
+        "boolean",
+        True,
+        "Tell the customer when a booking is cancelled",
+        "calendar",
+        help="On the channels used for confirmations",
+    ),
+    Setting(
+        "calendar.reminder_hours",
+        "list",
+        ["24", "2"],
+        "Reminders (hours before)",
+        "calendar",
+        help="e.g. 24 and 2; 0.5 = 30 minutes. Empty = no reminders.",
+    ),
+    Setting("calendar.reminder_whatsapp", "boolean", True, "Send reminders on WhatsApp", "calendar"),
+    Setting("calendar.reminder_email", "boolean", True, "Send reminders by e-mail", "calendar"),
+    Setting(
+        "calendar.reminder_max_hours",
+        "number",
+        168,
+        "Earliest reminder allowed (hours before)",
+        "calendar",
+        help="Limit for the companies' own reminder times",
+        min=1,
+        max=720,
+    ),
+    Setting(
+        "calendar.notify_staff",
+        "boolean",
+        True,
+        "E-mail the assigned person about new, moved and cancelled bookings",
+        "calendar",
+        help="Not sent to the person who made the change",
+    ),
     # F. AI (Phase 4)
     Setting(
         "ai.request_timeout_seconds",

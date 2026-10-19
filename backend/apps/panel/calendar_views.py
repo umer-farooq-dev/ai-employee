@@ -13,7 +13,9 @@ from django.utils.dateparse import parse_date, parse_datetime
 from apps.crm import services as crm
 from apps.industries import services as templates
 from apps.industries.models import Holiday
+from apps.platform_config.services import get as setting
 from apps.rbac.services import has_perm
+from apps.scheduling import notices
 from apps.scheduling import services as calendar
 from apps.scheduling.models import Appointment, AvailabilityException, Resource
 
@@ -140,6 +142,10 @@ def appointment(request, pk):
         if not _can(request, "calendar.manage"):
             raise PermissionDenied
         try:
+            if request.POST.get("op") == "resend":
+                sent = [n for n in notices.resend(appt, request.user, request) if n.status == "sent"]
+                messages.success(request, f"Confirmation sent on {len(sent)} channel(s); see Messages below.")
+                return redirect("panel:appointment", pk=pk)
             if request.POST.get("op") == "reschedule":
                 start = parse_datetime(request.POST.get("start", ""))
                 if not start:
@@ -167,6 +173,45 @@ def appointment(request, pk):
             "slots": reschedule_slots,
             "can_manage": _can(request, "calendar.manage"),
             "upcoming": appt.status in Appointment.ACTIVE,
+            "notices": appt.notices.select_related("wa_message"),
+            "can_configure": _can(request, "calendar.configure"),
+        },
+    )
+
+
+@company_perm("calendar.configure")
+def messages_settings(request):
+    """CAL-07 / CAL-10: confirmations, reminders and team alerts — the company's choice or the platform default."""
+    company = request.company
+    if request.method == "POST":
+        try:
+            if request.POST.get("op") == "reset":
+                notices.save_policy(company, {"use_platform": True}, request.user, request)
+                messages.success(request, "Back to the platform defaults.")
+            else:
+                data = {k: request.POST.get(k) == "on" for k in notices.POLICY_KEYS if k != "reminder_hours"}
+                data["reminder_hours"] = request.POST.get("reminder_hours", "")
+                notices.save_policy(company, data, request.user, request)
+                messages.success(request, "Appointment messages saved.")
+            return redirect("panel:calendar_messages")
+        except ValidationError as exc:
+            _errors(request, exc)
+    from apps.whatsapp.models import Template
+
+    approved = set(
+        Template.objects.filter(status=Template.APPROVED, purpose__in=set(notices.PURPOSES.values())).values_list(
+            "purpose", flat=True
+        )
+    )
+    return render(
+        request,
+        "panel/company/calendar/messages.html",
+        {
+            "rules": notices.policy(company),
+            "own": bool((company.settings or {}).get("appointments")),
+            "max_hours": setting("calendar.reminder_max_hours"),
+            "wa_ready": {k: v in approved for k, v in notices.PURPOSES.items()},
+            "can_whatsapp": _can(request, "whatsapp.manage"),
         },
     )
 
