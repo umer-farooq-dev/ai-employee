@@ -4,8 +4,8 @@ from allauth.usersessions.models import UserSession
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
-from rest_framework import generics, mixins, permissions, status, viewsets
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import generics, mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -305,6 +305,10 @@ class UploadView(TenantContextMixin, APIView):
         any_perm("settings.general", "cms.manage", "ai_providers.manage"),
     ]
 
+    @extend_schema(
+        request={"multipart/form-data": inline_serializer("Upload", {"file": serializers.ImageField()})},
+        responses={201: inline_serializer("UploadedFile", {"url": serializers.CharField()})},
+    )
     def post(self, request):
         upload = request.FILES.get("file")
         if not upload:
@@ -431,6 +435,20 @@ class SessionsView(TenantContextMixin, APIView):
 
     permission_classes = [permissions.IsAuthenticated, perm("security.manage")]
 
+    @extend_schema(
+        responses=inline_serializer(
+            "ActiveSession",
+            {
+                "id": serializers.IntegerField(),
+                "user": serializers.EmailField(),
+                "ip": serializers.CharField(),
+                "user_agent": serializers.CharField(),
+                "created_at": serializers.DateTimeField(),
+                "last_seen_at": serializers.DateTimeField(),
+            },
+            many=True,
+        )
+    )
     def get(self, request):
         rows = UserSession.objects.select_related("user").order_by("-last_seen_at")[:500]
         return Response(
@@ -447,6 +465,7 @@ class SessionsView(TenantContextMixin, APIView):
             ]
         )
 
+    @extend_schema(parameters=[OpenApiParameter("id", int, required=True)], responses={204: None})
     def delete(self, request):
         session = get_object_or_404(UserSession, id=request.query_params.get("id"))
         session.end()

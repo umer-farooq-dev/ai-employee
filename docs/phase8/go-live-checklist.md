@@ -22,6 +22,7 @@ then repeat on **production**. Tick each line and note who checked it. Infrastru
 - [ ] SEO & e-mail: site title and description, e-mail sender name and address (the verified sender of the e-mail
       provider), e-mail header / footer
 - [ ] Maintenance mode **off**
+- [ ] SEO: "Allow search engines" **off on staging**, **on on production**
 
 ## C. Super Admin → System Settings (every group opened and saved deliberately)
 

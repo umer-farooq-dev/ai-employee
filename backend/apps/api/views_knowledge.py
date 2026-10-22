@@ -11,6 +11,7 @@ kb/unanswered/         list (?status=);  kb/unanswered/<id>/resolve  POST (KB-10
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -213,6 +214,13 @@ class TestQueryView(TenantContextMixin, APIView):
     def get_permissions(self):
         return [permissions.IsAuthenticated(), perm("knowledge.view")()]
 
+    @extend_schema(
+        request=inline_serializer(
+            "KnowledgeTestQuery",
+            {"question": serializers.CharField(), "employee": serializers.UUIDField(required=False)},
+        ),
+        responses=dict,
+    )
     def post(self, request):
         employee = None
         if request.data.get("employee"):

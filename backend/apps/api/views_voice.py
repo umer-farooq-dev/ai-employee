@@ -13,6 +13,7 @@ Super Admin:
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.dateparse import parse_datetime
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -285,9 +286,20 @@ class CallingPolicyView(TenantContextMixin, APIView):
     def get_permissions(self):
         return [permissions.IsAuthenticated(), perm("phone_numbers.manage")()]
 
+    @extend_schema(
+        responses=inline_serializer(
+            "CallingPolicy", {"effective": serializers.DictField(), "own": serializers.DictField()}
+        )
+    )
     def get(self, request):
         return Response({"effective": services.policy(request.company), "own": _own(request.company)})
 
+    @extend_schema(
+        request=dict,
+        responses=inline_serializer(
+            "CallingPolicySaved", {"effective": serializers.DictField(), "own": serializers.DictField()}
+        ),
+    )
     def put(self, request):
         effective = _errors(services.save_policy, request.company, request.data, request.user, request._request)
         return Response({"effective": effective, "own": _own(request.company)})

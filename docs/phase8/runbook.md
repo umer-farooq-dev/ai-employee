@@ -24,6 +24,7 @@ Contents: [1 Architecture](#1-what-runs-where) · [2 First deployment](#2-first-
 | `db` | pgvector/pgvector:pg16 | PostgreSQL 16 with pgvector — or a managed PostgreSQL (recommended, see §4) |
 | `redis` | redis:7 | Cache, sessions, rate limits — or a managed Redis |
 | `db-backup` | pgvector/pgvector:pg16 | Daily compressed dump to `deploy/backups/` |
+| `clamav` | clamav | Malware scan of every upload (`CLAMAV_ADDRESS=clamav:3310`); needs about 1 GB RAM |
 
 Business settings and **every provider key** (AI, telephony, WhatsApp, Razorpay, e-mail, SMS) live in the database and
 are entered in Super Admin. The server only holds infrastructure values (`deploy/.env`).

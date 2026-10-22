@@ -14,6 +14,7 @@ Admin (/api/v1/admin/):
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -492,6 +493,7 @@ class AdminConversationView(TenantContextMixin, APIView):
     def get_permissions(self):
         return [permissions.IsAuthenticated(), perm("ai_oversight.view")()]
 
+    @extend_schema(responses=ConversationDetailSerializer)
     def get(self, request, pk):
         conv = get_object_or_404(
             Conversation.all_companies.select_related("employee", "lead").prefetch_related(
@@ -508,6 +510,7 @@ class AdminCompanyEmployeeView(TenantContextMixin, APIView):
     def get_permissions(self):
         return [permissions.IsAuthenticated(), perm("ai_oversight.manage")()]
 
+    @extend_schema(request=None, responses={201: AdminEmployeeSerializer})
     def post(self, request, pk):
         company = get_object_or_404(Company, pk=pk)
         employee = _errors(employees.create_from_template, company, request.user, request._request, True)

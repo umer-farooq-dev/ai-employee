@@ -104,17 +104,28 @@ Seed defaults below are inserted by a data migration and are editable afterwards
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `sms.provider` | choice | development log | real provider added when the client chooses one; keys in Super Admin |
-| `sms.otp_message` | text | "{{ code }} is your … code" | |
+| `sms.otp_message` | text | "{{ code }} is your … code" | The SMS provider (MSG91 / Twilio) is switched on in Voice & Channels (Phase 7); no provider = development log |
 
-## D. Data retention & privacy — Phase 7/8 · screen: Settings → Data & Privacy
+## D. Data retention & privacy — Phase 7 · screen: System Settings → Data retention & privacy
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `retention.recordings_days` | number | 90 | *company may override* (shorter) |
 | `retention.transcripts_days` | number | 365 | *company may override* (shorter) |
-| `retention.audit_logs_days` | number | 730 | |
-| `retention.account_deletion_grace_days` | number | 30 | |
+| `retention.logs_days` | number | 180 | API request and error logs |
+| `retention.audit_days` | number | 730 | audit log |
+| `retention.alerts_days` | number | 90 | team alerts / notifications |
+| `privacy.export_link_days` | number | 7 | data export download link |
+| `privacy.deletion_grace_days` | number | 30 | account deletion can be cancelled until then |
+
+## D2. Monitoring & alerts — Phase 8 · screen: System Settings → Monitoring & alerts
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `monitoring.alert_emails` | list | [] | platform alert recipients; empty = team inbox (General Settings) |
+| `monitoring.error_threshold` | number | 10 | server errors in the window that trigger an alert |
+| `monitoring.window_minutes` | number | 15 | |
+| `monitoring.cooldown_minutes` | number | 60 | the same alert repeats after this while the problem lasts |
 
 ## E. Voice & calling — Phase 5 · screen: System Settings → Calling / Voice conversations / Data retention
 

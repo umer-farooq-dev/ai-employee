@@ -94,6 +94,11 @@ services:
     command: ["sh", "-c", "rm -rf /srv/static/* && cp -r /app/staticfiles/. /srv/static/"]
     healthcheck: {disable: true}
 
+  clamav:  # SEC-11 upload malware scan; the app uses it through CLAMAV_ADDRESS=clamav:3310 (about 1 GB RAM)
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes: [clamdb:/var/lib/clamav]
+
   db-backup:  # SEC-10: daily compressed dump kept BACKUP_KEEP_DAYS; copy ./backups off the server (runbook)
     image: pgvector/pgvector:pg16
     restart: unless-stopped
@@ -115,3 +120,4 @@ volumes:
   private_media:
   static:
   caddy_data:
+  clamdb:
