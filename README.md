@@ -7,6 +7,7 @@ Django 5.2 backend with the eSoft website template and the Rizz admin template. 
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -r backend/requirements/dev.txt   # Linux/macOS: .venv/bin/pip
+.venv/Scripts/pip install -r backend/requirements/voice.txt # Voice Gateway (own Pillow pin, see the file)
 cp .env.example .env                                         # then set SECRET_KEY
 docker compose up -d                                         # Postgres + pgvector, Redis, Mailpit
 python backend/manage.py migrate

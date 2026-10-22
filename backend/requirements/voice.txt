@@ -1,4 +1,7 @@
 # Voice Gateway (Phase 5): Pipecat with the speech vendors seeded in Super Admin → Voice Settings.
 # Google / Azure speech need their extras too when the client picks them: pipecat-ai[google,azure]
+# Pipecat pins Pillow<13, so this environment gets an older Pillow than the web app (base.txt). The Voice Gateway runs
+# in its own environment / container and never opens uploaded images; the web app keeps the patched Pillow.
+# ponytail: separate gateway environment; drop the note when pipecat allows Pillow 13.
 pipecat-ai[websocket,silero,deepgram,elevenlabs,cartesia,sarvam]==1.12.0
 uvicorn[standard]==0.38.0
