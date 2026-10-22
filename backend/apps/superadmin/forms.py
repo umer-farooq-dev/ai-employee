@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -161,6 +163,11 @@ class RoleForm(BootstrapMixin, forms.ModelForm):
             self.fields["key"].disabled = True
 
 
+def _rupees(paise):
+    """Paise → rupees for a form field (2999, not 2999.0)."""
+    return None if paise is None else Decimal(paise) / 100
+
+
 class PlanForm(BootstrapMixin, forms.ModelForm):
     price_monthly = forms.DecimalField(
         required=False,
@@ -192,14 +199,15 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
         ]
         widgets = {"description": forms.Textarea(attrs={"rows": 2})}
         labels = {"gst_rate": "GST rate (%)", "is_public": "Public", "is_custom": "Enterprise / custom plan"}
+        help_texts = {"is_custom": 'Shown as "Custom" pricing; each company\'s terms are set on its Billing page'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         plan = self.instance
         if not plan._state.adding:
             self.fields["key"].disabled = True
-            self.initial["price_monthly"] = None if plan.price_monthly_paise is None else plan.price_monthly_paise / 100
-            self.initial["price_yearly"] = None if plan.price_yearly_paise is None else plan.price_yearly_paise / 100
+            self.initial["price_monthly"] = _rupees(plan.price_monthly_paise)
+            self.initial["price_yearly"] = _rupees(plan.price_yearly_paise)
             self.initial["features_text"] = "\n".join(plan.features)
         for key, label in ENTITLEMENTS:
             ent = plan.entitlements.filter(key=key).first() if not plan._state.adding else None
@@ -211,11 +219,11 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
                 min_value=0,
                 decimal_places=2,
                 label="Overage price (₹)",
-                initial=(ent.overage_price_paise / 100 if ent and ent.overage_price_paise is not None else None),
+                initial=_rupees(ent.overage_price_paise) if ent else None,
             )
             self.fields[f"enforce__{key}"] = forms.ChoiceField(
                 required=False,
-                choices=[("hard", "Stop"), ("soft", "Allow overage")],
+                choices=[("hard", "Stop"), ("soft", "Overage")],
                 label="When reached",
                 initial=ent.enforcement if ent else "hard",
             )

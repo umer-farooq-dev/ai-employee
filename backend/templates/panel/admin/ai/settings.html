@@ -126,7 +126,7 @@
                         <div class="col-12" id="pm-url-wrap"><label class="form-label" for="pm-url">Base URL</label><input class="form-control" id="pm-url" required placeholder="https://…/v1"></div>
                         <div class="col-md-6" id="pm-adapter-wrap"><label class="form-label" for="pm-adapter">API type</label><select class="form-select" id="pm-adapter"></select></div>
                         <div class="col-md-6" id="pm-vendor-wrap"><label class="form-label" for="pm-vendor">Vendor</label><select class="form-select" id="pm-vendor"></select><div class="form-text">Decides how the Voice Gateway talks to this provider.</div></div>
-                        <div class="col-md-6"><span class="form-label d-block">Offers</span><div id="pm-caps" class="d-flex gap-3 pt-1"></div></div>
+                        <div class="col-md-6"><span class="form-label d-block">Offers</span><div id="pm-caps" class="d-flex flex-wrap column-gap-3 row-gap-1 pt-1"></div></div>
                         <div class="col-12"><label class="form-label" for="pm-desc">Description</label><input class="form-control" id="pm-desc" maxlength="255"></div>
                         <div class="col-md-8">
                             <label class="form-label" for="pm-logo-url">Logo</label>
@@ -352,7 +352,8 @@
         var speech = caps.indexOf("stt") >= 0 || caps.indexOf("tts") >= 0;
         $("pm-models-section").classList.toggle("d-none", VOICE && !speech);
         $("pm-load-text").textContent = VOICE ? "Save & test connection" : "Save & load models from provider";
-        $("pm-subtitle").textContent = VOICE ? "Configure the key, account details and models for this vendor." : "Configure the API key and models for this vendor.";
+        $("pm-subtitle").textContent = !VOICE ? "Configure the API key and models for this vendor."
+            : speech ? "Configure the key, account details and models for this vendor." : "Configure the key and account details for this vendor.";
         $("pm-price-in").textContent = VOICE ? "Price" : "Input price";
         document.querySelectorAll(".pm-out").forEach(function (el) { el.textContent = VOICE ? "Type" : "Output price"; });
         $("pm-price-help").innerHTML = VOICE

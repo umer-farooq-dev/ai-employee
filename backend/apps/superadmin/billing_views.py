@@ -141,16 +141,23 @@ def company_billing(request, pk):
                     )
                     messages.success(request, "Credits adjusted.")
                 elif op == "invoice":
-                    amount = _rupees_to_paise(request.POST.get("amount", ""), "Amount")
                     plan = Plan.objects.filter(pk=request.POST.get("plan") or None).first()
-                    period = None
+                    interval = request.POST.get("interval") or "monthly"
+                    period, description = None, request.POST.get("description", "").strip()
                     if plan and request.POST.get("period_start"):
                         start = timezone.make_aware(datetime.fromisoformat(request.POST["period_start"]))
-                        interval = request.POST.get("interval") or "monthly"
                         period = (start, billing.add_period(start, interval))
+                        description = description or billing.period_text(plan, interval, *period)
+                    if request.POST.get("amount", "").strip() or not period:
+                        amount = _rupees_to_paise(request.POST.get("amount", ""), "Amount")
+                    else:  # plan period without an amount: the plan's (or the company's custom) price
+                        list_price = billing.price(company, plan, interval)
+                        if not list_price:
+                            raise ValidationError(f"{plan.name} has no {interval} price; enter the amount.")
+                        amount = billing.taxable(list_price, plan)
                     inv = billing.manual_invoice(
                         company,
-                        request.POST.get("description", "").strip() or "Services",
+                        description or "Services",
                         amount,
                         request.user,
                         request,

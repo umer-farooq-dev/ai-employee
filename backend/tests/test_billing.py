@@ -460,6 +460,13 @@ def test_super_admin_billing_screens(admin_client, co, super_admin):
     assert fresh(co).billing_hold
     admin_client.post(url, {"op": "release"})
     assert not fresh(co).billing_hold
+    # a plan period without amount / description takes the company's price and the period text
+    admin_client.post(
+        url, {"op": "invoice", "plan": str(co.plan_id), "interval": "monthly", "period_start": "2026-11-01"}
+    )
+    with company_context(co.id):
+        period_inv = Invoice.objects.get(company=co, kind="subscription")
+    assert period_inv.subtotal_paise == 450000 and co.plan.name in period_inv.lines[0]["description"]
 
 
 @pytest.mark.django_db

@@ -896,7 +896,7 @@ SETTINGS = [
         ["Billing", "Calls and phone numbers", "WhatsApp", "AI Employee", "Account and login", "Other"],
         "Ticket categories",
         "support",
-        help="One per line; companies choose one when they raise a ticket",
+        help="Companies choose one when they raise a ticket.",
     ),
     Setting(
         "support.auto_close_days",

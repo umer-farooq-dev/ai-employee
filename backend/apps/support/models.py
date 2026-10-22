@@ -18,7 +18,7 @@ class Ticket(TenantModel):
     OPEN, WAITING, ANSWERED, RESOLVED, CLOSED = "open", "waiting", "answered", "resolved", "closed"
     STATUSES = [
         (OPEN, "Open"),
-        (ANSWERED, "Answered — waiting for you"),
+        (ANSWERED, "Answered"),
         (WAITING, "Waiting for support"),
         (RESOLVED, "Resolved"),
         (CLOSED, "Closed"),
