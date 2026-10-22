@@ -1,4 +1,5 @@
 from django.core import signing
+from django.core.cache import cache
 from django.db import connection
 from django.http import FileResponse, Http404, JsonResponse
 
@@ -8,10 +9,21 @@ from .storage import path_from_token, private_storage
 
 
 def healthz(request):
-    """Liveness / readiness check for any hosting (ENGR-05)."""
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT 1")
-    return JsonResponse({"status": "ok"})
+    """Liveness / readiness check for any hosting (ENGR-05): database and cache answer, else 503."""
+    checks = {}
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        checks["database"] = "ok"
+    except Exception:
+        checks["database"] = "down"
+    try:
+        cache.set("healthz", 1, 10)
+        checks["cache"] = "ok" if cache.get("healthz") == 1 else "down"
+    except Exception:
+        checks["cache"] = "down"
+    healthy = all(v == "ok" for v in checks.values())
+    return JsonResponse({"status": "ok" if healthy else "down", **checks}, status=200 if healthy else 503)
 
 
 def private_file(request, token):

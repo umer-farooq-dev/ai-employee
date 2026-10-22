@@ -54,3 +54,75 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Production settings pass the deployment checks
+        run: |
+          python backend/manage.py check --deploy 2>&1 | grep -v drf_spectacular | tee /tmp/deploy.txt
+          ! grep -E "\((security|django)\.[WE][0-9]+\)" /tmp/deploy.txt
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.production
+          SECRET_KEY: ci-only-deploy-check-ci-only-deploy-check-ci-only-deploy-check
+          ALLOWED_HOSTS: example.com
+
+  # ENGR-04 / SEC-15: build both images, scan them, and boot the production stack end to end
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: |
+          docker build --target web -t aiemployee-web:ci .
+          docker build --target voice -t aiemployee-voice:ci .
+      - name: Security - container scan (Trivy)
+        run: |
+          for image in aiemployee-web:ci aiemployee-voice:ci; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image \
+              --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$image"
+          done
+      - name: Production stack smoke test
+        working-directory: deploy
+        run: |
+          key() { python3 -c "import secrets; print(secrets.token_urlsafe(48))"; }
+          PG=$(key); APP=$(key); RD=$(key)
+          cat > .env <<EOF
+          ENVIRONMENT=staging
+          DOMAIN=localhost
+          ACME_EMAIL=ci@example.com
+          SECRET_KEY=$(key)$(key)
+          ALLOWED_HOSTS=localhost,www.localhost,admin.localhost
+          CSRF_TRUSTED_ORIGINS=https://localhost,https://admin.localhost
+          ADMIN_HOST=admin.localhost
+          PUBLIC_BASE_URL=https://localhost
+          VOICE_GATEWAY_URL=wss://voice.localhost
+          VOICE_GATEWAY_BIND=0.0.0.0:8765
+          POSTGRES_DB=aiemployee
+          POSTGRES_USER=aiemployee
+          POSTGRES_PASSWORD=$PG
+          APP_DB_USER=aiemployee_app
+          APP_DB_PASSWORD=$APP
+          OWNER_DATABASE_URL=postgres://aiemployee:$PG@db:5432/aiemployee
+          DATABASE_URL=postgres://aiemployee_app:$APP@db:5432/aiemployee
+          REDIS_PASSWORD=$RD
+          REDIS_URL=redis://:$RD@redis:6379/0
+          EMAIL_URL=consolemail://
+          EOF
+          sed -i 's/^ *//' .env
+          export IMAGE_WEB=aiemployee-web:ci IMAGE_VOICE=aiemployee-voice:ci
+          docker compose -f docker-compose.prod.yml --env-file .env up -d --no-build
+          for i in $(seq 1 60); do
+            curl -skf --resolve localhost:443:127.0.0.1 https://localhost/healthz/ && break; sleep 5
+          done
+          set -x
+          curl -skf --resolve localhost:443:127.0.0.1 https://localhost/healthz/ | grep '"database": "ok"'
+          curl -skf --resolve localhost:443:127.0.0.1 https://localhost/ -o /dev/null
+          curl -skf --resolve localhost:443:127.0.0.1 https://localhost/static/panel/css/bootstrap.min.css -o /dev/null
+          test "$(curl -sk --resolve admin.localhost:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://admin.localhost/superadmin/)" = 302
+          curl -s --resolve localhost:80:127.0.0.1 -o /dev/null -w '%{http_code}\n' http://localhost/ | grep -E '30[18]'
+          for i in $(seq 1 30); do
+            curl -skf --resolve voice.localhost:443:127.0.0.1 https://voice.localhost/healthz && break; sleep 5
+          done
+          docker compose -f docker-compose.prod.yml --env-file .env exec -T web python manage.py run_scheduler --once
+          docker compose -f docker-compose.prod.yml --env-file .env ps
+      - name: Logs on failure
+        if: failure()
+        working-directory: deploy
+        run: docker compose -f docker-compose.prod.yml --env-file .env logs --tail 80

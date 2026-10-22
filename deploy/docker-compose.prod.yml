@@ -1,0 +1,117 @@
+# ENGR-03 / ENGR-04: production (and staging) on any Docker host. Hosting and domain are the client's choice.
+#   cp deploy/.env.production.example deploy/.env    # fill in, keep it out of git
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
+# Managed PostgreSQL / Redis instead of the containers below: set DATABASE_URL / OWNER_DATABASE_URL / REDIS_URL to the
+# managed services and start only the app services:  ... up -d migrate web scheduler voice proxy
+# Full steps: docs/phase8/runbook.md
+
+x-app: &app
+  image: ${IMAGE_WEB:-aiemployee-web:latest}
+  build: {context: .., target: web}
+  env_file: .env
+  restart: unless-stopped
+  volumes:
+    - media:/app/media
+    - private_media:/app/private_media
+  logging: {driver: json-file, options: {max-size: "20m", max-file: "5"}}
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes: [redisdata:/data]
+    healthcheck: {test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"], interval: 10s, retries: 10}
+
+  # one-off before every rollout: migrations as the database owner, then the least-privilege app role (SEC-05)
+  migrate:
+    <<: *app
+    restart: "no"
+    environment:
+      DATABASE_URL: ${OWNER_DATABASE_URL}
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py setup_app_db_role --role $${APP_DB_USER} --password $${APP_DB_PASSWORD}"
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    <<: *app
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  scheduler:  # every scheduled job (replaces crontab), exactly one per environment
+    <<: *app
+    command: ["python", "manage.py", "run_scheduler"]
+    healthcheck: {disable: true}
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  voice:  # Voice Gateway, own image; reached at wss://voice.<domain>
+    <<: *app
+    image: ${IMAGE_VOICE:-aiemployee-voice:latest}
+    build: {context: .., target: voice}
+    stop_grace_period: 10m  # lets calls in progress finish on a rollout
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  proxy:  # HTTPS (automatic certificates), static and public media files, routing per host
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv/static:ro
+      - media:/srv/media:ro
+      - caddy_data:/data
+    depends_on:
+      static: {condition: service_completed_successfully}
+      web: {condition: service_started}
+      voice: {condition: service_started}
+
+  static:  # copies the collected static files from the web image into the shared volume on every rollout
+    <<: *app
+    restart: "no"
+    user: root
+    volumes: [static:/srv/static]
+    command: ["sh", "-c", "rm -rf /srv/static/* && cp -r /app/staticfiles/. /srv/static/"]
+    healthcheck: {disable: true}
+
+  db-backup:  # SEC-10: daily compressed dump kept BACKUP_KEEP_DAYS; copy ./backups off the server (runbook)
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes: ["./backups:/backups"]
+    entrypoint: ["sh", "-c", "while true; do pg_dump -Fc > /backups/db-$$(date +%Y%m%d-%H%M).dump && find /backups -name 'db-*.dump' -mtime +$$KEEP_DAYS -delete; sleep 86400; done"]
+    depends_on:
+      db: {condition: service_healthy}
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
+  private_media:
+  static:
+  caddy_data:
