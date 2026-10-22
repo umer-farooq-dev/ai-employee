@@ -25,6 +25,8 @@
                     {% if u|can:"whatsapp_templates.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:whatsapp_library' %}"><i class="iconoir-multiple-pages menu-icon"></i><span>WhatsApp Templates</span></a></li>{% endif %}
                     {% if u|can:"calls_oversight.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:calls' %}"><i class="iconoir-phone-income menu-icon"></i><span>Calls</span></a></li>{% endif %}
                     {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
+                    {% if u|can:"subscriptions.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:billing' %}"><i class="iconoir-credit-card menu-icon"></i><span>Billing</span></a></li>{% endif %}
+                    {% if u|can:"usage_reports.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:usage' %}"><i class="iconoir-stats-report menu-icon"></i><span>Usage &amp; Margin</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>
                     {% if u|can:"settings.general" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:general_settings' %}"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>{% endif %}
                     {% if u|can:"settings.system" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:system_settings' %}"><i class="iconoir-lock menu-icon"></i><span>System Settings</span></a></li>{% endif %}
@@ -33,6 +35,7 @@
                     {% if u|can:"holidays.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:holidays' %}"><i class="iconoir-calendar menu-icon"></i><span>Holidays</span></a></li>{% endif %}
                     {% if u|can:"cms.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:cms_pages' %}"><i class="iconoir-page-edit menu-icon"></i><span>Website Content</span></a></li>{% endif %}
                     {% if u|can:"enquiries.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:enquiry_list' %}"><i class="iconoir-chat-bubble-question menu-icon"></i><span>Enquiries</span></a></li>{% endif %}
+                    {% if u|can:"tickets.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:tickets' %}"><i class="iconoir-headset-help menu-icon"></i><span>Support Tickets</span></a></li>{% endif %}
                     {% if u|can:"email_templates.manage" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:email_template_list' %}"><i class="iconoir-mail menu-icon"></i><span>Email Templates</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Security</span></li>
                     {% if u|can:"logs.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:logs' %}"><i class="iconoir-journal menu-icon"></i><span>Logs</span></a></li>{% endif %}

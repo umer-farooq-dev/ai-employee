@@ -118,6 +118,10 @@ def resolve(key):
         return None
     if widget.company.deleted_at or widget.employee.status != widget.employee.ACTIVE:
         return None
+    from apps.billing import access
+
+    if access.blocked(widget.company, "web_chat"):
+        return None
     return widget
 
 

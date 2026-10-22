@@ -1,0 +1,32 @@
+{# DASH-01 cards; values carry data-kpi so the live refresh (DASH-05) can update them in place. #}
+{% with k=data.kpis today=period.hourly %}
+<div class="an-kpis nine">
+    <a class="an-kpi" href="{% url 'panel:ai_list' %}"><span class="ico"><i class="iconoir-user-star"></i></span><div class="txt">
+        <div class="lbl">AI Employees</div><div class="val" data-kpi="ai_employees">{{ k.ai_employees }}</div>
+        <div class="hint"><span data-kpi="ai_employees_active">{{ k.ai_employees_active }}</span> active</div></div></a>
+    <a class="an-kpi" href="{% url 'panel:calls' %}"><span class="ico"><i class="iconoir-phone"></i></span><div class="txt">
+        <div class="lbl">{% if today and period.key == 'today' %}Calls today{% else %}Calls{% endif %}</div><div class="val" data-kpi="calls">{{ k.calls }}</div>
+        <div class="hint">inbound and outbound</div></div></a>
+    <a class="an-kpi" href="{% url 'panel:calls' %}"><span class="ico"><i class="iconoir-phone-income"></i></span><div class="txt">
+        <div class="lbl">Connected calls</div><div class="val" data-kpi="connected">{{ k.connected }}</div>
+        <div class="hint"><span data-kpi="connect_rate">{{ k.connect_rate }}</span>% of calls answered</div></div></a>
+    <a class="an-kpi" href="{% url 'panel:lead_list' %}"><span class="ico"><i class="iconoir-check-circle"></i></span><div class="txt">
+        <div class="lbl">Qualified leads</div><div class="val" data-kpi="qualified">{{ k.qualified }}</div>
+        <div class="hint"><span data-kpi="leads">{{ k.leads }}</span> new leads</div></div></a>
+    <a class="an-kpi" href="{% url 'panel:lead_list' %}?score=hot"><span class="ico"><i class="iconoir-fire-flame"></i></span><div class="txt">
+        <div class="lbl">Hot leads</div><div class="val" data-kpi="hot">{{ k.hot }}</div>
+        <div class="hint">became hot in this period</div></div></a>
+    <a class="an-kpi" href="{% url 'panel:calendar' %}"><span class="ico"><i class="iconoir-calendar"></i></span><div class="txt">
+        <div class="lbl">Appointments</div><div class="val" data-kpi="appointments">{{ k.appointments }}</div>
+        <div class="hint">booked, not cancelled</div></div></a>
+    <div class="an-kpi"><span class="ico"><i class="iconoir-trophy"></i></span><div class="txt">
+        <div class="lbl">Conversions</div><div class="val" data-kpi="conversions">{{ k.conversions }}</div>
+        <div class="hint"><span data-kpi="conversion_rate">{{ k.conversion_rate }}</span>% of new leads won</div></div></div>
+    <div class="an-kpi"><span class="ico"><i class="iconoir-headset-help"></i></span><div class="txt">
+        <div class="lbl">Human transfers</div><div class="val" data-kpi="transfers">{{ k.transfers }}</div>
+        <div class="hint">handed to your team</div></div></div>
+    <div class="an-kpi"><span class="ico"><i class="iconoir-sparks"></i></span><div class="txt">
+        <div class="lbl">AI usage</div><div class="val" data-kpi="usage">{{ k.usage }}</div>
+        <div class="hint">AI credits used</div></div></div>
+</div>
+{% endwith %}

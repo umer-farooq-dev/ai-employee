@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 from apps.platform_config import services as config
 from apps.rbac.services import has_perm
 from apps.tenancy.context import activate, deactivate
-from apps.tenancy.middleware import PLATFORM_PATHS, gate_blocks, gate_reason, resolve_membership
+from apps.tenancy.middleware import PLATFORM_PATHS, billing_blocks, gate_blocks, gate_reason, resolve_membership
 from apps.tenancy.models import Company
 
 
@@ -28,6 +28,12 @@ class TenantContextMixin:
             if reason:
                 code = "phone_verification_required" if reason == "phone" else f"company_{reason}"
                 raise PermissionDenied({"code": code, "message": "Not available yet."})
+            if billing_blocks(request.path, company):
+                raise PermissionDenied({"code": "billing_hold", "message": "The subscription is unpaid."})
+            from apps.billing.access import enabled
+
+            if company and not enabled(company, "api_access"):  # SA-20: app / API access is a plan feature
+                raise PermissionDenied({"code": "feature_off", "message": "API access is not included in your plan."})
         request.company = django_request.company = company
         staff_area = user.is_authenticated and user.is_staff and request.path.startswith(PLATFORM_PATHS)
         self._tenant_tokens = activate(company.id if company else None, bypass=staff_area)

@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from apps.billing.models import ENTITLEMENTS, Plan
+from apps.billing.models import ENTITLEMENTS, FEATURES, Plan
 from apps.core.uploads import save_public
 from apps.industries.models import Industry
 from apps.notifications.models import EmailTemplate
@@ -191,6 +191,7 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
             "sort_order",
         ]
         widgets = {"description": forms.Textarea(attrs={"rows": 2})}
+        labels = {"gst_rate": "GST rate (%)", "is_public": "Public", "is_custom": "Enterprise / custom plan"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -212,12 +213,35 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
                 label="Overage price (₹)",
                 initial=(ent.overage_price_paise / 100 if ent and ent.overage_price_paise is not None else None),
             )
+            self.fields[f"enforce__{key}"] = forms.ChoiceField(
+                required=False,
+                choices=[("hard", "Stop"), ("soft", "Allow overage")],
+                label="When reached",
+                initial=ent.enforcement if ent else "hard",
+            )
+        for key, label in FEATURES:  # SA-20: missing on the plan = on
+            self.fields[f"feature__{key}"] = forms.BooleanField(
+                required=False, label=label, initial=(plan.flags or {}).get(key, True)
+            )
         for name, field in self.fields.items():
             if name.startswith(("limit__", "overage__")):
                 field.widget.attrs["class"] = "form-control form-control-sm"
+            if name.startswith("enforce__"):
+                field.widget.attrs["class"] = "form-select form-select-sm"
+            if name.startswith("feature__"):
+                field.widget.attrs["class"] = "form-check-input"
 
     def entitlement_rows(self):
-        return [(label, self[f"limit__{key}"], self[f"overage__{key}"]) for key, label in ENTITLEMENTS]
+        return [
+            (label, self[f"limit__{key}"], self[f"enforce__{key}"], self[f"overage__{key}"])
+            for key, label in ENTITLEMENTS
+        ]
+
+    def feature_fields(self):
+        return [self[f"feature__{key}"] for key, _ in FEATURES]
+
+    def plan_fields(self):
+        return [f for f in self if not f.name.startswith(("limit__", "overage__", "enforce__", "feature__"))]
 
     def save(self, commit=True):
         from apps.billing.models import PlanEntitlement
@@ -227,6 +251,7 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
         plan.price_monthly_paise = None if d["price_monthly"] is None else int(d["price_monthly"] * 100)
         plan.price_yearly_paise = None if d["price_yearly"] is None else int(d["price_yearly"] * 100)
         plan.features = [line.strip() for line in d["features_text"].splitlines() if line.strip()]
+        plan.flags = {key: bool(d[f"feature__{key}"]) for key, _ in FEATURES}
         plan.save()
         for key, _ in ENTITLEMENTS:
             overage = d[f"overage__{key}"]
@@ -235,6 +260,7 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
                 key=key,
                 defaults={
                     "limit_value": d[f"limit__{key}"],
+                    "enforcement": d[f"enforce__{key}"] or PlanEntitlement.HARD,
                     "overage_price_paise": None if overage is None else int(overage * 100),
                 },
             )

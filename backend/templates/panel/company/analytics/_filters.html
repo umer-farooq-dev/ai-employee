@@ -1,0 +1,42 @@
+{# Date range (today / 7 days / 30 days / custom) and AI Employee filter shared by the dashboard and Analytics (DASH-02). #}
+<form method="get" class="an-filters" id="an-filters">
+    <div class="btn-group btn-group-sm an-ranges" role="group" aria-label="Date range">
+        {% for key, label in ranges %}
+        <input type="radio" class="btn-check" name="range" id="range-{{ key }}" value="{{ key }}" autocomplete="off"{% if period.key == key %} checked{% endif %}>
+        <label class="btn btn-outline-secondary" for="range-{{ key }}">{{ label }}</label>
+        {% endfor %}
+    </div>
+    <div class="an-custom{% if period.key != 'custom' %} d-none{% endif %}">
+        <input type="date" class="form-control form-control-sm" name="from" value="{{ period.first|date:'Y-m-d' }}" aria-label="From">
+        <span class="text-muted small">to</span>
+        <input type="date" class="form-control form-control-sm" name="to" value="{{ period.last|date:'Y-m-d' }}" aria-label="To">
+        <button class="btn btn-sm btn-primary">Apply</button>
+    </div>
+    {% if staff|length > 1 or employee %}
+    <select name="employee" class="form-select form-select-sm an-employee" aria-label="AI Employee">
+        <option value="">All AI Employees</option>
+        {% for e in staff %}<option value="{{ e.pk }}"{% if employee and employee.pk == e.pk %} selected{% endif %}>{{ e.name }}</option>{% endfor %}
+    </select>
+    {% endif %}
+</form>
+<script>
+(function () {
+    var form = document.getElementById("an-filters"), custom = form.querySelector(".an-custom");
+    function send() {
+        var isCustom = form.querySelector("[name=range]:checked").value === "custom";
+        custom.querySelectorAll("input").forEach(function (i) { i.disabled = !isCustom; });
+        var sel = form.querySelector("[name=employee]");
+        if (sel && !sel.value) sel.disabled = true;
+        form.submit();
+    }
+    form.querySelectorAll("[name=range]").forEach(function (r) {
+        r.addEventListener("change", function () {
+            if (r.value === "custom") { custom.classList.remove("d-none"); custom.querySelector("input").focus(); }
+            else send();
+        });
+    });
+    var sel = form.querySelector("[name=employee]");
+    if (sel) sel.addEventListener("change", send);
+    form.addEventListener("submit", function (e) { e.preventDefault(); send(); });
+})();
+</script>

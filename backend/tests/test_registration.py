@@ -119,8 +119,10 @@ def test_no_approval_and_no_trial_settings(client, set_setting):
     set_setting("registration.approval_required", False)
     set_setting("registration.trial_enabled", False)
     register(client)
-    assert Company.objects.get().status == Company.ACTIVE
-    assert client.get("/app/").status_code == 200
+    company = Company.objects.get()
+    assert company.status == Company.ACTIVE and company.billing_hold  # SUB-03: no trial → pay first
+    assert client.get("/app/")["Location"] == "/app/billing/"
+    assert client.get("/app/billing/plans/").status_code == 200
 
 
 @pytest.mark.django_db
@@ -134,7 +136,7 @@ def test_mandatory_email_verification_from_settings(client, set_setting):
 @pytest.mark.django_db
 def test_mobile_otp_flow(client, set_setting, monkeypatch):
     sent = []
-    monkeypatch.setitem(sms.PROVIDERS, "log", lambda to, text: sent.append((to, text)))
+    monkeypatch.setattr(sms, "_development_log", lambda to, text: sent.append((to, text)))
     set_setting("registration.mobile_otp_required", True)
     set_setting("registration.approval_required", False)
     register(client)
@@ -153,7 +155,7 @@ def test_mobile_otp_flow(client, set_setting, monkeypatch):
 @pytest.mark.django_db
 def test_otp_api_and_attempt_limit(client, set_setting, monkeypatch):
     sent = []
-    monkeypatch.setitem(sms.PROVIDERS, "log", lambda to, text: sent.append(text))
+    monkeypatch.setattr(sms, "_development_log", lambda to, text: sent.append(text))
     set_setting("registration.mobile_otp_required", True)
     set_setting("registration.otp_max_attempts", 2)
     register(client)

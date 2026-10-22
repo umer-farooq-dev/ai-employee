@@ -335,7 +335,8 @@ def test_busy_call_is_retried_by_the_scheduler_within_the_caps(
         third = Call.objects.get(retry_of=retry)
     set_setting("calling.window_start", "09:00")
     set_setting("calling.window_end", "09:01")
-    late = timezone.make_aware(dt.datetime(2026, 10, 20, 22, 0), dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    ist = dt.timezone(dt.timedelta(hours=5, minutes=30))
+    late = (timezone.now() + dt.timedelta(days=1)).astimezone(ist).replace(hour=22, minute=0)  # after the window
     assert services.dial_due(late) == 0
     third.refresh_from_db()
     assert third.status == Call.QUEUED and timezone.localtime(third.next_retry_at).strftime("%H:%M") == "09:00"

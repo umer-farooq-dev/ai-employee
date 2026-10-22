@@ -28,3 +28,19 @@ def setting(key):
     from apps.platform_config.services import get
 
     return get(key)
+
+
+@register.filter
+def money(paise, decimals=True):
+    """Paise → "₹1,23,456.00" (Billing); money:False drops the paise."""
+    from apps.billing.services import fmt
+
+    return "—" if paise is None else fmt(paise, decimals=decimals is not False)
+
+
+@register.filter
+def rupees(paise):
+    """Paise → "1234.50" for form inputs (empty for None)."""
+    from decimal import Decimal
+
+    return "" if paise in (None, "") else f"{Decimal(paise) / 100:.2f}".removesuffix(".00")

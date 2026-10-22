@@ -1,0 +1,36 @@
+{% extends 'panel/admin/layout.html' %}
+{% load panel_tags %}
+{% block title %}Usage & Margin{% endblock %}
+{% block page_content %}
+{% include 'panel/company/billing/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Usage &amp; Margin</h4><span class="text-muted small">Usage and provider cost per company and provider, against invoiced revenue (before GST). Provider prices: AI Settings and Voice &amp; Channels.</span></div>
+    <form method="get"><select class="form-select form-select-sm" name="month" onchange="this.form.submit()" aria-label="Month">{% for v, l in months %}<option value="{{ v }}"{% if v == data.month %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></form>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="card mb-0"><div class="card-body"><div class="text-muted small">Revenue</div><div class="fs-4 fw-semibold">{{ data.revenue|money:False }}</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card mb-0"><div class="card-body"><div class="text-muted small">Provider cost</div><div class="fs-4 fw-semibold">{{ data.cost|money:False }}</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card mb-0"><div class="card-body"><div class="text-muted small">Margin</div><div class="fs-4 fw-semibold {% if data.margin < 0 %}text-danger{% else %}text-success{% endif %}">{{ data.margin|money:False }}</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card mb-0"><div class="card-body"><div class="text-muted small">Margin %</div><div class="fs-4 fw-semibold">{% if data.margin_percent is None %}—{% else %}{{ data.margin_percent }}%{% endif %}</div></div></div></div>
+</div>
+<div class="card">
+    <div class="card-header"><h4 class="card-title mb-0">Per company · {{ start|date:"F Y" }}</h4></div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0 bl-table">
+        <thead class="table-light"><tr><th>Company</th><th class="text-end">Calls</th><th class="text-end">Minutes</th><th class="text-end">WhatsApp msgs</th><th class="text-end">AI credits</th><th class="text-end">Provider cost</th><th class="text-end">Revenue</th><th class="text-end">Margin</th></tr></thead>
+        <tbody>{% for r in data.companies %}<tr>
+            <td><a href="{% url 'superadmin:company_billing' r.id %}">{{ r.name }}</a></td>
+            <td class="text-end">{{ r.calls }}</td><td class="text-end">{{ r.minutes }}</td><td class="text-end">{{ r.wa_messages }}</td><td class="text-end">{{ r.ai_credits }}</td>
+            <td class="text-end">{{ r.cost|money }}</td><td class="text-end">{{ r.revenue|money }}</td>
+            <td class="text-end {% if r.margin < 0 %}text-danger{% endif %}">{{ r.margin|money }}{% if r.margin_percent is not None %} <span class="small text-muted">({{ r.margin_percent }}%)</span>{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">No usage or revenue in this month.</td></tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+<div class="card">
+    <div class="card-header"><h4 class="card-title mb-0">Per provider</h4><span class="text-muted small">A cost of ₹0 means no price is entered for that provider or model yet.</span></div>
+    <div class="table-responsive"><table class="table align-middle mb-0 bl-table">
+        <thead class="table-light"><tr><th>Provider</th><th>Meter</th><th class="text-end">Quantity</th><th class="text-end">Cost</th></tr></thead>
+        <tbody>{% for r in data.providers %}<tr><td>{{ r.provider }}</td><td>{{ r.meter }}</td><td class="text-end">{{ r.quantity|floatformat:"-1" }}</td><td class="text-end">{{ r.cost|money }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">No provider usage in this month.</td></tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% endblock %}

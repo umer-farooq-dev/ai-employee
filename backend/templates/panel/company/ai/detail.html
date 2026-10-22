@@ -1,4 +1,5 @@
 {% extends 'panel/company/layout.html' %}
+{% load panel_tags %}
 {% block title %}{{ employee.name }}{% endblock title %}
 {% block page_content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
@@ -9,6 +10,8 @@
             <span class="text-muted small">{{ employee.role.name }} · {{ employee.industry.name }} · {{ languages|join:", " }} · settings version {{ employee.config_version }}</span>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+    {% company_can 'analytics.view' as can_analytics %}{% if can_analytics %}<a class="btn btn-sm btn-light" href="{% url 'panel:analytics' %}?employee={{ employee.pk }}"><i class="iconoir-stats-up-square"></i> Analytics</a>{% endif %}
     {% if can_manage and employee.status != 'archived' %}
     <form method="post" class="d-flex flex-wrap gap-2">{% csrf_token %}
         <a class="btn btn-sm btn-light" href="{% url 'panel:ai_step' employee.pk 'test' %}"><i class="iconoir-chat-bubble"></i> Test</a>
@@ -17,6 +20,7 @@
         <button class="btn btn-sm btn-outline-danger" name="op" value="archive" onclick="return confirm('Archive {{ employee.name|escapejs }}? It stops working and cannot be edited.')">Archive</button>
     </form>
     {% endif %}
+    </div>
 </div>
 {% if employee.paused_by_platform %}<div class="alert alert-warning">Paused by the platform team: {{ employee.paused_reason }}</div>{% endif %}
 <div class="row">

@@ -1,0 +1,60 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Data & privacy{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/_settings_nav.html' with active='privacy' %}
+{% include 'panel/company/billing/_style.html' %}
+{% if scheduled %}
+<div class="bl-hold mt-3 d-flex flex-wrap gap-3 align-items-center justify-content-between">
+    <div class="d-flex gap-2 align-items-start"><i class="iconoir-warning-triangle text-danger fs-4"></i>
+        <div><strong>Your account will be deleted on {{ scheduled.scheduled_for|date:"d M Y" }}.</strong>
+            <div class="small text-muted">Requested by {{ scheduled.requested_by.email|default:"—" }}. All data is removed permanently on that day.</div></div></div>
+    {% if is_owner %}<form method="post">{% csrf_token %}<input type="hidden" name="request" value="{{ scheduled.pk }}"><button class="btn btn-sm btn-success" name="op" value="cancel">Cancel deletion</button></form>{% endif %}
+</div>
+{% endif %}
+<div class="row g-3 mt-0">
+    <div class="col-lg-6">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Download all your data</h4></div>
+            <div class="card-body">
+                <p class="small text-muted">A ZIP with every record — leads, follow-ups, conversations and transcripts, calls, appointments, catalogue, knowledge base, campaigns, invoices — plus your uploaded files and call recordings. The link stays valid for {{ link_days }} day{{ link_days|pluralize }}.</p>
+                <form method="post">{% csrf_token %}<button class="btn btn-primary btn-sm" name="op" value="export"><i class="iconoir-download"></i> Prepare export</button></form>
+            </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">How long we keep data</h4></div>
+            <div class="card-body">
+                <dl class="bl-kv mb-3">
+                    <dt>Call recordings</dt><dd>{{ rules.recordings_days }} days</dd>
+                    <dt>Transcripts (calls, chats, WhatsApp)</dt><dd>{{ rules.transcripts_days }} days</dd>
+                </dl>
+                <p class="small text-muted mb-2">Summaries, extracted details and lead scores stay after the transcript is removed. Invoices are kept as tax law requires.</p>
+                <a class="btn btn-light btn-sm" href="{% url 'panel:calling_settings' %}">Choose shorter periods</a>
+            </div></div>
+    </div>
+    <div class="col-12">
+        <div class="card mb-0"><div class="card-header"><h4 class="card-title mb-0">Requests</h4></div>
+            <div class="table-responsive"><table class="table align-middle mb-0 bl-table">
+                <thead><tr><th>Requested</th><th>What</th><th>By</th><th>Status</th><th></th></tr></thead>
+                <tbody>{% for r in requests %}<tr>
+                    <td>{{ r.created_at|date:"d M Y H:i" }}</td><td>{{ r.get_kind_display }}</td><td>{{ r.requested_by.email|default:"—" }}</td>
+                    <td><span class="bl-pill {% if r.status == 'ready' or r.status == 'done' %}paid{% elif r.status == 'failed' %}failed{% elif r.status == 'scheduled' or r.status == 'pending' %}due{% else %}void{% endif %}">{{ r.get_status_display }}</span>
+                        {% if r.kind == 'deletion' and r.status == 'scheduled' %}<span class="small text-muted">on {{ r.scheduled_for|date:"d M Y" }}</span>{% endif %}
+                        {% if r.status == 'ready' and r.expires_at %}<span class="small text-muted">until {{ r.expires_at|date:"d M" }}</span>{% endif %}</td>
+                    <td class="text-end">{% if r.status == 'ready' %}<a class="btn btn-sm btn-primary" href="{% url 'panel:privacy_download' r.pk %}"><i class="iconoir-download"></i> Download ({{ r.file_size|filesizeformat }})</a>{% elif r.status == 'pending' %}<span class="small text-muted">Refresh in a minute</span>{% endif %}</td>
+                </tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No requests yet.</td></tr>{% endfor %}</tbody>
+            </table></div></div>
+    </div>
+    {% if is_owner and not scheduled %}
+    <div class="col-12">
+        <div class="card border-danger-subtle mb-3"><div class="card-header"><h4 class="card-title mb-0 text-danger">Delete the account</h4></div>
+            <div class="card-body">
+                <p class="small">Everything of your company is permanently deleted <strong>{{ grace_days }} day{{ grace_days|pluralize }}</strong> after you ask: leads, conversations, recordings, knowledge, files and your team's logins. You can cancel until then. Download an export first if you need a copy. Invoices are kept as tax law requires.</p>
+                <form method="post" class="row g-2 align-items-end">{% csrf_token %}
+                    <div class="col-md-5"><label class="form-label small" for="d-confirm">Type <strong>{{ request.company.name }}</strong> to confirm</label><input id="d-confirm" class="form-control form-control-sm" name="confirm" autocomplete="off" required></div>
+                    <div class="col-md-5"><label class="form-label small" for="d-reason">Why are you leaving? (optional)</label><input id="d-reason" class="form-control form-control-sm" name="reason"></div>
+                    <div class="col-md-2"><button class="btn btn-outline-danger btn-sm w-100" name="op" value="delete">Delete account</button></div>
+                </form>
+            </div></div>
+    </div>
+    {% endif %}
+</div>
+{% endblock page_content %}

@@ -79,18 +79,11 @@ def _errors(request, exc):
 # ------------------------------------------------------------------ dashboard
 @staff_perm("dashboard.view")
 def dashboard(request):
-    stats = {
-        "companies": Company.objects.filter(deleted_at__isnull=True).count(),
-        "active": Company.objects.filter(status=Company.ACTIVE, deleted_at__isnull=True).count(),
-        "trial": Company.objects.filter(status=Company.TRIAL, deleted_at__isnull=True).count(),
-        "pending approval": Company.objects.filter(status=Company.PENDING, deleted_at__isnull=True).count(),
-        "new enquiries": Enquiry.objects.filter(status=Enquiry.NEW).count(),
-        "suspended": Company.objects.filter(status=Company.SUSPENDED).count(),
-        "users": User.objects.count(),
-        "staff": User.objects.filter(is_staff=True).count(),
-    }
+    """SA-02: companies, AI Employees, calls, minutes, MRR / revenue, usage, errors, provider health."""
+    from apps.billing import reports
+
     recent = AuditLog.objects.filter(category="security")[:8]
-    return render(request, "panel/admin/dashboard.html", {"stats": stats, "recent": recent})
+    return render(request, "panel/admin/dashboard.html", {"d": reports.dashboard(), "recent": recent})
 
 
 # ------------------------------------------------------------------ companies (SA-03, TEN-06)
@@ -191,9 +184,16 @@ def company_status(request, pk):
 
 @staff_perm("companies.export")
 def company_export(request, pk):
+    """TEN-07: the same full ZIP export the company can request (all records and files, secrets left out)."""
+    from apps.tenancy.context import company_context
+    from apps.tenancy.privacy import build_export
+
     company = get_object_or_404(Company, pk=pk)
-    response = HttpResponse(tenancy.export_company(company, request=request), content_type="application/json")
-    response["Content-Disposition"] = f'attachment; filename="{company.slug}-export.json"'
+    with company_context(company.id):
+        data = build_export(company)
+    record(request, "company.export", "company", company.id, company=company, category="security")
+    response = HttpResponse(data, content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="{company.slug}-export.zip"'
     return response
 
 
@@ -205,7 +205,23 @@ def company_delete(request, pk):
         messages.error(request, "Type the company slug to confirm deletion.")
         return redirect("superadmin:company_detail", pk=pk)
     tenancy.soft_delete(company, request=request)
-    messages.success(request, "Company deleted.")
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.tenancy.context import company_context
+    from apps.tenancy.models import DataRequest
+
+    with company_context(company.id):  # TEN-07: data is purged after the grace days (cron run_privacy)
+        DataRequest.objects.create(
+            company=company,
+            kind=DataRequest.DELETION,
+            status=DataRequest.SCHEDULED,
+            requested_by=request.user,
+            reason="Deleted by the platform team",
+            scheduled_for=timezone.now() + timedelta(days=config.get("privacy.deletion_grace_days")),
+        )
+    messages.success(request, "Company deleted. Its data is purged after the grace days.")
     return redirect("superadmin:company_list")
 
 

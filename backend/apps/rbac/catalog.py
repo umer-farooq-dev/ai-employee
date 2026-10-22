@@ -38,6 +38,14 @@ PERMISSIONS = {
     "roles.manage": (PLATFORM, "Manage roles and permissions"),
     "plans.view": (PLATFORM, "View plans"),
     "plans.manage": (PLATFORM, "Manage plans, prices and limits"),
+    "subscriptions.view": (PLATFORM, "View subscriptions, invoices and payments of all companies"),
+    "subscriptions.manage": (
+        PLATFORM,
+        "Company billing terms, feature overrides, credits, manual invoices, mark invoices paid",
+    ),
+    "usage_reports.view": (PLATFORM, "View usage, provider cost and margin reports"),
+    "tickets.view": (PLATFORM, "View support tickets from companies"),
+    "tickets.manage": (PLATFORM, "Answer, assign and close support tickets"),
     "settings.general": (PLATFORM, "Edit General Settings"),
     "settings.system": (PLATFORM, "Edit system settings (registration, security)"),
     "cms.view": (PLATFORM, "View website content"),
@@ -80,6 +88,7 @@ PERMISSIONS = {
     "campaigns.approve": (COMPANY, "Approve campaigns before they start calling (company admin)"),
     "whatsapp.manage": (COMPANY, "Connect WhatsApp numbers to AI Employees and manage message templates"),
     "whatsapp.send": (COMPANY, "Send approved WhatsApp templates to leads"),
+    "analytics.view": (COMPANY, "View the company dashboard figures and analytics"),
     "billing.view": (COMPANY, "View subscription and billing"),
     "billing.manage": (COMPANY, "Change subscription and billing"),
 }
@@ -120,6 +129,7 @@ MANAGER_P5 = [
 AGENT_P5 = ["calls.view", "calls.make", "recordings.listen", "handoffs.receive"]
 MANAGER_P6 = ["whatsapp.manage", "whatsapp.send", "campaigns.view", "campaigns.manage"]
 AGENT_P6 = ["whatsapp.send"]
+MANAGER_P7 = ["analytics.view"]
 AGENT_P3 = ["leads.view", "leads.manage", "catalog.view", "calendar.view", "calendar.manage"]
 
 SEED_ROLES = [
@@ -135,6 +145,9 @@ SEED_ROLES = [
             "companies.impersonate",
             "users.view",
             "plans.view",
+            "subscriptions.view",
+            "tickets.view",
+            "tickets.manage",
             "cms.view",
             "logs.view",
             "enquiries.view",
@@ -146,7 +159,7 @@ SEED_ROLES = [
         COMPANY,
         "manager",
         "Manager",
-        ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4, *MANAGER_P5, *MANAGER_P6],
+        ["company.view", "team.view", *MANAGER_P3, *MANAGER_P4, *MANAGER_P5, *MANAGER_P6, *MANAGER_P7],
     ),
     (COMPANY, "agent", "Human Agent", ["company.view", *AGENT_P3, *AGENT_P4, *AGENT_P5, *AGENT_P6]),
 ]

@@ -1,0 +1,139 @@
+{% extends 'panel/admin/layout.html' %}
+{% load panel_tags %}
+{% block title %}Billing · {{ company.name }}{% endblock %}
+{% block page_content %}
+{% include 'panel/company/billing/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><a class="small text-muted" href="{% url 'superadmin:company_detail' company.pk %}">← {{ company.name }}</a>
+        <h4 class="mb-0 mt-1">Billing · {{ company.name }}</h4>
+        <span class="text-muted small">{{ company.legal_name|default:company.name }}{% if company.gstin %} · GSTIN {{ company.gstin }}{% endif %}{% if state %} · {{ state }}{% endif %}</span></div>
+    {% if can_manage %}<form method="post" class="d-flex gap-2">{% csrf_token %}
+        {% if company.billing_hold %}<button class="btn btn-sm btn-success" name="op" value="release">Lift billing hold</button>
+        {% else %}<button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#holdModal">Put on hold</button>{% endif %}
+    </form>{% endif %}
+</div>
+{% if company.billing_hold %}<div class="alert alert-danger small">On billing hold since {{ company.billing_hold|date:"d M Y H:i" }}: the AI Employees are paused and the company sees only Billing.</div>{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card h-100 mb-0"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2"><span class="text-muted small">Plan</span><span class="bl-status {{ sub.status }}">{{ sub.get_status_display }}</span></div>
+            <div class="bl-plan mb-1">{{ company.plan.name|default:"No plan" }}</div>
+            <div class="bl-price mb-3">{% if price is not None %}{{ price|money:False }} <span class="text-muted small fw-normal">/ {{ sub.interval }}{% if sub.custom_price_paise is not None %} · custom price{% endif %}</span>{% else %}<span class="text-muted small">Not priced</span>{% endif %}</div>
+            <dl class="bl-kv mb-0">
+                <dt>Billing</dt><dd>{% if sub.manual %}By invoice{% else %}Razorpay (automatic){% endif %}</dd>
+                {% if company.trial_ends_at %}<dt>Trial ends</dt><dd>{{ company.trial_ends_at|date:"d M Y" }}</dd>{% endif %}
+                {% if sub.current_period_end %}<dt>Period</dt><dd>{{ sub.current_period_start|date:"d M" }} – {{ sub.current_period_end|date:"d M Y" }}</dd>{% endif %}
+                {% if sub.pending_plan %}<dt>Changes to</dt><dd>{{ sub.pending_plan.name }} ({{ sub.pending_interval }})</dd>{% endif %}
+                {% if sub.cancel_at_period_end %}<dt>Cancelled</dt><dd>{{ sub.cancel_reason|default:"—" }}</dd>{% endif %}
+                {% if sub.grace_until %}<dt>Grace until</dt><dd>{{ sub.grace_until|date:"d M Y" }}</dd>{% endif %}
+                <dt>Failed payments</dt><dd>{{ sub.failed_payments }}</dd>
+                {% if sub.gateway_subscription_id %}<dt>Razorpay id</dt><dd class="small">{{ sub.gateway_subscription_id }}</dd>{% endif %}
+            </dl>
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Usage this month</h4></div>
+            <div class="card-body pt-2"><div class="row">
+                {% for r in rows %}<div class="col-md-6"><div class="bl-meter"><div class="top"><span>{{ r.label }}</span><span><strong>{{ r.used }}</strong>{% if r.limit is not None %} / {{ r.limit }}{% else %} <span class="text-muted">· ∞</span>{% endif %}</span></div>
+                    {% if r.limit is not None %}<div class="bl-bar {% if r.percent >= 100 %}full{% elif r.percent >= 80 %}warn{% endif %}"><span style="width:{{ r.percent }}%"></span></div>{% endif %}</div></div>{% endfor %}
+            </div></div></div>
+    </div>
+
+    <div class="col-xl-8">
+        <form class="card mb-0" method="post">{% csrf_token %}<input type="hidden" name="op" value="terms">
+            <div class="card-header d-flex justify-content-between align-items-center"><div><h4 class="card-title mb-0">Billing terms (enterprise)</h4>
+                <span class="text-muted small">Own price, limits and features for this company only. "Plan" keeps the plan's value.</span></div>
+                {% if can_manage %}<button class="btn btn-sm btn-primary">Save terms</button>{% endif %}</div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6"><label class="form-label small" for="t-gw">Billing method</label>
+                        <select id="t-gw" class="form-select form-select-sm" name="gateway"><option value="razorpay"{% if not sub.manual %} selected{% endif %}>Razorpay — automatic renewal</option><option value="manual"{% if sub.manual %} selected{% endif %}>By invoice — we issue invoices, the company pays by bank / online</option></select></div>
+                    <div class="col-md-6"><label class="form-label small" for="t-price">Custom price per {% if sub.interval == "yearly" %}year{% else %}month{% endif %} (₹, before GST)</label>
+                        <input id="t-price" class="form-control form-control-sm" name="custom_price" value="{{ sub.custom_price_paise|rupees }}" placeholder="Empty = plan price" inputmode="decimal"></div>
+                </div>
+                <div class="table-responsive"><table class="table table-sm align-middle mb-3">
+                    <thead class="table-light"><tr><th>Limit</th><th>Plan</th><th style="width:110px">Use</th><th style="width:100px">Limit</th><th style="width:130px">When reached</th><th style="width:100px">Overage ₹</th></tr></thead>
+                    <tbody>{% for r in limits_rows %}<tr>
+                        <td class="small">{{ r.label }}</td>
+                        <td class="small text-muted">{% if r.plan.limit_value is not None %}{{ r.plan.limit_value }}{% else %}∞{% endif %}{% if r.plan.enforcement == 'soft' %} · overage{% endif %}</td>
+                        <td><select class="form-select form-select-sm" name="limit_{{ r.key }}_mode" aria-label="{{ r.label }}"><option value="plan">Plan</option><option value="custom"{% if r.custom %} selected{% endif %}>Custom</option></select></td>
+                        <td><input class="form-control form-control-sm" name="limit_{{ r.key }}" value="{% if r.custom.limit is not None %}{{ r.custom.limit }}{% endif %}" placeholder="∞" inputmode="numeric" aria-label="Limit"></td>
+                        <td><select class="form-select form-select-sm" name="enforcement_{{ r.key }}" aria-label="When reached"><option value="hard">Stop</option><option value="soft"{% if r.custom.enforcement == 'soft' %} selected{% endif %}>Allow overage</option></select></td>
+                        <td><input class="form-control form-control-sm" name="overage_{{ r.key }}" value="{{ r.custom.overage|rupees }}" inputmode="decimal" aria-label="Overage"></td>
+                    </tr>{% endfor %}</tbody></table></div>
+                <h6 class="mb-2">Features (SA-20)</h6>
+                <div class="row g-2">{% for key, label, override, plan_on, on in features %}
+                    <div class="col-md-6"><div class="d-flex justify-content-between align-items-center gap-2 border rounded px-2 py-1">
+                        <span class="small">{% if on %}<i class="iconoir-check-circle text-success"></i>{% else %}<i class="iconoir-xmark-circle text-muted"></i>{% endif %} {{ label }}</span>
+                        <select class="form-select form-select-sm w-auto" name="feature_{{ key }}" aria-label="{{ label }}"><option value="plan">Plan ({% if plan_on %}on{% else %}off{% endif %})</option><option value="on"{% if override is True %} selected{% endif %}>On</option><option value="off"{% if override is False %} selected{% endif %}>Off</option></select></div></div>
+                {% endfor %}</div>
+            </div>
+        </form>
+    </div>
+    <div class="col-xl-4">
+        <div class="card mb-3"><div class="card-header"><h4 class="card-title mb-0">AI credits</h4><span class="text-muted small">Count in the month they are given; negative takes credits back.</span></div>
+            <div class="card-body">
+                {% if can_manage %}<form method="post" class="row g-2 mb-3">{% csrf_token %}<input type="hidden" name="op" value="credits">
+                    <div class="col-4"><input class="form-control form-control-sm" name="credits" type="number" placeholder="+500" required aria-label="Credits"></div>
+                    <div class="col-8"><input class="form-control form-control-sm" name="reason" placeholder="Reason" required aria-label="Reason"></div>
+                    <div class="col-12"><button class="btn btn-sm btn-primary">Adjust credits</button></div></form>{% endif %}
+                <ul class="list-unstyled small mb-0">{% for c in credits %}<li class="d-flex justify-content-between py-1 border-bottom"><span class="text-truncate me-2">{{ c.reason }} <span class="text-muted">· {{ c.month|date:"M Y" }}{% if c.created_by %} · {{ c.created_by.email }}{% endif %}</span></span><strong class="{% if c.credits > 0 %}text-success{% else %}text-danger{% endif %}">{% if c.credits > 0 %}+{% endif %}{{ c.credits }}</strong></li>{% empty %}<li class="text-muted">No adjustments yet.</li>{% endfor %}</ul>
+            </div></div>
+        {% if can_manage %}
+        <form class="card mb-0" method="post">{% csrf_token %}<input type="hidden" name="op" value="invoice">
+            <div class="card-header"><h4 class="card-title mb-0">Issue an invoice</h4><span class="text-muted small">GST is added by the company's state. E-mailed with the PDF.</span></div>
+            <div class="card-body row g-2">
+                <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="Description, e.g. Setup and onboarding" required aria-label="Description"></div>
+                <div class="col-6"><input class="form-control form-control-sm" name="amount" placeholder="Amount ₹ (before GST)" inputmode="decimal" required aria-label="Amount"></div>
+                <div class="col-6"><select class="form-select form-select-sm" name="plan" aria-label="Plan period"><option value="">One-off</option>{% for p in plans %}<option value="{{ p.pk }}">{{ p.name }} period</option>{% endfor %}</select></div>
+                <div class="col-6"><select class="form-select form-select-sm" name="interval" aria-label="Interval">{% for v, l in intervals %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+                <div class="col-6"><input class="form-control form-control-sm" type="date" name="period_start" value="{{ today|date:'Y-m-d' }}" aria-label="Period start"></div>
+                <div class="col-12 small text-muted">For a plan period, paying the invoice activates the plan for that period.</div>
+                <div class="col-12"><button class="btn btn-sm btn-primary">Issue invoice</button></div>
+            </div></form>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <div class="card mb-0"><div class="card-header"><h4 class="card-title mb-0">Invoices</h4></div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0 bl-table">
+                <thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>For</th><th class="text-end">Total</th><th>Status</th><th></th></tr></thead>
+                <tbody>{% for i in invoices %}<tr>
+                    <td class="fw-medium">{{ i.number }}</td><td>{{ i.issued_at|date:"d M Y" }}</td><td class="text-truncate" style="max-width:300px">{{ i.lines.0.description }}</td>
+                    <td class="text-end fw-semibold">{{ i.total_paise|money }}</td><td><span class="bl-pill {{ i.status }}">{{ i.get_status_display }}</span></td>
+                    <td class="text-end"><a class="btn btn-sm btn-light" target="_blank" rel="noopener" href="{% url 'superadmin:invoice_pdf' i.pk %}">PDF</a>
+                        {% if can_manage and i.status == 'due' %}<button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#paid-{{ i.pk }}">Mark paid</button>
+                        <form method="post" action="{% url 'superadmin:invoice_action' i.pk %}" class="d-inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="reason" value="Cancelled by the platform team"><button class="btn btn-sm btn-outline-danger" name="op" value="void">Cancel</button></form>{% endif %}</td>
+                </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No invoices yet.</td></tr>{% endfor %}</tbody>
+            </table></div></div>
+    </div>
+    <div class="col-12">
+        <div class="card"><div class="card-header"><h4 class="card-title mb-0">Payments</h4></div>
+            <div class="table-responsive"><table class="table align-middle mb-0 bl-table">
+                <thead class="table-light"><tr><th>Date</th><th class="text-end">Amount</th><th>Status</th><th>Details</th></tr></thead>
+                <tbody>{% for p in payments %}<tr><td>{{ p.created_at|date:"d M Y H:i" }}</td><td class="text-end">{{ p.amount_paise|money }}</td><td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
+                    <td class="small text-muted">{{ p.error|default:p.method }}{% if p.invoice %} · {{ p.invoice.number }}{% endif %}{% if p.gateway_payment_id %} · {{ p.gateway_payment_id }}{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">No payments yet.</td></tr>{% endfor %}</tbody>
+            </table></div></div>
+    </div>
+</div>
+{% if can_manage %}
+{% for i in invoices %}{% if i.status == 'due' %}
+<div class="modal fade" id="paid-{{ i.pk }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" action="{% url 'superadmin:invoice_action' i.pk %}">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="op" value="paid">
+    <div class="modal-header"><h5 class="modal-title">Mark {{ i.number }} paid</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><p class="small">{{ i.total_paise|money }}</p>
+        <label class="form-label small" for="m-{{ i.pk }}">Method</label><select id="m-{{ i.pk }}" class="form-select form-select-sm mb-2" name="method"><option value="bank">Bank transfer (NEFT / RTGS / IMPS)</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="cash">Cash</option></select>
+        <label class="form-label small" for="r-{{ i.pk }}">Reference (UTR, cheque no.)</label><input id="r-{{ i.pk }}" class="form-control form-control-sm" name="reference" required></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button><button class="btn btn-success">Mark paid</button></div>
+</form></div></div>
+{% endif %}{% endfor %}
+<div class="modal fade" id="holdModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post">{% csrf_token %}
+    <div class="modal-header"><h5 class="modal-title">Put {{ company.name }} on billing hold?</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><p class="small">The AI Employees pause and the team sees only Billing until paid or released. The owners get an e-mail.</p>
+        <label class="form-label small" for="h-reason">Reason (in the e-mail)</label><input id="h-reason" class="form-control" name="reason" placeholder="The invoice is overdue."></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button><button class="btn btn-danger" name="op" value="hold">Put on hold</button></div>
+</form></div></div>
+{% endif %}
+{% endblock %}

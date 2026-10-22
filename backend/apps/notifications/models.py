@@ -31,7 +31,8 @@ class Notification(TenantModel):
         ("hot_lead", "Hot leads"),
         ("appointment", "Bookings"),
         ("campaign", "Campaigns"),
-        ("usage", "Usage alerts"),
+        ("usage", "Usage and billing"),
+        ("support", "Support replies"),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")

@@ -1,0 +1,72 @@
+{% extends 'panel/company/layout.html' %}
+{% load panel_tags admin_tags %}
+{% block title %}Plans{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/billing/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><a class="small text-muted" href="{% url 'panel:billing' %}">← Billing &amp; Usage</a>
+        <h4 class="mb-0 mt-1">Choose your plan</h4>
+        <span class="text-muted small">Prices {% if includes_gst %}include{% else %}are before{% endif %} GST ({{ gst_rate }}%). {% if running %}Upgrades start now and you pay only for the rest of this period; downgrades start at your next renewal.{% else %}Renews automatically; cancel any time.{% endif %}</span></div>
+    <div class="btn-group btn-group-sm pl-toggle{% if not has_yearly %} d-none{% endif %}" role="group" aria-label="Billing interval">
+        <input type="radio" class="btn-check" name="interval" id="iv-monthly" value="monthly"{% if interval != 'yearly' %} checked{% endif %}><label class="btn btn-outline-secondary" for="iv-monthly">Monthly</label>
+        <input type="radio" class="btn-check" name="interval" id="iv-yearly" value="yearly"{% if interval == 'yearly' %} checked{% endif %}><label class="btn btn-outline-secondary" for="iv-yearly">Yearly</label>
+    </div>
+</div>
+{% if not online and can_manage %}<div class="alert alert-info small"><i class="iconoir-info-circle"></i> Online payment is being set up. To subscribe now, please contact support.</div>{% endif %}
+<div class="row g-4 pt-2">
+    {% for c in cards %}
+    <div class="col-md-6 col-xl-4">
+        <div class="pl-card{% if c.current %} current{% endif %}">
+            {% if c.current %}<span class="tag">Your plan</span>{% endif %}
+            <h5 class="mb-1">{{ c.plan.name }}</h5>
+            <p class="text-muted small mb-3" style="min-height:2.4em">{{ c.plan.description|default:"" }}</p>
+            {% for iv, p in c.prices.items %}
+            <div class="pl-price mb-3" data-interval="{{ iv }}">
+                <div class="pl-amount">{{ p.list|money:False }} <small>/ {% if iv == 'yearly' %}year{% else %}month{% endif %}</small></div>
+                <div class="small text-muted mt-1">{% if includes_gst %}incl. GST{% else %}+ GST = {{ p.quote.total|money }}{% endif %}</div>
+            </div>
+            {% endfor %}
+            <div class="pl-price mb-3 pl-none">
+                <div class="pl-amount" style="font-size:1.4rem">Custom</div><div class="small text-muted mt-1">Priced for your business</div></div>
+            <ul class="pl-list">
+                {% for f in c.plan.features %}<li><i class="iconoir-check"></i><span>{{ f }}</span></li>{% endfor %}
+                {% for label, e in c.limits %}<li><i class="iconoir-check"></i><span>{% if e.limit_value is None %}Unlimited{% else %}{{ e.limit_value }}{% endif %} {{ label|lower|cut:" / month" }}{% if '/ month' in label %} a month{% endif %}{% if e.enforcement == 'soft' and e.overage_price_paise %} · then {{ e.overage_price_paise|money }} each{% endif %}</span></li>{% endfor %}
+            </ul>
+            <div class="mt-auto">
+                {% for iv, p in c.prices.items %}
+                <div class="pl-price" data-interval="{{ iv }}">
+                    {% if not can_manage %}<span class="small text-muted">Ask your company owner to change the plan.</span>
+                    {% elif c.current and iv == sub.interval and running %}<button class="btn btn-light w-100" disabled>Current plan</button>
+                    {% elif not online %}<button class="btn btn-outline-secondary w-100" disabled>Online payment coming soon</button>
+                    {% elif running and iv == sub.interval and c.upgrade|get:iv %}<button class="btn btn-primary w-100" data-pay='{"what":"plan","plan":"{{ c.plan.pk }}","interval":"{{ iv }}"}'>Upgrade now</button>
+                        <div class="small text-muted text-center mt-1">Pay {{ c.upgrade|get:iv|money }} + GST for the rest of this period</div>
+                    {% elif running %}<button class="btn btn-outline-primary w-100" data-pay='{"what":"plan","plan":"{{ c.plan.pk }}","interval":"{{ iv }}"}'>Switch at renewal</button>
+                        <div class="small text-muted text-center mt-1">From {{ sub.current_period_end|date:"d M Y" }}</div>
+                    {% else %}<button class="btn btn-primary w-100" data-pay='{"what":"plan","plan":"{{ c.plan.pk }}","interval":"{{ iv }}"}'>Choose {{ c.plan.name }}</button>{% endif %}
+                </div>
+                {% endfor %}
+                <div class="pl-price pl-none-btn"><a class="btn btn-outline-primary w-100" href="{% url 'panel:support' %}">Contact us</a></div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12"><div class="card"><div class="card-body text-center py-5 text-muted">No plans are available right now. Please contact support.</div></div></div>
+    {% endfor %}
+</div>
+<script>
+(function () {
+    function show(iv) {
+        document.querySelectorAll(".pl-card").forEach(function (card) {
+            var has = false;
+            card.querySelectorAll(".pl-price[data-interval]").forEach(function (el) {
+                var on = el.dataset.interval === iv; el.classList.toggle("show", on); if (on) has = true;
+            });
+            card.querySelectorAll(".pl-none,.pl-none-btn").forEach(function (el) { el.classList.toggle("show", !has); });
+        });
+    }
+    document.querySelectorAll("[name=interval]").forEach(function (r) { r.addEventListener("change", function () { show(r.value); }); });
+    show(document.querySelector("[name=interval]:checked").value);
+})();
+</script>
+{% if can_manage %}{% include 'panel/company/billing/_checkout_js.html' %}{% endif %}
+{% endblock page_content %}

@@ -54,10 +54,19 @@ def _errors(request, exc):
 def dashboard(request):
     company = request.company
     days_left = (company.trial_ends_at - timezone.now()).days if company.trial_ends_at else None
+    extra = {}
+    if has_perm(request.user, "analytics.view", company):  # DASH-01 / DASH-02 for people who see company figures
+        from apps.analytics import services as analytics
+
+        from .analytics_views import filters
+
+        p, employee, extra = filters(request)
+        extra["data"] = analytics.report(company, p, employee)
     return render(
         request,
         "panel/company/dashboard.html",
         {
+            **extra,
             "company": company,
             "onboarding": profile.onboarding(company),
             "trial_days_left": days_left,

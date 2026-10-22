@@ -8,7 +8,39 @@
     {% if can_manage %}<form method="post" action="{% url 'panel:accept_template_update' %}">{% csrf_token %}<button class="btn btn-sm btn-primary">Accept update</button></form>{% endif %}
 </div>
 {% endif %}
-{% if stats %}
+{% if data %}
+{% include 'panel/company/analytics/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div class="min-w-0">
+        <h4 class="mb-0">Dashboard</h4>
+        <span class="text-muted small">{{ period.label }}{% if employee %} · {{ employee.name }}{% endif %}</span>
+        <span class="an-live ms-2" id="an-live" data-url="{% url 'api:analytics' %}" data-seconds="{{ refresh_seconds }}"><i></i><span>Live</span></span>
+    </div>
+    {% include 'panel/company/analytics/_filters.html' %}
+</div>
+{% include 'panel/company/analytics/_kpis.html' %}
+<div class="row g-3 mt-0">
+    <div class="col-12">
+        <div class="card mb-0">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">Leads &amp; calls</h4>
+                <a class="small" href="{% url 'panel:analytics' %}?{{ request.GET.urlencode }}">Per AI Employee and campaign →</a>
+            </div>
+            <div class="card-body pt-1"><div id="chart-activity" class="an-chart"></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card mb-0"><div class="card-header"><h4 class="card-title mb-0">Conversions</h4></div>
+            <div class="card-body pt-1"><div id="chart-conversions" class="an-chart sm"></div></div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card mb-0"><div class="card-header"><h4 class="card-title mb-0">AI usage (credits)</h4></div>
+            <div class="card-body pt-1"><div id="chart-usage" class="an-chart sm"></div></div></div>
+    </div>
+</div>
+{{ data|json_script:"an-data" }}{{ series_names|json_script:"an-names" }}
+{% include 'panel/company/analytics/_charts_js.html' %}
+{% elif stats %}
 <div class="row mt-3">
     {% for s in stats %}
     <div class="col-sm-6 col-xl-3">
@@ -26,7 +58,9 @@
     {% endfor %}
 </div>
 {% endif %}
+{% if onboarding.completed < onboarding.total or not data %}
 <div class="row mt-3">
+    {% if onboarding.completed < onboarding.total %}
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -49,6 +83,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     <div class="col-lg-4">
         <div class="card"><div class="card-body">
             <h5 class="card-title">{{ company.name }}</h5>
@@ -61,4 +96,5 @@
         </div></div>
     </div>
 </div>
+{% endif %}
 {% endblock page_content %}

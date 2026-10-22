@@ -1,0 +1,43 @@
+{# SUB-03: buttons with data-pay='{"what": …}' ask the server for Razorpay checkout options, open the checkout and confirm. #}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080"><div id="pay-error" class="alert alert-danger shadow-sm d-none mb-0" role="alert"></div></div>
+{% if online %}<script src="{{ checkout_js }}" defer></script>{% endif %}
+<script>
+(function () {
+    var CSRF = "{{ csrf_token }}";
+    function post(url, body) {
+        return fetch(url, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF}, body: JSON.stringify(body)})
+            .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); });
+    }
+    function fail(msg, btn) {
+        var el = document.getElementById("pay-error");
+        el.textContent = msg; el.classList.remove("d-none");
+        setTimeout(function () { el.classList.add("d-none"); }, 8000);
+        if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.label; }
+    }
+    document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-pay]");
+        if (!btn) return;
+        e.preventDefault();
+        if (btn.dataset.confirm && !confirm(btn.dataset.confirm)) return;
+        btn.dataset.label = btn.innerHTML; btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Please wait';
+        post("{% url 'panel:billing_checkout' %}", JSON.parse(btn.dataset.pay)).then(function (res) {
+            if (!res.ok) return fail(res.d.error || "Something went wrong.", btn);
+            if (!res.d.key) { location.href = "{% url 'panel:billing' %}"; return; }  // scheduled change / resumed
+            if (typeof Razorpay === "undefined") return fail("The payment window could not load. Check your connection and try again.", btn);
+            var opts = Object.assign({}, res.d, {
+                handler: function (resp) {
+                    post("{% url 'panel:billing_confirm' %}", resp).then(function (c) {
+                        if (!c.ok) return fail(c.d.error || "The payment could not be confirmed.", btn);
+                        location.href = "{% url 'panel:billing' %}";
+                    });
+                },
+                modal: {ondismiss: function () { btn.disabled = false; btn.innerHTML = btn.dataset.label; }}
+            });
+            var rzp = new Razorpay(opts);
+            rzp.on("payment.failed", function (r) { fail((r.error && r.error.description) || "The payment failed.", btn); });
+            rzp.open();
+        }).catch(function () { fail("Network error. Please try again.", btn); });
+    });
+})();
+</script>

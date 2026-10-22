@@ -42,7 +42,10 @@ GROUPS = {
     "whatsapp": ("system", "WhatsApp"),
     "notifications": ("system", "Team alerts"),
     "campaigns": ("system", "Campaigns"),
-    "retention": ("system", "Data retention"),
+    "analytics": ("system", "Dashboard & analytics"),
+    "billing": ("system", "Billing & GST"),
+    "support": ("system", "Support"),
+    "retention": ("system", "Data retention & privacy"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
@@ -53,6 +56,12 @@ def plan_choices():
     from apps.billing.models import Plan
 
     return [(p.key, p.name) for p in Plan.objects.order_by("sort_order", "name")]
+
+
+def gst_state_choices():
+    from apps.billing.gst import state_choices
+
+    return state_choices()
 
 
 def language_choices():
@@ -741,7 +750,7 @@ SETTINGS = [
         ["hot", "warm"],
         "Score labels counted as qualified",
         "campaigns",
-        help="hot, warm, cold",
+        help="hot, warm, cold. Used by campaign results and the dashboard's Qualified leads",
     ),
     Setting(
         "campaigns.max_test_numbers",
@@ -789,19 +798,159 @@ SETTINGS = [
         "notifications",
         help="Company admins are alerted once a month per limit and level",
     ),
+    # Dashboard & analytics (DASH-01 … DASH-05)
+    Setting(
+        "analytics.default_range",
+        "choice",
+        "7d",
+        "Dashboard opens on",
+        "analytics",
+        choices=(("today", "Today"), ("7d", "Last 7 days"), ("30d", "Last 30 days")),
+    ),
+    Setting(
+        "analytics.refresh_seconds",
+        "number",
+        30,
+        "Live dashboard refresh (seconds)",
+        "analytics",
+        min=5,
+        max=600,
+    ),
+    Setting(
+        "analytics.max_range_days",
+        "number",
+        366,
+        "Longest custom date range (days)",
+        "analytics",
+        min=7,
+        max=1830,
+    ),
+    # Billing & GST (SUB-03 … SUB-06, USE-03). Seller name, GSTIN, PAN and address: General Settings → Contact.
+    Setting("billing.gst_rate", "number", 18, "GST rate (%)", "billing", min=0, max=28),
+    Setting(
+        "billing.seller_state",
+        "choice",
+        "",
+        "Your state (place of business for GST)",
+        "billing",
+        choices=gst_state_choices,
+        help="Same state as the customer: CGST + SGST. Another state: IGST",
+    ),
+    Setting(
+        "billing.sac_code",
+        "text",
+        "",
+        "SAC code on invoices",
+        "billing",
+        help="Service accounting code for your SaaS service; ask your accountant",
+    ),
+    Setting(
+        "billing.invoice_prefix",
+        "text",
+        "INV",
+        "Invoice number prefix",
+        "billing",
+        help="Numbers look like INV/26-27/00001 and restart every financial year (up to 5 letters)",
+    ),
+    Setting(
+        "billing.prices_include_gst",
+        "boolean",
+        False,
+        "Plan prices include GST",
+        "billing",
+        help="Off: GST is added on top of the plan price at checkout",
+    ),
+    Setting(
+        "billing.proration",
+        "boolean",
+        True,
+        "Charge the difference on upgrade (prorated)",
+        "billing",
+        help="Off: an upgrade starts at the next renewal like a downgrade",
+    ),
+    Setting(
+        "billing.grace_days",
+        "number",
+        7,
+        "Days of access after a failed payment",
+        "billing",
+        min=0,
+        max=60,
+        help="Then the AI stops and the company only sees Billing until it pays",
+    ),
+    Setting(
+        "billing.trial_reminder_days",
+        "number",
+        3,
+        "Remind before the trial ends (days)",
+        "billing",
+        min=0,
+        max=30,
+    ),
+    Setting("billing.invoice_due_days", "number", 7, "Manual invoices are due in (days)", "billing", min=0, max=90),
+    Setting("billing.invoice_footer", "textarea", "", "Invoice footer (bank details, terms)", "billing"),
+    # Support tickets (SA-19, CP-05)
+    Setting(
+        "support.categories",
+        "list",
+        ["Billing", "Calls and phone numbers", "WhatsApp", "AI Employee", "Account and login", "Other"],
+        "Ticket categories",
+        "support",
+        help="One per line; companies choose one when they raise a ticket",
+    ),
+    Setting(
+        "support.auto_close_days",
+        "number",
+        7,
+        "Close answered tickets after (days without a reply)",
+        "support",
+        min=0,
+        max=90,
+        help="0 = never close automatically",
+    ),
     # D. Retention (REC-03, COMP-06). Companies may choose shorter.
     Setting("retention.recordings_days", "number", 90, "Keep call recordings (days)", "retention", min=1, max=3650),
-    Setting("retention.transcripts_days", "number", 365, "Keep transcripts (days)", "retention", min=1, max=3650),
-    # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
     Setting(
-        "sms.provider",
-        "choice",
-        "log",
-        "SMS provider",
-        "sms",
-        choices=(("log", "Development log (no SMS is sent)"),),
-        help="The development log only works on local / test servers.",
+        "retention.transcripts_days",
+        "number",
+        365,
+        "Keep transcripts (days)",
+        "retention",
+        min=1,
+        max=3650,
+        help="Calls, website chats and WhatsApp; the summary, extracted fields and score stay",
     ),
+    Setting(
+        "retention.logs_days",
+        "number",
+        180,
+        "Keep API request and error logs (days)",
+        "retention",
+        min=7,
+        max=3650,
+    ),
+    Setting("retention.audit_days", "number", 730, "Keep the audit log (days)", "retention", min=90, max=3650),
+    Setting("retention.alerts_days", "number", 90, "Keep team alerts (days)", "retention", min=7, max=3650),
+    Setting(
+        "privacy.export_link_days",
+        "number",
+        7,
+        "Data export download stays available for (days)",
+        "retention",
+        min=1,
+        max=30,
+    ),
+    Setting(
+        "privacy.deletion_grace_days",
+        "number",
+        30,
+        "Account deletion happens after (days)",
+        "retention",
+        min=0,
+        max=90,
+        help="The owner can cancel during this time; invoices are kept as the law requires",
+    ),
+    # SMS for mobile OTP (AUTH-02). Real providers are added with their credentials when the client chooses one.
     Setting(
         "sms.otp_message",
         "text",

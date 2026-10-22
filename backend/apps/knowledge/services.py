@@ -42,7 +42,7 @@ EMBED_BATCH = 64
 def _check_limits(company, adding_bytes=0, new_source=True):
     if new_source:
         limits.check(company, "kb_sources", Source.objects.filter(company=company).count(), label="knowledge sources")
-    cap_mb = limits.limit(company, "kb_storage_mb")
+    cap_mb = limits.hard_cap(company, "kb_storage_mb")
     if cap_mb is not None and adding_bytes:
         used = Source.objects.filter(company=company).aggregate(s=Sum("file_size"))["s"] or 0
         if used + adding_bytes > cap_mb * 1024 * 1024:

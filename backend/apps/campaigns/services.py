@@ -296,8 +296,12 @@ def request_approval(campaign, user=None, request=None):
 
 
 def check_ready(campaign):
+    from apps.billing import access
     from apps.voice.services import number_for
 
+    reason = access.blocked(campaign.company, "campaigns")
+    if reason:
+        raise ValidationError(reason)
     employee = campaign.employee
     if employee.status != AIEmployee.ACTIVE and not campaign.test_mode:
         raise ValidationError(f"{employee.name} is not active.")

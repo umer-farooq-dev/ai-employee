@@ -30,11 +30,10 @@ def _hash(token):
 
 
 def seat_limit(company):
-    """Users / seats from the company's plan (None = not limited)."""
-    if not company.plan_id:
-        return None
-    row = company.plan.entitlements.filter(key="users").first()
-    return row.limit_value if row else None
+    """Users / seats from the company's plan or its own limit (None = not limited)."""
+    from apps.billing import limits
+
+    return limits.hard_cap(company, "users")
 
 
 def seats_used(company):

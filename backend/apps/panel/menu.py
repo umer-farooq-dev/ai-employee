@@ -18,11 +18,11 @@ MENU = [
     ("campaigns", "Campaigns", "megaphone", "panel:campaigns", "campaigns.view", "campaigns", 6),
     ("knowledge", "Knowledge Base", "book-stack", "panel:kb", "knowledge.view", None, 4),
     ("catalogue", "Catalogue", "package", "panel:catalog_home", "catalog.view", None, 3),
-    ("analytics", "Analytics", "stats-up-square", None, "company.view", None, 7),
-    ("billing", "Billing & Usage", "wallet", None, "billing.view", None, 7),
+    ("analytics", "Analytics", "stats-up-square", "panel:analytics", "analytics.view", None, 7),
+    ("billing", "Billing & Usage", "wallet", "panel:billing", "billing.view", None, 7),
     ("team", "Team", "group", "panel:team", "team.view", None, 2),
     ("settings", "Settings", "settings", "panel:company_settings", "company.view", None, 2),
-    ("support", "Support", "headset-help", None, "company.view", None, 7),
+    ("support", "Support", "headset-help", "panel:support", "company.view", None, 7),
 ]
 BY_KEY = {row[0]: row for row in MENU}
 

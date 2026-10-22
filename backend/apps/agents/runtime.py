@@ -94,6 +94,15 @@ def start(employee, channel="test", customer=None, user=None, lead=None):
         raise ValidationError("This AI Employee is archived.")
     if channel != "test" and employee.status != employee.ACTIVE:
         raise ValidationError("This AI Employee is not active.")
+    if channel != "test":
+        from apps.billing import access
+
+        reason = access.blocked(employee.company, access.CHANNEL_FEATURES.get(channel))
+        if reason:
+            raise ValidationError(reason)
+        left = access.credits_left(employee.company)
+        if left is not None and left <= 0:
+            raise ValidationError("This month's AI credits are used up. Upgrade the plan or wait for next month.")
     customer = {k: str(v).strip() for k, v in (customer or {}).items() if v}
     language = customer.pop("language", "") or employee.primary_language
     if language not in (employee.languages or [employee.primary_language]):

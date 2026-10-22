@@ -15,6 +15,17 @@ GATED_PATHS = ("/app/", "/dashboard/", "/api/v1/")
 GATE_OPEN_PATHS = ("/app/pending/", "/api/v1/auth/", "/api/v1/me/")
 GATE_OPEN_EXACT = {"/api/v1/company/"}
 STATUS_URL = "/app/pending/"
+# SUB-03: an unpaid company (billing hold) keeps Billing, Support, alerts and its profile; everything else waits.
+BILLING_URL = "/app/billing/"
+BILLING_OPEN_PATHS = (
+    *GATE_OPEN_PATHS,
+    BILLING_URL,
+    "/api/v1/billing/",
+    "/app/support/",
+    "/api/v1/support/",
+    "/app/notifications/",
+    "/api/v1/notifications/",
+)
 
 
 def gate_reason(user, company):
@@ -30,6 +41,31 @@ def gate_reason(user, company):
 
 def gate_blocks(path):
     return path.startswith(GATED_PATHS) and not path.startswith(GATE_OPEN_PATHS) and path not in GATE_OPEN_EXACT
+
+
+def billing_blocks(path, company):
+    return bool(
+        company
+        and company.billing_hold
+        and path.startswith(GATED_PATHS)
+        and not path.startswith(BILLING_OPEN_PATHS)
+        and path not in GATE_OPEN_EXACT
+    )
+
+
+def billing_held(request):
+    if request.path.startswith("/api/"):
+        return JsonResponse(
+            {
+                "error": {
+                    "code": "billing_hold",
+                    "message": "The subscription is unpaid. Only Billing is available until it is paid.",
+                    "billing_url": BILLING_URL,
+                }
+            },
+            status=403,
+        )
+    return redirect(BILLING_URL)
 
 
 def resolve_membership(user):
@@ -70,6 +106,8 @@ class TenantMiddleware:
             reason = gate_reason(user, request.company)
             if reason:
                 return self._gated(request, reason)
+            if billing_blocks(request.path, request.company):
+                return billing_held(request)
 
         staff_area = user.is_authenticated and user.is_staff and request.path.startswith(PLATFORM_PATHS)
         tokens = activate(request.company.id if request.company else None, bypass=staff_area)

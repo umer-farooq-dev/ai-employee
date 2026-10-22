@@ -74,9 +74,10 @@ def _start_subscription(company):
     if config.get("registration.trial_enabled") and days > 0:
         company.status = Company.TRIAL
         company.trial_ends_at = timezone.now() + timedelta(days=days)
-    else:
+    else:  # no trial: the owner chooses a plan and pays first (SUB-03); only Billing opens until then
         company.status = Company.ACTIVE
         company.trial_ends_at = None
+        company.billing_hold = timezone.now()
 
 
 def owners(company):

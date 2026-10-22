@@ -75,11 +75,10 @@ def default_status(company):
 
 
 def custom_field_limit(company):
-    """CRM-04: how many own lead fields the company's plan allows (None = not limited)."""
-    from apps.billing.models import PlanEntitlement
+    """CRM-04: how many own lead fields the company's plan (or its own limit) allows (None = not limited)."""
+    from apps.billing import limits
 
-    row = PlanEntitlement.objects.filter(plan_id=company.plan_id, key="custom_fields").first()
-    return row.limit_value if row else None
+    return limits.hard_cap(company, "custom_fields")
 
 
 def members(company):

@@ -98,6 +98,8 @@ def clean(key, value):
         raise ValidationError(f"{s.label}: use a hex colour like #6534F4.")
     if key == "locale.default_phone_country" and not re.fullmatch(r"[a-zA-Z]{2}", value):
         raise ValidationError(f"{s.label}: use a two-letter country code, e.g. in.")
+    if key == "billing.invoice_prefix" and not re.fullmatch(r"[A-Za-z0-9]{1,5}", value):
+        raise ValidationError(f"{s.label}: 1 to 5 letters or digits (GST invoice numbers are at most 16 long).")
     if key.startswith("security.api_rate") and not RATE_RE.match(value):
         raise ValidationError(f"{s.label}: use the format 100/hour.")
     return value

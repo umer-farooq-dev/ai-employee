@@ -1,19 +1,42 @@
 {% extends 'panel/admin/layout.html' %}
+{% load panel_tags admin_tags static %}
 {% block title %}Dashboard{% endblock %}
 {% block page_content %}
-<div class="row mt-3">
-    {% for label, value in stats.items %}
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card"><div class="card-body text-center">
-            <p class="text-muted text-uppercase fs-12 mb-1">{{ label }}</p>
-            <h3 class="mb-0 fw-bold">{{ value }}</h3>
-        </div></div>
-    </div>
-    {% endfor %}
+{% include 'panel/company/analytics/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Platform dashboard</h4><span class="text-muted small">{% now "F Y" %} · figures across all companies</span></div>
 </div>
-<div class="card">
+{% if d %}
+{% if d.providers_down %}<div class="alert alert-danger small"><i class="iconoir-warning-triangle"></i> Provider problem: {% for p in d.providers_down %}<strong>{{ p.name }}</strong> ({{ p.health.message|default:"failing" }}){% if not forloop.last %}, {% endif %}{% endfor %}.</div>{% endif %}
+<div class="an-kpis nine mb-3">
+    <a class="an-kpi" href="{% url 'superadmin:company_list' %}"><span class="ico"><i class="iconoir-building"></i></span><div class="txt"><div class="lbl">Companies</div><div class="val">{{ d.companies.total }}</div>
+        <div class="hint">{{ d.companies.active }} active · {{ d.companies.trial }} trial · {{ d.companies.new_month }} new this month</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:ai_employees' %}"><span class="ico"><i class="iconoir-user-star"></i></span><div class="txt"><div class="lbl">Active AI Employees</div><div class="val">{{ d.ai_employees }}</div><div class="hint">working for companies</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:calls' %}"><span class="ico"><i class="iconoir-phone"></i></span><div class="txt"><div class="lbl">Calls today</div><div class="val">{{ d.calls_today }}</div><div class="hint">{{ d.minutes_month }} voice minutes this month</div></div></a>
+    {% if request.user|can:"subscriptions.view" %}
+    <a class="an-kpi" href="{% url 'superadmin:billing' %}"><span class="ico"><i class="iconoir-graph-up"></i></span><div class="txt"><div class="lbl">MRR</div><div class="val">{{ d.mrr|money:False }}</div><div class="hint">monthly recurring, before GST</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:billing' %}?tab=invoices&status=paid"><span class="ico"><i class="iconoir-coins"></i></span><div class="txt"><div class="lbl">Revenue this month</div><div class="val">{{ d.revenue_month|money:False }}</div><div class="hint">provider cost {{ d.cost_month|money:False }}</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:billing' %}?tab=subscriptions&status=past_due"><span class="ico"><i class="iconoir-warning-circle"></i></span><div class="txt"><div class="lbl">Billing issues</div><div class="val">{{ d.past_due|add:d.companies.on_hold }}</div><div class="hint">{{ d.past_due }} overdue · {{ d.companies.on_hold }} on hold · {{ d.failed_payments_month }} failed payments</div></div></a>
+    {% endif %}
+    <div class="an-kpi"><span class="ico"><i class="iconoir-sparks"></i></span><div class="txt"><div class="lbl">AI usage this month</div><div class="val">{{ d.ai_credits_month }}</div><div class="hint">AI credits · {{ d.wa_messages_month }} WhatsApp messages</div></div></div>
+    <a class="an-kpi" href="{% url 'superadmin:company_list' %}?status=pending"><span class="ico"><i class="iconoir-clock"></i></span><div class="txt"><div class="lbl">Waiting for you</div><div class="val">{{ d.companies.pending|add:d.new_enquiries }}</div><div class="hint">{{ d.companies.pending }} approvals · {{ d.new_enquiries }} enquiries · {{ d.companies.trials_ending }} trials end in 7 days</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:logs_kind' 'errors' %}"><span class="ico"><i class="iconoir-warning-triangle"></i></span><div class="txt"><div class="lbl">Errors (24 h)</div><div class="val {% if d.errors_24h %}text-danger{% endif %}">{{ d.errors_24h }}</div><div class="hint">{{ d.providers|length }} providers checked{% if d.providers_down %} · {{ d.providers_down|length }} failing{% endif %}</div></div></a>
+</div>
+<div class="row g-3">
+    {% if request.user|can:"subscriptions.view" %}
+    <div class="col-lg-7"><div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Revenue (before GST)</h4></div>
+        <div class="card-body pt-1"><div id="chart-revenue" class="an-chart sm"></div></div></div></div>
+    {% endif %}
+    <div class="col-lg-5"><div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Provider health</h4></div>
+        <div class="list-group list-group-flush">{% for p in d.providers %}<div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+            <span class="text-truncate"><i class="{% if p.health.ok %}iconoir-check-circle text-success{% else %}iconoir-xmark-circle text-danger{% endif %} me-1"></i>{{ p.name }}</span>
+            <span class="small text-muted text-truncate" style="max-width:55%">{{ p.health.message|default:"" }}</span></div>
+        {% empty %}<div class="list-group-item text-muted small">No active provider has been tested yet. Use "Test" in AI Settings or Voice &amp; Channels.</div>{% endfor %}</div></div></div>
+</div>
+{% endif %}
+<div class="card mt-3">
     <div class="card-header"><h4 class="card-title mb-0">Recent security events</h4></div>
-    <div class="card-body p-0">
+    <div class="card-body p-0"><div class="table-responsive">
         <table class="table mb-0">
             <thead class="table-light"><tr><th>Time</th><th>Action</th><th>User</th><th>IP</th></tr></thead>
             <tbody>
@@ -21,6 +44,27 @@
             {% empty %}<tr><td colspan="4" class="text-muted text-center">No events yet.</td></tr>{% endfor %}
             </tbody>
         </table>
-    </div>
+    </div></div>
 </div>
+{% if d.revenue_series %}
+{{ d.revenue_series|json_script:"rev-data" }}
+<script src="{% static 'panel/vendor/apexcharts/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+    var el = document.getElementById("chart-revenue");
+    if (!el) return;
+    var rows = JSON.parse(document.getElementById("rev-data").textContent);
+    var brand = (getComputedStyle(document.documentElement).getPropertyValue("--brand-primary") || "#6534F4").trim();
+    new ApexCharts(el, {
+        chart: {type: "bar", height: 240, toolbar: {show: false}, fontFamily: "inherit"}, colors: [brand],
+        plotOptions: {bar: {borderRadius: 4, columnWidth: "45%"}}, dataLabels: {enabled: false},
+        grid: {borderColor: "rgba(148,163,184,.25)", strokeDashArray: 4},
+        series: [{name: "Revenue", data: rows.map(function (r) { return Math.round(r.revenue / 100); })}],
+        xaxis: {categories: rows.map(function (r) { return r.month; }), axisTicks: {show: false}},
+        yaxis: {labels: {formatter: function (v) { return "₹" + Math.round(v).toLocaleString("en-IN"); }}},
+        tooltip: {y: {formatter: function (v) { return "₹" + v.toLocaleString("en-IN"); }}}
+    }).render();
+})();
+</script>
+{% endif %}
 {% endblock %}

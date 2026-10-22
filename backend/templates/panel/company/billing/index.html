@@ -1,0 +1,164 @@
+{% extends 'panel/company/layout.html' %}
+{% load panel_tags %}
+{% block title %}Billing & Usage{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/billing/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Billing &amp; Usage</h4>
+        <span class="text-muted small">Your plan, this month's usage, invoices and payments</span></div>
+    <a class="btn btn-sm btn-primary" href="{% url 'panel:billing_plans' %}"><i class="iconoir-wallet"></i> {% if sub.status == 'active' and sub.current_period_end %}Change plan{% else %}Choose a plan{% endif %}</a>
+</div>
+
+{% if company.billing_hold %}
+<div class="bl-hold mb-3 d-flex flex-wrap gap-3 align-items-center justify-content-between">
+    <div class="d-flex gap-2 align-items-start"><i class="iconoir-warning-triangle text-danger fs-4"></i>
+        <div><strong>Your AI Employees are paused.</strong>
+            <div class="small text-muted">{% if sub.status == 'pending' and company.trial_ends_at is None and not invoices %}Choose a plan and pay to start.{% elif sub.status == 'cancelled' %}The subscription has ended.{% elif sub.status == 'past_due' %}The subscription payment is overdue.{% else %}The free trial has ended.{% endif %}
+                Your data is safe; only Billing opens until the subscription is paid.</div></div>
+    </div>
+    {% if due %}<button class="btn btn-sm btn-danger" data-pay='{"what":"invoice","invoice":"{{ due.0.pk }}"}'>Pay {{ due.0.total_paise|money }}</button>
+    {% else %}<a class="btn btn-sm btn-danger" href="{% url 'panel:billing_plans' %}">Choose a plan</a>{% endif %}
+</div>
+{% elif sub.status == 'past_due' %}
+<div class="alert alert-warning d-flex flex-wrap gap-2 justify-content-between align-items-center">
+    <div><strong>Payment overdue.</strong> Pay by {{ sub.grace_until|date:"d M Y" }} to keep your AI Employees working.</div>
+    {% if due and can_manage %}<button class="btn btn-sm btn-warning" data-pay='{"what":"invoice","invoice":"{{ due.0.pk }}"}'>Pay now</button>{% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card h-100 mb-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="text-muted small">Current plan</div>
+                    <span class="bl-status {{ sub.status }}">{{ sub.get_status_display }}</span>
+                </div>
+                <div class="bl-plan mb-1">{{ company.plan.name|default:"No plan" }}</div>
+                {% if price is not None %}<div class="bl-price mb-3">{{ price|money:False }} <span class="text-muted fw-normal small">/ {% if sub.interval == 'yearly' %}year{% else %}month{% endif %}{% if not includes_gst %} + GST{% endif %}</span></div>{% else %}<div class="text-muted small mb-3">Custom pricing</div>{% endif %}
+                <dl class="bl-kv mb-3">
+                    {% if sub.status == 'trialing' and company.trial_ends_at %}<dt>Trial ends</dt><dd>{{ company.trial_ends_at|date:"d M Y" }} ({{ company.trial_ends_at|timeuntil }})</dd>{% endif %}
+                    {% if sub.current_period_end %}<dt>Current period</dt><dd>{{ sub.current_period_start|date:"d M" }} – {{ sub.current_period_end|date:"d M Y" }}</dd>
+                    <dt>{% if sub.cancel_at_period_end %}Ends on{% elif sub.manual %}Next invoice{% else %}Renews on{% endif %}</dt><dd>{{ sub.current_period_end|date:"d M Y" }}</dd>{% endif %}
+                    <dt>Billing</dt><dd>{% if sub.manual %}By invoice{% else %}Automatic (card / UPI / net banking){% endif %}</dd>
+                    {% if sub.last_payment_at %}<dt>Last payment</dt><dd>{{ sub.last_payment_at|date:"d M Y" }}</dd>{% endif %}
+                </dl>
+                {% if sub.pending_plan %}
+                <div class="alert alert-info small py-2 d-flex justify-content-between align-items-center gap-2">
+                    <span>Changes to <strong>{{ sub.pending_plan.name }}</strong> ({{ sub.pending_interval }}) on {{ sub.current_period_end|date:"d M Y" }}.</span>
+                    {% if can_manage %}<form method="post">{% csrf_token %}<button class="btn btn-sm btn-light" name="op" value="keep_plan">Keep current</button></form>{% endif %}
+                </div>{% endif %}
+                {% if sub.cancel_at_period_end %}
+                <div class="alert alert-warning small py-2 d-flex justify-content-between align-items-center gap-2">
+                    <span>Cancelled — works until {{ sub.current_period_end|date:"d M Y" }}.</span>
+                    {% if can_manage %}<button class="btn btn-sm btn-light" data-pay='{"what":"resume"}'>Keep subscription</button>{% endif %}
+                </div>{% endif %}
+                {% if can_manage and sub.status == 'active' and sub.current_period_end and not sub.cancel_at_period_end %}
+                <button class="btn btn-sm btn-link text-danger px-0" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel subscription</button>{% endif %}
+                {% if not online and can_manage and not sub.manual %}<div class="small text-muted mt-2"><i class="iconoir-info-circle"></i> Online payment is being set up. Contact support to subscribe.</div>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100 mb-0">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">Usage this month</h4><span class="text-muted small">since {{ month|date:"d M" }}</span></div>
+            <div class="card-body pt-2">
+                {% for r in monthly_rows %}
+                <div class="bl-meter">
+                    <div class="top"><span>{{ r.label|cut:" / month" }}{% if r.key == 'ai_credits' and extra_credits %} <span class="text-muted small">(incl. extra credits)</span>{% endif %}</span>
+                        <span><strong>{{ r.used }}</strong>{% if r.limit is not None %} / {{ r.limit }}{% else %} <span class="text-muted">· unlimited</span>{% endif %}</span></div>
+                    {% if r.limit is not None %}<div class="bl-bar {% if r.percent >= 100 %}full{% elif r.percent >= 80 %}warn{% endif %}"><span style="width:{{ r.percent }}%"></span></div>
+                    <div class="d-flex justify-content-between small text-muted mt-1"><span>{% if r.left %}{{ r.left }} left{% elif r.enforcement == 'soft' %}Over the plan — extra use is billed{% else %}Limit reached — stops until next month{% endif %}</span>
+                        {% if r.over and r.overage_paise %}<span class="text-warning">+{{ r.over }} over · {{ r.overage_paise|money }}</span>{% endif %}</div>{% endif %}
+                </div>
+                {% endfor %}
+                {% if overage_total %}<div class="small text-muted mt-2">Overage so far this month: <strong>{{ overage_total|money }}</strong> (billed separately).</div>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">AI credits</h4></div>
+            <div class="card-body">
+                <div class="d-flex align-items-end gap-2 mb-1"><span class="bl-plan">{% if credits.limit is None %}∞{% else %}{{ credits.left }}{% endif %}</span><span class="text-muted small mb-1">left this month</span></div>
+                <div class="small text-muted mb-3">{{ credits.used }} used{% if credits.limit is not None %} of {{ credits.limit }}{% endif %}</div>
+                {% if extra_credits %}<div class="small fw-semibold mb-1">Credit adjustments</div>
+                <ul class="list-unstyled small mb-0">{% for c in extra_credits %}<li class="d-flex justify-content-between py-1 border-bottom"><span class="text-truncate me-2">{{ c.reason }} <span class="text-muted">· {{ c.month|date:"M Y" }}</span></span><strong class="{% if c.credits > 0 %}text-success{% else %}text-danger{% endif %}">{% if c.credits > 0 %}+{% endif %}{{ c.credits }}</strong></li>{% endfor %}</ul>
+                {% else %}<div class="small text-muted">Credits come with your plan every month. Extra credits from our team appear here.</div>{% endif %}
+            </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Plan limits</h4></div>
+            <div class="card-body pt-2">
+                {% for r in other_rows %}
+                <div class="bl-meter"><div class="top"><span>{{ r.label }}</span><span><strong>{{ r.used }}</strong>{% if r.limit is not None %} / {{ r.limit }}{% else %} <span class="text-muted">· unlimited</span>{% endif %}</span></div>
+                    {% if r.limit is not None %}<div class="bl-bar {% if r.percent >= 100 %}full{% elif r.percent >= 80 %}warn{% endif %}"><span style="width:{{ r.percent }}%"></span></div>{% endif %}</div>
+                {% endfor %}
+            </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Usage details</h4></div>
+            <div class="card-body">
+                <dl class="bl-kv mb-3">{% for label, value in meters %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+                <div class="small fw-semibold mb-1">Included in your plan</div>
+                {% for label, on in features %}<div class="bl-feature {% if not on %}text-muted{% endif %}"><i class="{% if on %}iconoir-check-circle text-success{% else %}iconoir-xmark-circle{% endif %}"></i>{{ label }}</div>{% endfor %}
+            </div></div>
+    </div>
+
+    <div class="col-12">
+        <div class="card mb-0">
+            <div class="card-header"><h4 class="card-title mb-0">Invoices</h4></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 bl-table">
+                    <thead><tr><th>Invoice</th><th>Date</th><th>For</th><th class="text-end">Taxable</th><th class="text-end">GST</th><th class="text-end">Total</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                    {% for i in invoices %}
+                    <tr><td class="fw-medium">{{ i.number }}</td><td>{{ i.issued_at|date:"d M Y" }}</td>
+                        <td class="text-truncate" style="max-width:260px">{{ i.lines.0.description }}</td>
+                        <td class="text-end">{{ i.subtotal_paise|money }}</td><td class="text-end">{{ i.tax_paise|money }}</td><td class="text-end fw-semibold">{{ i.total_paise|money }}</td>
+                        <td><span class="bl-pill {{ i.status }}">{{ i.get_status_display }}</span>{% if i.status == 'due' and i.due_at %} <span class="small text-muted">by {{ i.due_at|date:"d M" }}</span>{% endif %}</td>
+                        <td class="text-end">{% if i.status == 'due' and can_manage and online %}<button class="btn btn-sm btn-primary me-1" data-pay='{"what":"invoice","invoice":"{{ i.pk }}"}'>Pay</button>{% endif %}
+                            <a class="btn btn-sm btn-light" href="{% url 'panel:billing_invoice_pdf' i.pk %}" target="_blank" rel="noopener"><i class="iconoir-page"></i> PDF</a></td></tr>
+                    {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">No invoices yet. Your first invoice appears after your first payment.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Payment history</h4></div>
+            <div class="table-responsive"><table class="table align-middle mb-0 bl-table">
+                <thead><tr><th>Date</th><th class="text-end">Amount</th><th>Status</th><th>Details</th></tr></thead>
+                <tbody>{% for p in payments %}<tr><td>{{ p.created_at|date:"d M Y" }}</td><td class="text-end">{{ p.amount_paise|money }}</td>
+                    <td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
+                    <td class="small text-muted text-truncate" style="max-width:220px">{% if p.error %}{{ p.error }}{% else %}{{ p.method|default:p.gateway }}{% if p.invoice %} · {{ p.invoice.number }}{% endif %}{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">No payments yet.</td></tr>{% endfor %}</tbody>
+            </table></div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100 mb-0"><div class="card-header"><h4 class="card-title mb-0">Billing details (GST)</h4>
+            <span class="text-muted small">Printed on your invoices. Your GSTIN decides CGST + SGST or IGST.</span></div>
+            <div class="card-body">
+                <form method="post" class="row g-2">{% csrf_token %}<input type="hidden" name="op" value="details">
+                    <div class="col-md-6"><label class="form-label small mb-1" for="b-legal">Legal name</label><input id="b-legal" class="form-control form-control-sm" name="legal_name" value="{{ company.legal_name }}" placeholder="{{ company.name }}" {% if not can_manage %}disabled{% endif %}></div>
+                    <div class="col-md-6"><label class="form-label small mb-1" for="b-gstin">GSTIN</label><input id="b-gstin" class="form-control form-control-sm text-uppercase" name="gstin" value="{{ company.gstin }}" maxlength="15" placeholder="Leave empty if not registered" {% if not can_manage %}disabled{% endif %}></div>
+                    <div class="col-12"><label class="form-label small mb-1" for="b-addr">Address</label><textarea id="b-addr" class="form-control form-control-sm" name="address" rows="2" {% if not can_manage %}disabled{% endif %}>{{ company.address }}</textarea></div>
+                    <div class="col-md-6"><label class="form-label small mb-1" for="b-city">City</label><input id="b-city" class="form-control form-control-sm" name="city" value="{{ company.city }}" {% if not can_manage %}disabled{% endif %}></div>
+                    <div class="col-md-6"><label class="form-label small mb-1" for="b-state">State</label><select id="b-state" class="form-select form-select-sm" name="state" {% if not can_manage %}disabled{% endif %}><option value="">— choose —</option>{% for code, name in states %}<option value="{{ code }}"{% if code == state_code %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+                    {% if can_manage %}<div class="col-12"><button class="btn btn-sm btn-primary mt-1">Save details</button></div>{% endif %}
+                </form>
+            </div></div>
+    </div>
+</div>
+
+{% if can_manage %}
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post">{% csrf_token %}
+    <div class="modal-header"><h5 class="modal-title" id="cancelTitle">Cancel subscription?</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><p class="small">It will not renew. Everything keeps working until <strong>{{ sub.current_period_end|date:"d M Y" }}</strong>; then the AI Employees pause and only Billing opens. You can subscribe again any time.</p>
+        <label class="form-label small" for="c-reason">Why are you leaving? (optional)</label><textarea id="c-reason" class="form-control" name="reason" rows="2"></textarea></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Keep subscription</button><button class="btn btn-danger" name="op" value="cancel">Cancel subscription</button></div>
+</form></div></div>
+{% include 'panel/company/billing/_checkout_js.html' %}
+{% endif %}
+{% endblock page_content %}

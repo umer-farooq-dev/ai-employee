@@ -1,0 +1,31 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Support Tickets{% endblock %}
+{% block page_content %}
+{% include 'panel/company/support/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Support Tickets</h4><span class="text-muted small">Tickets raised by companies. Website enquiries: Enquiries. Categories and auto-close: System Settings → Support.</span></div>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-4"><a class="card mb-0 text-reset text-decoration-none" href="?"><div class="card-body"><div class="text-muted small">Waiting for us</div><div class="fs-4 fw-semibold">{{ counts.waiting }}</div></div></a></div>
+    <div class="col-4"><a class="card mb-0 text-reset text-decoration-none" href="?priority=urgent"><div class="card-body"><div class="text-muted small">High / urgent open</div><div class="fs-4 fw-semibold {% if counts.urgent %}text-danger{% endif %}">{{ counts.urgent }}</div></div></a></div>
+    <div class="col-4"><a class="card mb-0 text-reset text-decoration-none" href="?view=mine"><div class="card-body"><div class="text-muted small">Assigned to me</div><div class="fs-4 fw-semibold">{{ counts.mine }}</div></div></a></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <form class="d-flex flex-wrap gap-2 justify-content-end" method="get">
+            <input class="form-control form-control-sm w-auto" name="q" value="{{ q }}" placeholder="Number, subject, company" aria-label="Search">
+            <select class="form-select form-select-sm w-auto" name="status" aria-label="Status"><option value="">Not closed</option>{% for v, l in statuses %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+            <select class="form-select form-select-sm w-auto" name="view" aria-label="View"><option value="">Everyone's</option><option value="mine"{% if view == 'mine' %} selected{% endif %}>Assigned to me</option><option value="all"{% if view == 'all' %} selected{% endif %}>Including closed</option></select>
+            <button class="btn btn-sm btn-light">Filter</button>
+        </form>
+    </div>
+    {% for t in page %}
+    <a class="tk-row" href="{% url 'superadmin:ticket' t.pk %}">
+        <div class="main"><div class="fw-medium text-truncate">{{ t.subject }}</div>
+            <div class="sub">{{ t.number }} · <strong>{{ t.company.name }}</strong> · {{ t.created_by.email|default:"—" }}{% if t.category %} · {{ t.category }}{% endif %} · {{ t.last_reply_at|timesince }} ago{% if t.assigned_to %} · assigned to {{ t.assigned_to.email }}{% endif %}</div></div>
+        <div class="text-end"><span class="tk-status {{ t.status }}">{{ t.get_status_display }}</span><div class="tk-prio {{ t.priority }} mt-1">{{ t.get_priority_display }}</div></div>
+    </a>
+    {% empty %}<div class="card-body text-center text-muted py-5">No tickets match.</div>{% endfor %}
+    <div class="card-footer">{% include 'panel/partials/pagination.html' %}</div>
+</div>
+{% endblock %}

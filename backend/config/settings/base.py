@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.webchat",
     "apps.whatsapp",
     "apps.campaigns",
+    "apps.support",
     "apps.knowledge",
     "apps.cms",
     "apps.notifications",
@@ -174,6 +175,9 @@ PRIVATE_MEDIA_ROOT = BASE_DIR.parent / "private_media"  # company files, served 
 
 EMAIL_CONFIG = env.email_url("EMAIL_URL", default="smtp://127.0.0.1:1025")
 vars().update(EMAIL_CONFIG)
+# SA-10: mail goes through the e-mail provider switched on in Super Admin; EMAIL_URL is only the fallback
+EMAIL_FALLBACK_BACKEND = EMAIL_BACKEND  # noqa: F821 — set from EMAIL_CONFIG above
+EMAIL_BACKEND = "apps.notifications.backends.ProviderEmailBackend"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

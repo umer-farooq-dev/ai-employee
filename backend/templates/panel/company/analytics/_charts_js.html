@@ -1,0 +1,67 @@
+{% load static %}
+{# DASH-02 charts and DASH-05 live refresh. Needs json_script "an-data" with {kpis, series}. #}
+<script src="{% static 'panel/vendor/apexcharts/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+    var data = JSON.parse(document.getElementById("an-data").textContent);
+    var names = JSON.parse(document.getElementById("an-names").textContent);
+    var css = getComputedStyle(document.documentElement);
+    var brand = (css.getPropertyValue("--brand-primary") || "#0D9488").trim();
+    var palette = [brand, "#6366f1", "#0ea5e9", "#f59e0b", "#ec4899"];
+    function labels(d) {
+        return d.series.labels.map(function (l) {
+            if (l.indexOf("-") < 0) return l;
+            var p = l.split("-");
+            return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, {day: "numeric", month: "short"});
+        });
+    }
+    function lines(d, keys) { return keys.map(function (k) { return {name: names[k], data: d.series.series[k]}; }); }
+    var base = {
+        chart: {toolbar: {show: false}, fontFamily: "inherit", animations: {enabled: true, speed: 300}, zoom: {enabled: false}},
+        dataLabels: {enabled: false},
+        grid: {borderColor: "rgba(148,163,184,.25)", strokeDashArray: 4},
+        legend: {position: "top", horizontalAlign: "left", fontSize: "12px", markers: {size: 5}},
+        yaxis: {min: 0, forceNiceScale: true, labels: {formatter: function (v) { return Math.round(v * 10) / 10; }}},
+        xaxis: {labels: {rotate: 0, hideOverlappingLabels: true, style: {fontSize: "11px"}}, axisTicks: {show: false}, tickAmount: 8},
+        tooltip: {shared: true, intersect: false}
+    };
+    function make(id, extra) {
+        var el = document.getElementById(id);
+        if (!el) return null;
+        var c = new ApexCharts(el, Object.assign({}, base, extra, {chart: Object.assign({}, base.chart, extra.chart)}));
+        c.render();
+        return c;
+    }
+    var ACTIVITY = ["leads", "calls", "connected", "qualified", "appointments"];
+    var charts = {
+        activity: make("chart-activity", {chart: {type: "area", height: 300}, colors: palette, stroke: {curve: "straight", width: 2}, markers: {size: 3, strokeWidth: 0},
+            fill: {type: "gradient", gradient: {opacityFrom: .22, opacityTo: .02}}, series: lines(data, ACTIVITY), xaxis: Object.assign({}, base.xaxis, {categories: labels(data)})}),
+        conversions: make("chart-conversions", {chart: {type: "bar", height: 240}, colors: ["#10b981"], plotOptions: {bar: {borderRadius: 3, columnWidth: "55%"}},
+            series: lines(data, ["conversions"]), xaxis: Object.assign({}, base.xaxis, {categories: labels(data)})}),
+        usage: make("chart-usage", {chart: {type: "bar", height: 240}, colors: ["#6366f1"], plotOptions: {bar: {borderRadius: 3, columnWidth: "55%"}},
+            series: lines(data, ["usage"]), xaxis: Object.assign({}, base.xaxis, {categories: labels(data)})})
+    };
+    var keys = {activity: ACTIVITY, conversions: ["conversions"], usage: ["usage"]};
+
+    // DASH-05: refresh in place while the page is visible
+    var live = document.getElementById("an-live"), every = +(live && live.dataset.seconds) || 30;
+    var params = new URLSearchParams(location.search);
+    params.set("parts", "kpis,series");
+    var url = live ? live.dataset.url + "?" + params.toString() : null;
+    function refresh() {
+        if (!url || document.hidden) return;
+        fetch(url, {credentials: "same-origin", headers: {Accept: "application/json"}}).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+            if (!d) { live.classList.add("off"); return; }
+            live.classList.remove("off");
+            Object.keys(d.kpis).forEach(function (k) {
+                document.querySelectorAll('[data-kpi="' + k + '"]').forEach(function (el) { el.textContent = d.kpis[k]; });
+            });
+            Object.keys(charts).forEach(function (n) { if (charts[n]) charts[n].updateSeries(lines(d, keys[n]), false); });
+            var t = live.querySelector("span");
+            if (t) t.textContent = "Live · " + new Date().toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit", second: "2-digit"});
+        }).catch(function () { live.classList.add("off"); });
+    }
+    if (url) setInterval(refresh, every * 1000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(); });
+})();
+</script>

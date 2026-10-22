@@ -1,0 +1,68 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}Analytics{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/analytics/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div class="min-w-0">
+        <h4 class="mb-0">Analytics</h4>
+        <span class="text-muted small">{{ period.label }}{% if employee %} · {{ employee.name }}{% endif %} · counted from your calls, leads, appointments and usage</span>
+    </div>
+    {% include 'panel/company/analytics/_filters.html' %}
+</div>
+{% include 'panel/company/analytics/_kpis.html' %}
+
+<div class="card mt-3">
+    <div class="card-header"><h4 class="card-title mb-0">AI Employees</h4>
+        <span class="text-muted small">Calls, leads and results per AI Employee in this period</span></div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 an-table">
+            <thead><tr><th>AI Employee</th><th class="text-end">Calls</th><th class="text-end">Connected</th><th class="text-end">Leads</th>
+                <th class="text-end">Qualified</th><th class="text-end">Hot</th><th class="text-end">Appointments</th><th class="text-end">Conversions</th>
+                <th class="text-end">Transfers</th><th class="text-end">AI credits</th></tr></thead>
+            <tbody>
+            {% for r in data.employees %}
+            <tr>
+                <td><a class="fw-medium" href="{% url 'panel:ai_detail' r.id %}">{{ r.name }}</a> <span class="badge bg-light text-muted ms-1">{{ r.status }}</span></td>
+                <td class="text-end">{{ r.calls }}</td>
+                <td class="text-end">{{ r.connected }}{% if r.calls %} <small class="text-muted">({% widthratio r.connected r.calls 100 %}%)</small>{% endif %}</td>
+                <td class="text-end">{{ r.leads }}</td><td class="text-end">{{ r.qualified }}</td><td class="text-end">{{ r.hot }}</td>
+                <td class="text-end">{{ r.appointments }}</td><td class="text-end">{{ r.conversions }}</td>
+                <td class="text-end">{{ r.transfers }}</td><td class="text-end">{{ r.usage }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10" class="text-center text-muted py-4">No AI Employees yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer small text-muted">Leads, qualified, hot, appointments and conversions count the leads handled by each AI Employee.</div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h4 class="card-title mb-0">Campaign funnels</h4>
+        <span class="text-muted small">Campaigns that were running in this period</span></div>
+    <div class="card-body">
+        <div class="row g-4">
+        {% for c in data.campaigns %}
+            <div class="col-xl-6">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0"><a class="fw-semibold text-truncate d-block" href="{% url 'panel:campaign' c.id %}">{{ c.name }}</a>
+                        <span class="small text-muted">{{ c.employee }} · {{ c.status }}</span></div>
+                </div>
+                <div class="an-funnel">
+                    {% with top=c.funnel.0.value %}
+                    {% for s in c.funnel %}
+                    <div class="an-step"><span class="text-truncate">{{ s.label }}</span>
+                        <div class="bar"><span style="width:{% if top %}{% widthratio s.value top 100 %}{% else %}0{% endif %}%"></span></div>
+                        <span class="num">{{ s.value }}{% if top and not forloop.first %} <small>{% widthratio s.value top 100 %}%</small>{% endif %}</span></div>
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12 text-center text-muted py-4"><div class="mb-2"><i class="iconoir-megaphone fs-1"></i></div>No campaign ran in this period.</div>
+        {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock page_content %}

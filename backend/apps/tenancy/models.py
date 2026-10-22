@@ -90,6 +90,9 @@ class Company(BaseModel):
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_reason = models.CharField(max_length=255, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    billing_hold = models.DateTimeField(
+        null=True, blank=True, help_text="Unpaid: the AI stops and the panel opens only Billing until paid (SUB-03)"
+    )
 
     class Meta:
         ordering = ["name"]
@@ -124,6 +127,50 @@ class Membership(TenantModel):
 
     def __str__(self):
         return f"{self.user} @ {self.company_id}"
+
+
+class DataRequest(TenantModel):
+    """TEN-07 / COMP-09: a full data export (ZIP) or an account deletion after a grace period."""
+
+    EXPORT, DELETION = "export", "deletion"
+    KINDS = [(EXPORT, "Data export"), (DELETION, "Account deletion")]
+    PENDING, READY, SCHEDULED, DONE, CANCELLED, FAILED, EXPIRED = (
+        "pending",
+        "ready",
+        "scheduled",
+        "done",
+        "cancelled",
+        "failed",
+        "expired",
+    )
+    STATUSES = [
+        (PENDING, "Being prepared"),
+        (READY, "Ready to download"),
+        (SCHEDULED, "Scheduled"),
+        (DONE, "Done"),
+        (CANCELLED, "Cancelled"),
+        (FAILED, "Failed"),
+        (EXPIRED, "Expired"),
+    ]
+
+    kind = models.CharField(max_length=10, choices=KINDS)
+    status = models.CharField(max_length=10, choices=STATUSES, default=PENDING, db_index=True)
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    reason = models.CharField(max_length=500, blank=True)
+    file_key = models.CharField(max_length=500, blank=True)
+    file_size = models.BigIntegerField(default=0)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Export: download link valid until")
+    scheduled_for = models.DateTimeField(null=True, blank=True, db_index=True, help_text="Deletion: runs at")
+    completed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    error = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
 
 class Invitation(TenantModel):

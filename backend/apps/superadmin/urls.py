@@ -1,7 +1,7 @@
 from django.urls import path
 
+from . import billing_views, support_views, views, whatsapp_views
 from . import template_views as tv
-from . import views, whatsapp_views
 
 app_name = "superadmin"
 
@@ -57,6 +57,13 @@ urlpatterns = [
     path("roles/new/", views.role_form, name="role_create"),
     path("roles/<uuid:pk>/", views.role_form, name="role_edit"),
     path("roles/<uuid:pk>/delete/", views.role_delete, name="role_delete"),
+    path("billing/", billing_views.billing_home, name="billing"),
+    path("billing/invoices/<uuid:pk>/", billing_views.invoice_action, name="invoice_action"),
+    path("billing/invoices/<uuid:pk>/pdf/", billing_views.invoice_pdf, name="invoice_pdf"),
+    path("companies/<uuid:pk>/billing/", billing_views.company_billing, name="company_billing"),
+    path("usage/", billing_views.usage_report, name="usage"),
+    path("support/", support_views.tickets, name="tickets"),
+    path("support/<uuid:pk>/", support_views.ticket, name="ticket"),
     path("plans/", views.plan_list, name="plan_list"),
     path("plans/new/", views.plan_form, name="plan_create"),
     path("plans/<uuid:pk>/", views.plan_form, name="plan_edit"),

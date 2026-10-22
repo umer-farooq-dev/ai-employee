@@ -17,16 +17,18 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import close_old_connections, transaction
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.agents.models import AIEmployee, Conversation, UsageEvent
 from apps.agents.tools import company_tz
 from apps.audit.services import record
 from apps.billing import limits
+from apps.billing.usage import used
 from apps.core.india import normalise_phone
 from apps.crm import services as crm
 from apps.platform_config.services import get as setting
+from apps.providers import costs
 from apps.providers.adapters import ProviderError
 from apps.providers.services import production
 from apps.tenancy.context import company_context, platform_context
@@ -259,9 +261,8 @@ def check_capacity(company, now=None):
     limits.check(company, "concurrent_calls", live_calls(company), label="concurrent calls")
     month = Call.objects.filter(company=company, queued_at__gte=_month_start(company, now))
     limits.check(company, "calls", month.exclude(status=Call.CANCELED).count(), label="calls this month")
-    seconds = month.aggregate(s=Sum("duration_sec"))["s"] or 0
-    cap = limits.limit(company, "voice_minutes")
-    if cap is not None and seconds / 60 >= cap:
+    cap = limits.hard_cap(company, "voice_minutes")
+    if cap is not None and used(company, "voice_minutes", now) >= cap:
         raise ValidationError(f"Your plan's {cap} voice minutes for this month are used up.")
 
 
@@ -279,6 +280,10 @@ def check_outbound(employee, lead, now=None):
     rules = policy(company)
     if employee.status != AIEmployee.ACTIVE:
         raise CallBlocked(f"{employee.name} is not active.")
+    from apps.billing import access
+
+    if access.blocked(company, "voice_calls"):
+        raise CallBlocked(access.blocked(company, "voice_calls"))
     number = number_for(employee, "outbound")
     if not number:
         raise CallBlocked(f"Connect a phone number for outbound calls to {employee.name} first.")
@@ -562,6 +567,10 @@ def inbound(provider, event):
     employee, company = number.employee, number.company
     if company.status in ("suspended", "rejected", "pending") or employee.status != AIEmployee.ACTIVE:
         return None
+    from apps.billing import access
+
+    if access.blocked(company, "voice_calls"):
+        return None
     with company_context(company.id):
         try:
             check_capacity(company)
@@ -587,6 +596,14 @@ def inbound(provider, event):
 
 
 # ------------------------------------------------------------------ after the call (REC-01, USE-01, VOICE-17)
+def _route(described):
+    """'["sarvam/saarika", …]' → 'sarvam/saarika' (the first route, as billed)."""
+    try:
+        return str(json.loads(described)[0])
+    except (TypeError, ValueError, IndexError):
+        return ""
+
+
 def _primary(described):
     """'["sarvam/saarika", "deepgram/nova-3"]' (gateway metrics) → 'sarvam'. ponytail: the first route is billed even if
     the call failed over mid-way; per-service usage frames if the split ever matters."""
@@ -609,14 +626,31 @@ def finish(call):
     minutes = math.ceil(call.duration_sec / 60) if call.duration_sec else 0
     common = {"company_id": call.company_id, "employee": call.employee, "conversation": call.conversation}
     rows = [UsageEvent(meter="calls", quantity=1, unit="calls", task=call.direction, **common)]
-    if minutes:
-        rows.append(UsageEvent(meter=f"voice_minutes_{call.direction}", quantity=minutes, unit="minutes", **common))
+    if minutes:  # USE-06: telephony cost per started minute (price in the provider's key popup)
+        rows.append(
+            UsageEvent(
+                meter=f"voice_minutes_{call.direction}",
+                quantity=minutes,
+                unit="minutes",
+                provider_key=call.provider.key if call.provider_id else "",
+                provider_cost_paise=costs.paise(
+                    minutes * costs.config_price(call.provider, f"cost_{call.direction}_per_min")
+                ),
+                **common,
+            )
+        )
     # STT / TTS consumption: streaming STT listens for the whole answered call; TTS is charged per spoken character
-    used = {k: _primary(v) for k, v in ((call.metrics or {}).get("providers") or {}).items()}
+    routes = (call.metrics or {}).get("providers") or {}
+    used = {k: _primary(v) for k, v in routes.items()}
     if call.duration_sec and used.get("stt"):
         rows.append(
             UsageEvent(
-                meter="stt_seconds", quantity=call.duration_sec, unit="seconds", provider_key=used["stt"], **common
+                meter="stt_seconds",
+                quantity=call.duration_sec,
+                unit="seconds",
+                provider_key=used["stt"],
+                provider_cost_paise=costs.paise(call.duration_sec / 60 * costs.model_price(_route(routes["stt"]))),
+                **common,
             )
         )
     if call.conversation_id and used.get("tts"):
@@ -628,10 +662,17 @@ def finish(call):
         if spoken:
             rows.append(
                 UsageEvent(
-                    meter="tts_characters", quantity=spoken, unit="characters", provider_key=used["tts"], **common
+                    meter="tts_characters",
+                    quantity=spoken,
+                    unit="characters",
+                    provider_key=used["tts"],
+                    provider_cost_paise=costs.paise(spoken / 1_000_000 * costs.model_price(_route(routes["tts"]))),
+                    **common,
                 )
             )
     UsageEvent.objects.bulk_create(rows)
+    call.cost_paise = round(sum(r.provider_cost_paise for r in rows), 2)
+    call.save(update_fields=["cost_paise", "updated_at"])
     if call.lead_id:
         lead = call.lead
         lead.last_contact_at = call.ended_at or timezone.now()

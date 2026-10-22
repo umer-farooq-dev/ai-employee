@@ -1,0 +1,81 @@
+{% extends 'panel/admin/layout.html' %}
+{% load panel_tags %}
+{% block title %}Billing{% endblock %}
+{% block page_content %}
+{% include 'panel/company/billing/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Billing</h4><span class="text-muted small">Subscriptions, invoices and payments of all companies. GST and grace days: System Settings → Billing &amp; GST.</span></div>
+    <a class="btn btn-sm btn-light" href="{% url 'superadmin:system_settings' %}?tab=billing"><i class="iconoir-settings"></i> Billing &amp; GST settings</a>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg"><div class="card mb-0"><div class="card-body"><div class="text-muted small">MRR (before GST)</div><div class="fs-4 fw-semibold">{{ summary.mrr|money:False }}</div></div></div></div>
+    <div class="col-6 col-lg"><a class="card mb-0 text-reset text-decoration-none" href="?tab=subscriptions&status=past_due"><div class="card-body"><div class="text-muted small">Payment overdue</div><div class="fs-4 fw-semibold {% if summary.past_due %}text-warning{% endif %}">{{ summary.past_due }}</div></div></a></div>
+    <div class="col-6 col-lg"><a class="card mb-0 text-reset text-decoration-none" href="?tab=subscriptions&status=on_hold"><div class="card-body"><div class="text-muted small">On hold (unpaid)</div><div class="fs-4 fw-semibold {% if summary.on_hold %}text-danger{% endif %}">{{ summary.on_hold }}</div></div></a></div>
+    <div class="col-6 col-lg"><a class="card mb-0 text-reset text-decoration-none" href="?tab=invoices&status=due"><div class="card-body"><div class="text-muted small">Invoices due</div><div class="fs-4 fw-semibold">{{ summary.due }}</div></div></a></div>
+    <div class="col-6 col-lg"><a class="card mb-0 text-reset text-decoration-none" href="?tab=payments&status=failed"><div class="card-body"><div class="text-muted small">Failed payments</div><div class="fs-4 fw-semibold {% if summary.failed %}text-danger{% endif %}">{{ summary.failed }}</div></div></a></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <ul class="nav nav-pills nav-sm">
+                <li class="nav-item"><a class="nav-link py-1 {% if tab == 'subscriptions' %}active{% endif %}" href="?tab=subscriptions">Subscriptions</a></li>
+                <li class="nav-item"><a class="nav-link py-1 {% if tab == 'invoices' %}active{% endif %}" href="?tab=invoices">Invoices</a></li>
+                <li class="nav-item"><a class="nav-link py-1 {% if tab == 'payments' %}active{% endif %}" href="?tab=payments">Payments</a></li>
+            </ul>
+            <form class="d-flex gap-2" method="get"><input type="hidden" name="tab" value="{{ tab }}">
+                <input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="{% if tab == 'invoices' %}Company or invoice no.{% else %}Company{% endif %}" aria-label="Search">
+                <select class="form-select form-select-sm" name="status" aria-label="Status"><option value="">All</option>{% for v, l in statuses %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+                <button class="btn btn-sm btn-light">Filter</button></form>
+        </div>
+    </div>
+    <div class="table-responsive">
+    {% if tab == 'subscriptions' %}
+        <table class="table table-hover align-middle mb-0 bl-table">
+            <thead class="table-light"><tr><th>Company</th><th>Plan</th><th>Status</th><th>Billing</th><th>Period ends</th><th class="text-end">Price</th><th></th></tr></thead>
+            <tbody>{% for s in page %}<tr>
+                <td><a class="fw-medium" href="{% url 'superadmin:company_billing' s.company_id %}">{{ s.company.name }}</a>{% if s.company.billing_hold %} <span class="bl-pill failed">On hold</span>{% endif %}</td>
+                <td>{{ s.company.plan.name|default:"—" }}{% if s.pending_plan %} <span class="small text-muted">→ {{ s.pending_plan.name }}</span>{% endif %}{% if s.custom_price_paise is not None %} <span class="badge bg-light text-dark">custom</span>{% endif %}</td>
+                <td><span class="bl-status {{ s.status }}">{{ s.get_status_display }}</span>{% if s.cancel_at_period_end %} <span class="small text-danger">ending</span>{% endif %}</td>
+                <td>{% if s.manual %}Invoice{% else %}Razorpay{% endif %}</td>
+                <td>{% if s.status == 'trialing' %}<span class="text-muted">trial to {{ s.company.trial_ends_at|date:"d M Y" }}</span>{% else %}{{ s.current_period_end|date:"d M Y"|default:"—" }}{% endif %}</td>
+                <td class="text-end">{% if s.custom_price_paise is not None %}{{ s.custom_price_paise|money:False }}{% elif s.company.plan %}{% if s.interval == 'yearly' %}{{ s.company.plan.price_yearly_paise|money:False }}{% else %}{{ s.company.plan.price_monthly_paise|money:False }}{% endif %}{% endif %} <span class="small text-muted">/{% if s.interval == 'yearly' %}yr{% else %}mo{% endif %}</span></td>
+                <td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'superadmin:company_billing' s.company_id %}">Open</a></td>
+            </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No subscriptions match.</td></tr>{% endfor %}</tbody>
+        </table>
+    {% elif tab == 'invoices' %}
+        <table class="table table-hover align-middle mb-0 bl-table">
+            <thead class="table-light"><tr><th>Invoice</th><th>Company</th><th>Date</th><th class="text-end">Taxable</th><th class="text-end">GST</th><th class="text-end">Total</th><th>Status</th><th></th></tr></thead>
+            <tbody>{% for i in page %}<tr>
+                <td class="fw-medium">{{ i.number }}<div class="small text-muted">{{ i.get_kind_display }}</div></td>
+                <td><a href="{% url 'superadmin:company_billing' i.company_id %}">{{ i.company.name }}</a></td>
+                <td>{{ i.issued_at|date:"d M Y" }}</td><td class="text-end">{{ i.subtotal_paise|money }}</td><td class="text-end">{{ i.tax_paise|money }}</td><td class="text-end fw-semibold">{{ i.total_paise|money }}</td>
+                <td><span class="bl-pill {{ i.status }}">{{ i.get_status_display }}</span>{% if i.status == 'due' and i.due_at %}<div class="small text-muted">by {{ i.due_at|date:"d M" }}</div>{% endif %}</td>
+                <td class="text-end"><a class="btn btn-sm btn-light" target="_blank" rel="noopener" href="{% url 'superadmin:invoice_pdf' i.pk %}">PDF</a>
+                    {% if can_manage and i.status == 'due' %}<button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#paid-{{ i.pk }}">Mark paid</button>{% endif %}</td>
+            </tr>{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">No invoices match.</td></tr>{% endfor %}</tbody>
+        </table>
+    {% else %}
+        <table class="table table-hover align-middle mb-0 bl-table">
+            <thead class="table-light"><tr><th>Date</th><th>Company</th><th class="text-end">Amount</th><th>Status</th><th>For</th><th>Details</th></tr></thead>
+            <tbody>{% for p in page %}<tr>
+                <td>{{ p.created_at|date:"d M Y H:i" }}</td><td><a href="{% url 'superadmin:company_billing' p.company_id %}">{{ p.company.name }}</a></td>
+                <td class="text-end">{{ p.amount_paise|money }}</td><td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
+                <td>{{ p.purpose }}{% if p.invoice %} · {{ p.invoice.number }}{% endif %}</td>
+                <td class="small text-muted text-truncate" style="max-width:280px">{{ p.error|default:p.method }}{% if p.gateway_payment_id %} · {{ p.gateway_payment_id }}{% endif %}{% if p.recorded_by %} · by {{ p.recorded_by.email }}{% endif %}</td>
+            </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No payments match.</td></tr>{% endfor %}</tbody>
+        </table>
+    {% endif %}
+    </div>
+    <div class="card-footer">{% include 'panel/partials/pagination.html' %}</div>
+</div>
+{% if tab == 'invoices' and can_manage %}{% for i in page %}{% if i.status == 'due' %}
+<div class="modal fade" id="paid-{{ i.pk }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" action="{% url 'superadmin:invoice_action' i.pk %}">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="op" value="paid">
+    <div class="modal-header"><h5 class="modal-title">Mark {{ i.number }} paid</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><p class="small">{{ i.company.name }} · {{ i.total_paise|money }}</p>
+        <label class="form-label small" for="m-{{ i.pk }}">Method</label><select id="m-{{ i.pk }}" class="form-select form-select-sm mb-2" name="method"><option value="bank">Bank transfer (NEFT / RTGS / IMPS)</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="cash">Cash</option></select>
+        <label class="form-label small" for="r-{{ i.pk }}">Reference (UTR, cheque no.)</label><input id="r-{{ i.pk }}" class="form-control form-control-sm" name="reference" required></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button><button class="btn btn-success">Mark paid</button></div>
+</form></div></div>
+{% endif %}{% endfor %}{% endif %}
+{% endblock %}

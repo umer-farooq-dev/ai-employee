@@ -1,9 +1,11 @@
 {% extends 'panel/admin/layout.html' %}
+{% load admin_tags %}
 {% block title %}{{ company.name }}{% endblock %}
 {% block page_content %}
 <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
     <div><h4 class="mb-0">{{ company.name }}</h4><span class="text-muted">{{ company.slug }} · {{ company.get_status_display }}</span></div>
     <div class="d-flex gap-2">
+        {% if request.user|can:"subscriptions.view" %}<a class="btn btn-sm btn-light" href="{% url 'superadmin:company_billing' company.pk %}"><i class="iconoir-credit-card"></i> Billing</a>{% endif %}
         {% if can.manage %}<a class="btn btn-sm btn-light" href="{% url 'superadmin:company_edit' company.pk %}">Edit</a>{% endif %}
         {% if can.export %}<a class="btn btn-sm btn-light" href="{% url 'superadmin:company_export' company.pk %}">Export data</a>{% endif %}
         <a class="btn btn-sm btn-light" href="{% url 'superadmin:company_list' %}">Back</a>

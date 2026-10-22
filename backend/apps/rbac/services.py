@@ -8,6 +8,11 @@ def has_perm(user, key, company=None) -> bool:
     if not user or not user.is_authenticated or not user.is_active:
         return False
     scope = PERMISSIONS[key][0]
+    if scope == "company" and company is not None:
+        from apps.billing.access import perm_allowed
+
+        if not perm_allowed(company, key):  # SA-20: the plan does not include this feature
+            return False
     if user.is_superuser:
         return True
     if scope == "platform":

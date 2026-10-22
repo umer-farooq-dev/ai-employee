@@ -1,0 +1,35 @@
+{% extends 'panel/company/layout.html' %}
+{% block title %}{{ t.number }} · Support{% endblock title %}
+{% block page_content %}
+{% include 'panel/company/support/_style.html' %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mt-3 mb-3">
+    <div class="min-w-0"><a class="small text-muted" href="{% url 'panel:support' %}">← Support</a>
+        <h4 class="mb-0 mt-1 text-break">{{ t.subject }}</h4>
+        <span class="text-muted small">{{ t.number }}{% if t.category %} · {{ t.category }}{% endif %} · {{ t.get_priority_display }} priority · opened {{ t.created_at|date:"d M Y H:i" }}</span></div>
+    <div class="d-flex gap-2 align-items-center"><span class="tk-status {{ t.status }}">{{ t.get_status_display }}</span>
+        {% if t.status != 'closed' %}<form method="post">{% csrf_token %}<button class="btn btn-sm btn-light" name="op" value="close">Close ticket</button></form>{% endif %}</div>
+</div>
+<div class="card"><div class="card-body">
+    <div class="tk-thread">
+        {% for m, url in thread %}
+        <div class="tk-msg{% if not m.from_staff %} mine{% endif %}">
+            <div class="who"><span class="fw-semibold">{% if m.from_staff %}Support team{% else %}{{ m.author.full_name|default:m.author.email|default:"You" }}{% endif %}</span><span>{{ m.created_at|date:"d M H:i" }}</span></div>
+            <div class="body">{{ m.body }}</div>
+            {% if url %}<a class="file" href="{{ url }}" target="_blank" rel="noopener"><i class="iconoir-attachment"></i>{{ m.attachment_name }}</a>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div></div>
+{% if t.status != 'closed' %}
+<form class="card" method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="card-body">
+        <label class="form-label small" for="r-body">Reply</label>
+        <textarea id="r-body" class="form-control mb-2" name="body" rows="3" required></textarea>
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <input class="form-control form-control-sm w-auto" type="file" name="file" aria-label="Attach a file">
+            <button class="btn btn-primary"><i class="iconoir-send"></i> Send reply</button>
+        </div>
+    </div>
+</form>
+{% else %}<div class="text-center text-muted small mb-3">This ticket is closed. <a href="{% url 'panel:support' %}">Open a new ticket</a> if you need more help.</div>{% endif %}
+{% endblock page_content %}

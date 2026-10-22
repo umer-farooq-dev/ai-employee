@@ -28,7 +28,7 @@ from apps.crm import services as crm
 from apps.crm.models import ConsentRecord, Lead
 from apps.industries.models import LeadSource
 from apps.platform_config.services import get as setting
-from apps.providers import languages
+from apps.providers import costs, languages
 from apps.providers.adapters import ProviderError
 from apps.tenancy.context import company_context, platform_context
 
@@ -696,9 +696,11 @@ def _conversation(number, customer, name):
     used = Conversation.objects.filter(
         company=number.company, channel="whatsapp", is_test=False, started_at__date__gte=month
     ).count()
-    cap = limits.limit(number.company, "whatsapp_conversations")
+    cap = limits.hard_cap(number.company, "whatsapp_conversations")
     over = cap is not None and used >= cap
-    if employee.status == employee.ACTIVE and not over:
+    from apps.billing import access
+
+    if employee.status == employee.ACTIVE and not over and not access.blocked(number.company, "whatsapp"):
         conv = runtime.start(employee, "whatsapp", {"phone": customer, "name": name})
     else:  # AI paused or plan limit reached: the chat waits for a person in the inbox
         lead = Lead.objects.filter(company=number.company, phone=customer, deleted_at__isnull=True).first()
@@ -840,6 +842,11 @@ def status_update(phone_id, st):
                 task=row.category,
                 provider_key=number.provider.key,
                 model="billable" if row.billable else "free",
+                provider_cost_paise=(
+                    costs.paise(costs.config_price(number.provider, f"cost_{row.category.lower()}"))
+                    if row.billable
+                    else 0
+                ),
             )
 
 

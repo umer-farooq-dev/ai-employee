@@ -9,7 +9,8 @@ import base64
 import json
 import time
 
-from .adapters import ProviderError, _request
+from .adapters import ProviderError, _request, request_raw
+from .costs import TELEPHONY_PRICES, WHATSAPP_PRICES
 
 # config field: (name, label, placeholder, required)
 VENDORS = {
@@ -78,19 +79,24 @@ VENDORS = {
             ("api_key", "API key (username)", "", True),
             ("subdomain", "API host", "api.in.exotel.com", True),
             ("flow_id", "Voicebot flow (app) ID", "", True),
+            *TELEPHONY_PRICES,
         ],
         "base_url": "https://api.in.exotel.com",
     },
     "plivo": {
         "label": "Plivo",
         "secret": "Auth token",  # nosec B105 — field label, not a secret
-        "config": [("auth_id", "Auth ID", "", True)],
+        "config": [("auth_id", "Auth ID", "", True), *TELEPHONY_PRICES],
         "base_url": "https://api.plivo.com",
     },
     "twilio": {
         "label": "Twilio",
         "secret": "Auth token",  # nosec B105 — field label, not a secret
-        "config": [("account_sid", "Account SID", "AC…", True)],
+        "config": [
+            ("account_sid", "Account SID", "AC…", True),
+            ("sms_from", "SMS sender number (only for SMS)", "+1…", False),
+            *TELEPHONY_PRICES,
+        ],
         "base_url": "https://api.twilio.com",
     },
     # WA-01: the official WhatsApp Business Platform (Cloud API). BSPs join as further vendors with their adapter.
@@ -98,7 +104,7 @@ VENDORS = {
         "label": "Meta WhatsApp Cloud API",
         "secret": "Access token (system user)",  # nosec B105 — field label, not a secret
         "webhook_secret": "App secret (verifies Meta's webhooks)",  # nosec B105 — field label, not a secret
-        "config": [("app_id", "App ID", "", False)],
+        "config": [("app_id", "App ID", "", False), *WHATSAPP_PRICES],
         "base_url": "https://graph.facebook.com/v21.0",
     },
     # MOB-03 / NOTI-03: push alerts to the team. The VAPID key pair is generated when saved without one.
@@ -111,6 +117,38 @@ VENDORS = {
         ],
         "base_url": "https://push.invalid",
         "generates_key": True,
+    },
+    # SA-10 e-mail: any SMTP service (Amazon SES, SendGrid, Brevo, Zoho, Google Workspace …)
+    "smtp": {
+        "label": "E-mail (SMTP)",
+        "secret": "SMTP password / API key",  # nosec B105 — field label, not a secret
+        "config": [
+            ("host", "SMTP host", "email-smtp.ap-south-1.amazonaws.com", True),
+            ("port", "Port", "587", False),
+            ("username", "Username", "", True),
+            ("security", "Security: tls / ssl / none", "tls", False),
+            ("from_address", "Verified sender address", "no-reply@yourdomain.com", False),
+        ],
+        "base_url": "https://smtp.invalid",
+    },
+    # SA-10 SMS (OTP and notices). Indian DLT rules: the sender ID and template ID are registered on DLT first.
+    "msg91": {
+        "label": "MSG91 (SMS)",
+        "secret": "Auth key",  # nosec B105 — field label, not a secret
+        "config": [
+            ("sender", "Sender ID (6 letters, DLT approved)", "AIEMPL", True),
+            ("dlt_template_id", "DLT template ID of the OTP message", "", True),
+            ("route", "Route", "4", False),
+        ],
+        "base_url": "https://api.msg91.com",
+    },
+    # SUB-03: subscriptions and payments. Key id + key secret from the Razorpay dashboard (test keys: rzp_test_…).
+    "razorpay": {
+        "label": "Razorpay",
+        "secret": "Key secret",  # nosec B105 — field label, not a secret
+        "webhook_secret": "Webhook secret (verifies renewals and failed payments)",  # nosec B105 — field label
+        "config": [("key_id", "Key ID", "rzp_test_…", True)],
+        "base_url": "https://api.razorpay.com",
     },
     "fcm": {
         "label": "Firebase Cloud Messaging (mobile app)",
@@ -236,6 +274,30 @@ def test(provider, timeout=30):
         project = _cfg(provider, "project_id") or json.loads(key).get("project_id", "")
         _google_token(provider, timeout)
         return f"Connected · Firebase project {project}"
+    if v == "smtp":
+        from apps.notifications.backends import smtp_connection
+
+        conn = smtp_connection(provider, timeout=timeout)
+        try:
+            conn.open()
+        except Exception as exc:  # noqa: BLE001 — any SMTP / socket error is a failed test
+            raise ProviderError(f"SMTP login failed: {exc}") from None
+        finally:
+            conn.close()
+        return f"Connected · {_cfg(provider, 'host')}"
+    if v == "msg91":
+        route = _cfg(provider, "route") or "4"
+        body, _ = request_raw(
+            "GET", f"https://control.msg91.com/api/balance.php?authkey={key}&type={route}", {}, None, timeout, False
+        )
+        text = body.decode(errors="replace").strip()[:80]
+        if not text.replace(".", "", 1).isdigit():
+            raise ProviderError(f"MSG91 refused the key: {text}")
+        return f"Connected · {text} SMS credits"
+    if v == "razorpay":
+        from apps.billing.razorpay import test as razorpay_test
+
+        return razorpay_test(provider, timeout)
     if v == "meta_whatsapp":
         data = _request("GET", f"{base}/me?fields=id,name", {"Authorization": f"Bearer {key}"}, timeout=timeout)
         note = "" if provider.webhook_secret else " · add the app secret to receive messages"

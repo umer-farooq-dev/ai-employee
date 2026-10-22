@@ -178,15 +178,28 @@ Per-language phrases — AI disclosure, recording announcement, default greeting
 
 Plan limits (Plans & Pricing): `ai_employees`, `kb_sources`, `kb_storage_mb`.
 
-## G. Billing — Phase 7 · screen: Settings → Billing
+## G. Billing & analytics — Phase 7 · screen: System Settings → Billing & GST / Dashboard & analytics
 
 | Key | Type | Default |
 |---|---|---|
-| `billing.gst_rate` | percent | 18 |
-| `billing.supplier_state` | choice (Indian states) | — |
-| `billing.invoice_prefix` | text | "AIE" |
-| `billing.grace_period_days` | number | 7 |
-| `billing.usage_alert_thresholds` | list[percent] | [80, 100] |
+| `billing.gst_rate` | number (%) | 18 (a plan may set its own) |
+| `billing.seller_state` | choice (GST state codes) | — (decides CGST + SGST vs IGST) |
+| `billing.sac_code` | text | — (ask the accountant) |
+| `billing.invoice_prefix` | text (1–5 letters) | "INV" → INV/26-27/00001 |
+| `billing.prices_include_gst` | boolean | false |
+| `billing.proration` | boolean | true |
+| `billing.grace_days` | number | 7 |
+| `billing.trial_reminder_days` | number | 3 |
+| `billing.invoice_due_days` | number | 7 |
+| `billing.invoice_footer` | textarea | — |
+| `notifications.usage_alert_percent` | list[percent] | [80, 100] (Team alerts) |
+| `analytics.default_range` | choice | 7d |
+| `analytics.refresh_seconds` | number | 30 |
+| `analytics.max_range_days` | number | 366 |
+
+Seller name, GSTIN, PAN and address come from General Settings → Contact. Razorpay keys: Voice & Channels → Razorpay
+(key id, key secret, webhook secret). Provider costs for margin reports: price fields in each telephony / WhatsApp
+provider's key popup and the model prices in AI Settings.
 
 ---
 

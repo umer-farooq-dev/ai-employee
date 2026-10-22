@@ -9,6 +9,7 @@ urlpatterns = [
     path("", include("apps.core.urls")),
     path("", include("apps.voice.urls")),
     path("", include("apps.whatsapp.urls")),
+    path("", include("apps.billing.urls")),
     path("superadmin/", include("apps.superadmin.urls")),
     path("accounts/", include("allauth.urls")),
     # Login / 2FA / password API for browser and app clients (API-02: Bearer JWT for the app)

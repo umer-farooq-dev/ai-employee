@@ -18,6 +18,9 @@ VOICE_CAPABILITIES = [
     ("telephony", "Telephony"),
     ("whatsapp", "WhatsApp"),
     ("push", "Push notifications"),
+    ("payments", "Payments"),
+    ("email", "E-mail"),
+    ("sms", "SMS"),
 ]
 CAPABILITIES = LLM_CAPABILITIES + VOICE_CAPABILITIES
 

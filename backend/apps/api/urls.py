@@ -6,6 +6,8 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_agents as agentapi
 from . import views_ai as aiapi
+from . import views_analytics as analyticsapi
+from . import views_billing as billingapi
 from . import views_calendar as calapi
 from . import views_campaigns as campapi
 from . import views_catalog as catapi
@@ -13,6 +15,7 @@ from . import views_company as company
 from . import views_crm as crmapi
 from . import views_knowledge as kbapi
 from . import views_notifications as notiapi
+from . import views_support as supportapi
 from . import views_templates as tpl
 from . import views_voice as voiceapi
 from . import views_webchat as chatapi
@@ -87,6 +90,13 @@ kb_router.register("sources", kbapi.SourceViewSet, basename="kb-sources")
 kb_router.register("faqs", kbapi.FAQViewSet, basename="kb-faqs")
 kb_router.register("unanswered", kbapi.UnansweredViewSet, basename="kb-unanswered")
 
+support_router = DefaultRouter(trailing_slash=True)
+support_router.register("tickets", supportapi.TicketViewSet, basename="support-tickets")
+
+billing_router = DefaultRouter(trailing_slash=True)
+billing_router.register("invoices", billingapi.InvoiceViewSet, basename="billing-invoices")
+billing_router.register("payments", billingapi.PaymentViewSet, basename="billing-payments")
+
 noti_router = DefaultRouter(trailing_slash=True)
 noti_router.register("notifications", notiapi.NotificationViewSet, basename="notifications")
 noti_router.register("devices", notiapi.DeviceViewSet, basename="devices")
@@ -121,6 +131,15 @@ api_v1 = [
     path("whatsapp/send/", waapi.SendView.as_view(), name="whatsapp-send"),
     path("whatsapp/", include(wa_router.urls)),
     path("ai-employees/<uuid:pk>/widget/", chatapi.EmployeeWidgetView.as_view(), name="ai-employee-widget"),
+    path("analytics/", analyticsapi.AnalyticsView.as_view(), name="analytics"),
+    path("billing/", billingapi.SummaryView.as_view(), name="billing"),
+    path("billing/plans/", billingapi.PlansView.as_view(), name="billing-plans"),
+    path("billing/checkout/", billingapi.CheckoutView.as_view(), name="billing-checkout"),
+    path("billing/confirm/", billingapi.ConfirmView.as_view(), name="billing-confirm"),
+    path("billing/cancel/", billingapi.CancelView.as_view(), name="billing-cancel"),
+    path("billing/details/", billingapi.DetailsView.as_view(), name="billing-details"),
+    path("billing/", include(billing_router.urls)),
+    path("support/", include(support_router.urls)),
     path("push/config/", notiapi.PushConfigView.as_view(), name="push-config"),
     path("", include(noti_router.urls)),
     path("", include(agents_router.urls)),

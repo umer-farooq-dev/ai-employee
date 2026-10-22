@@ -26,11 +26,15 @@ def used(company, key, now=None):
     from apps.voice.models import Call
 
     since = month_start(company, now)
-    if key in ("calls", "voice_minutes"):
-        calls = Call.objects.filter(company=company, queued_at__gte=since).exclude(status=Call.CANCELED)
-        if key == "calls":
-            return calls.count()
-        return round((calls.aggregate(s=Sum("duration_sec"))["s"] or 0) / 60)
+    if key == "calls":
+        return Call.objects.filter(company=company, queued_at__gte=since).exclude(status=Call.CANCELED).count()
+    if key == "voice_minutes":  # billed per started minute of each call (the metered usage)
+        return round(
+            UsageEvent.objects.filter(
+                company=company, meter__in=("voice_minutes_inbound", "voice_minutes_outbound"), occurred_at__gte=since
+            ).aggregate(s=Sum("quantity"))["s"]
+            or 0
+        )
     if key == "whatsapp_conversations":
         return Conversation.objects.filter(
             company=company, channel="whatsapp", is_test=False, started_at__gte=since
@@ -43,6 +47,88 @@ def used(company, key, now=None):
             or 0
         )
     raise KeyError(key)
+
+
+def current(company, key, now=None):
+    """What counts against each limit right now (monthly meters for this month; the rest as of now)."""
+    if key in MONTHLY:
+        return used(company, key, now)
+    from apps.agents.models import AIEmployee
+
+    if key == "ai_employees":
+        return AIEmployee.objects.filter(company=company).exclude(status=AIEmployee.ARCHIVED).count()
+    if key == "users":
+        from apps.tenancy.team import seats_used
+
+        return seats_used(company)
+    if key in ("kb_storage_mb", "kb_sources"):
+        from apps.knowledge.models import Source
+
+        sources = Source.objects.filter(company=company)
+        if key == "kb_sources":
+            return sources.count()
+        return round((sources.aggregate(s=Sum("file_size"))["s"] or 0) / 1024 / 1024, 1)
+    if key == "concurrent_calls":
+        from apps.voice.services import live_calls
+
+        return live_calls(company)
+    if key == "campaigns":
+        from apps.campaigns.models import Campaign
+
+        return Campaign.objects.filter(company=company, status__in=Campaign.ACTIVE).count()
+    if key == "custom_fields":
+        from apps.industries.models import FieldDefinition
+
+        return FieldDefinition.objects.filter(company=company).count()
+    raise KeyError(key)
+
+
+def overview(company, now=None):
+    """USE-02 / USE-03: every limit with its use, what is left, and the overage so far for soft limits."""
+    rows = []
+    for key, label in ENTITLEMENTS:
+        e = limits.entitlement(company, key)
+        count = current(company, key, now)
+        cap = e["limit"]
+        over = max(count - cap, 0) if cap is not None else 0
+        rows.append(
+            {
+                "key": key,
+                "label": label,
+                "monthly": key in MONTHLY,
+                "used": count,
+                "limit": cap,
+                "left": None if cap is None else max(cap - count, 0),
+                "percent": min(round(count * 100 / cap), 100) if cap else (100 if cap == 0 and count else 0),
+                "enforcement": e["enforcement"],
+                "over": over,
+                "overage_paise": over * (e["overage"] or 0) if e["enforcement"] == "soft" else 0,
+            }
+        )
+    return rows
+
+
+def meters(company, now=None):
+    """USE-01 detail for the Billing page: voice minutes in / out, calls, WhatsApp, AI, speech, this month."""
+    from apps.agents.models import UsageEvent
+
+    since = month_start(company, now)
+    sums = dict(
+        UsageEvent.objects.filter(company=company, occurred_at__gte=since)
+        .values_list("meter")
+        .annotate(s=Sum("quantity"))
+        .values_list("meter", "s")
+    )
+    return [
+        ("Voice minutes (inbound)", round(sums.get("voice_minutes_inbound") or 0)),
+        ("Voice minutes (outbound)", round(sums.get("voice_minutes_outbound") or 0)),
+        ("Calls", round(sums.get("calls") or 0)),
+        ("WhatsApp messages (billed by Meta)", round(sums.get("whatsapp_messages") or 0)),
+        ("AI credits", round(sums.get("ai_credits") or 0, 1)),
+        ("AI tokens", round((sums.get("ai_input_tokens") or 0) + (sums.get("ai_output_tokens") or 0))),
+        ("Speech-to-text (minutes)", round((sums.get("stt_seconds") or 0) / 60, 1)),
+        ("Text-to-speech (characters)", round(sums.get("tts_characters") or 0)),
+    ]
 
 
 def send_usage_alerts(now=None):
@@ -79,7 +165,7 @@ def send_usage_alerts(now=None):
                     "usage",
                     f"{percent}% of your {label} used this month",
                     f"{count} of {cap} {label}.",
-                    reverse("panel:company_home"),
+                    reverse("panel:billing"),
                     email=(
                         "alerts/usage",
                         {"limit_label": label, "used": count, "cap": cap, "percent": percent},
