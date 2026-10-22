@@ -14,7 +14,8 @@ FROM base AS web
 RUN pip install -r backend/requirements/prod.txt
 COPY backend /app/backend
 # static files are collected at build time; the build values below exist only for this step
-RUN SECRET_KEY=build-only-not-a-secret-build-only-not-a-secret-xx ALLOWED_HOSTS=build DATABASE_URL=sqlite:////tmp/build.db \
+RUN SECRET_KEY=build-only-not-a-secret-build-only-not-a-secret-xx FIELD_ENCRYPTION_KEY=build-only ALLOWED_HOSTS=build \
+    DATABASE_URL=sqlite:////tmp/build.db \
     python backend/manage.py collectstatic --noinput -v 0 && chown -R app /app/staticfiles
 USER app
 WORKDIR /app/backend
@@ -25,8 +26,8 @@ CMD ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--worker-class", "gth
      "--timeout", "60", "--graceful-timeout", "30", "--access-logfile", "-", "--forwarded-allow-ips", "*"]
 
 FROM base AS voice
-# web requirements first, then the gateway's (pipecat pins Pillow<13 and replaces it in this image only)
-RUN pip install -r backend/requirements/base.txt && pip install -r backend/requirements/voice.txt
+# gateway requirements, then the web pins on top: Pillow 13 (security fixes) over pipecat's Pillow<13 pin, see voice.txt
+RUN pip install -r backend/requirements/voice.txt && pip install -r backend/requirements/base.txt
 COPY backend /app/backend
 USER app
 WORKDIR /app/backend

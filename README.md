@@ -6,8 +6,8 @@ Django 5.2 backend with the eSoft website template and the Rizz admin template. 
 
 ```bash
 python -m venv .venv
+.venv/Scripts/pip install -r backend/requirements/voice.txt # Voice Gateway first (Pillow note in the file)
 .venv/Scripts/pip install -r backend/requirements/dev.txt   # Linux/macOS: .venv/bin/pip
-.venv/Scripts/pip install -r backend/requirements/voice.txt # Voice Gateway (own Pillow pin, see the file)
 cp .env.example .env                                         # then set SECRET_KEY
 docker compose up -d                                         # Postgres + pgvector, Redis, Mailpit
 python backend/manage.py migrate
@@ -38,7 +38,11 @@ python backend/manage.py runserver
 - Restore: `pg_restore --clean -d <database> backups/db-<date>.dump`
 - The knowledge base needs the PostgreSQL `vector` extension (pgvector). The migration creates it as the database owner;
   on managed hosting enable "vector" first.
-- Scheduled jobs (cron, every 5 minutes):
+- Scheduled jobs: production runs them all with `python backend/manage.py run_scheduler` (the `scheduler` container in
+  `deploy/docker-compose.prod.yml`, exactly one per environment; `--once` runs each job a single time). The list below is
+  what it runs — use it for crontab only on a host without the scheduler. Also every 5 minutes: `ops_watch` (alerts).
+  Production deployment, backups and recovery: [docs/phase8/runbook.md](docs/phase8/runbook.md).
+- Scheduled jobs (cron equivalent, every 5 minutes):
   - `python backend/manage.py send_task_reminders --base-url https://<domain>` — follow-up reminder emails (CRM-16)
   - `python backend/manage.py process_knowledge` — queued knowledge, website re-syncs, re-embedding (KB-01, KB-07)
   - `python backend/manage.py end_idle_conversations` — closes idle AI conversations so summary, CRM and score update

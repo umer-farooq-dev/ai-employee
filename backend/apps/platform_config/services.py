@@ -9,6 +9,7 @@ from django.core.validators import validate_email
 from django.db import transaction
 
 from apps.accounts.models import phone_validator
+from apps.core.request import current_request
 
 from .models import PlatformSetting
 from .registry import BY_KEY, SETTINGS
@@ -17,13 +18,24 @@ CACHE_KEY = "platform_settings:v1"
 RATE_RE = re.compile(r"^\d+/(second|minute|hour|day)$")
 
 
+DEFAULTS = {s.key: s.default for s in SETTINGS}
+
+
 def get_all() -> dict:
+    # One read per request: a page asks for many settings, each read would fetch and unpickle the whole set again.
+    request = current_request()
+    merged = getattr(request, "_platform_settings", None)
+    if merged is not None:
+        return merged
     values = cache.get(CACHE_KEY)
     if values is None:
         values = dict(PlatformSetting.objects.values_list("key", "value"))
         cache.set(CACHE_KEY, values, None)
     # Defaults underneath: keys added by a new release work even while an older cached copy is still in Redis.
-    return {**{s.key: s.default for s in SETTINGS}, **values}
+    merged = {**DEFAULTS, **values}
+    if request is not None:
+        request._platform_settings = merged
+    return merged
 
 
 def get(key):
@@ -126,6 +138,7 @@ def update(values: dict, user=None, request=None) -> dict:
             user=user,
         )
     cache.delete(CACHE_KEY)
+    _forget()
     return changed
 
 
@@ -136,3 +149,11 @@ def seed_missing():
         [PlatformSetting(key=s.key, value=s.default) for s in SETTINGS if s.key not in existing]
     )
     cache.delete(CACHE_KEY)
+    _forget()
+
+
+def _forget():
+    """Drop this request's copy so the rest of the request sees the saved values."""
+    request = current_request()
+    if request is not None:
+        request.__dict__.pop("_platform_settings", None)

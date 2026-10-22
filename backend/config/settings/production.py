@@ -5,6 +5,9 @@ if not ALLOWED_HOSTS:  # noqa: F405
     raise RuntimeError("ALLOWED_HOSTS must list the live domains (e.g. example.com,admin.example.com)")
 if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("change-me"):  # noqa: F405
     raise RuntimeError("SECRET_KEY must be a long random value from the host's secret store")
+if FIELD_ENCRYPTION_KEY == SECRET_KEY:  # noqa: F405
+    # provider keys in the database are encrypted with it; its own value lets SECRET_KEY rotate safely
+    raise RuntimeError("FIELD_ENCRYPTION_KEY must be set (its own long random value, kept with the backups' secrets)")
 
 # HTTPS is ended by the reverse proxy (deploy/Caddyfile or the host's load balancer)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

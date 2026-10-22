@@ -46,6 +46,7 @@ GROUPS = {
     "billing": ("system", "Billing & GST"),
     "support": ("system", "Support"),
     "retention": ("system", "Data retention & privacy"),
+    "monitoring": ("system", "Monitoring & alerts"),
 }
 
 TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
@@ -907,6 +908,34 @@ SETTINGS = [
         min=0,
         max=90,
         help="0 = never close automatically",
+    ),
+    # Monitoring & alerts (ENGR-05): checked every 5 minutes by the scheduler
+    Setting(
+        "monitoring.alert_emails",
+        "list",
+        [],
+        "Send platform alerts to",
+        "monitoring",
+        help="Empty = the team inbox in General Settings",
+    ),
+    Setting(
+        "monitoring.error_threshold",
+        "number",
+        10,
+        "Alert when server errors in the window reach",
+        "monitoring",
+        min=1,
+        max=10000,
+    ),
+    Setting("monitoring.window_minutes", "number", 15, "Error window (minutes)", "monitoring", min=5, max=1440),
+    Setting(
+        "monitoring.cooldown_minutes",
+        "number",
+        60,
+        "Repeat the same alert after (minutes)",
+        "monitoring",
+        min=5,
+        max=1440,
     ),
     # D. Retention (REC-03, COMP-06). Companies may choose shorter.
     Setting("retention.recordings_days", "number", 90, "Keep call recordings (days)", "retention", min=1, max=3650),

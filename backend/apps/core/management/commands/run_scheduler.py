@@ -16,6 +16,8 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections
 
+from apps.audit import ops
+
 log = logging.getLogger(__name__)
 
 MINUTE, HOUR, DAY = 60, 3600, 86400
@@ -23,6 +25,7 @@ MINUTE, HOUR, DAY = 60, 3600, 86400
 # (command, seconds between runs, arguments) — the same list as the README's cron section
 JOBS = [
     ("dial_due_calls", MINUTE, []),
+    ("ops_watch", 5 * MINUTE, []),
     ("send_task_reminders", 5 * MINUTE, lambda: ["--base-url", settings.PUBLIC_BASE_URL]),
     ("process_knowledge", 5 * MINUTE, []),
     ("end_idle_conversations", 5 * MINUTE, []),
@@ -64,6 +67,7 @@ class Command(BaseCommand):
         busy = {}
         self.stdout.write(f"Scheduler: {len(JOBS)} jobs")
         while True:
+            ops.beat()  # /healthz/ reports "scheduler": "down" when this stops
             now = time.monotonic()
             for name, every, job_args in JOBS:
                 if now >= due[name] and not (busy.get(name) and busy[name].is_alive()):

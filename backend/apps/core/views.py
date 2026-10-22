@@ -3,6 +3,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.http import FileResponse, Http404, JsonResponse
 
+from apps.audit import ops
 from apps.platform_config import services as config
 
 from .storage import path_from_token, private_storage
@@ -23,7 +24,11 @@ def healthz(request):
     except Exception:
         checks["cache"] = "down"
     healthy = all(v == "ok" for v in checks.values())
-    return JsonResponse({"status": "ok" if healthy else "down", **checks}, status=200 if healthy else 503)
+    # reported for uptime monitors (keyword check) but not part of the status: the web container is fine without it
+    scheduler = "ok" if checks["cache"] == "ok" and ops.scheduler_ok() else "down"
+    return JsonResponse(
+        {"status": "ok" if healthy else "down", **checks, "scheduler": scheduler}, status=200 if healthy else 503
+    )
 
 
 def private_file(request, token):

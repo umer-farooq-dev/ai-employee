@@ -30,9 +30,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements/*.txt
-      - run: pip install -r backend/requirements/dev.txt
-      # the Voice Gateway's own dependencies (its Pillow pin differs from the web app's, see voice.txt)
+      # Voice Gateway first, then the web pins on top (Pillow 13 over pipecat's Pillow<13, see voice.txt) — as in the image
       - run: pip install -r backend/requirements/voice.txt
+      - run: pip install -r backend/requirements/dev.txt
       - name: Lint
         run: |
           ruff check backend poc
@@ -61,6 +61,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: config.settings.production
           SECRET_KEY: ci-only-deploy-check-ci-only-deploy-check-ci-only-deploy-check
+          FIELD_ENCRYPTION_KEY: ci-only-field-key
           ALLOWED_HOSTS: example.com
 
   # ENGR-04 / SEC-15: build both images, scan them, and boot the production stack end to end
@@ -88,6 +89,7 @@ jobs:
           DOMAIN=localhost
           ACME_EMAIL=ci@example.com
           SECRET_KEY=$(key)$(key)
+          FIELD_ENCRYPTION_KEY=$(key)
           ALLOWED_HOSTS=localhost,www.localhost,admin.localhost
           CSRF_TRUSTED_ORIGINS=https://localhost,https://admin.localhost
           ADMIN_HOST=admin.localhost
@@ -122,6 +124,42 @@ jobs:
           done
           docker compose -f docker-compose.prod.yml --env-file .env exec -T web python manage.py run_scheduler --once
           docker compose -f docker-compose.prod.yml --env-file .env ps
+      - name: Backup restore drill (SEC-10, ENGR-08)
+        working-directory: deploy
+        run: sh restore_drill.sh docker-compose.prod.yml
+      - name: Load test (k6, ENGR-07) — regression gate on the CI runner; launch targets are run on staging
+        working-directory: deploy
+        run: |
+          export LOADTEST_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(18))")
+          docker compose -f docker-compose.prod.yml --env-file .env exec -T -e LOADTEST_PASSWORD -e LOADTEST_COMPANIES=10 \
+            web python manage.py shell -c "import sys; exec(sys.stdin.read())" < loadtest/setup.py
+          mkdir -p ../k6 && chmod 777 ../k6
+          docker run --rm --network host -v "$PWD/loadtest:/scripts" -v "$PWD/../k6:/out" \
+            -e BASE=https://localhost -e PASSWORD="$LOADTEST_PASSWORD" -e COMPANIES=10 -e VUS=30 -e HOLD=90s \
+            grafana/k6:0.54.0 run --quiet --summary-export /out/k6-summary.json /scripts/api.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: k6-summary, path: k6/, if-no-files-found: ignore}
+      - name: Security - DAST (OWASP ZAP baseline on the running stack)
+        run: |
+          mkdir -p zap && chmod 777 zap
+          for target in https://localhost/ https://admin.localhost/superadmin/; do
+            name=$(echo "$target" | cut -d/ -f3 | cut -d. -f1)
+            docker run --rm --network host --add-host admin.localhost:127.0.0.1 -v "$PWD/zap:/zap/wrk" \
+              ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t "$target" -m 3 -I \
+              -r "zap-$name.html" -J "zap-$name.json" || true
+          done
+          # the gate: no High risk alert on any target
+          python3 - <<'EOF'
+          import glob, json, sys
+          high = [(f, a["name"]) for f in glob.glob("zap/zap-*.json") for s in json.load(open(f))["site"]
+                  for a in s["alerts"] if a["riskcode"] == "3"]
+          print("\n".join(f"{f}: {n}" for f, n in high) or "No high-risk alerts")
+          sys.exit(1 if high else 0)
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: zap-reports, path: zap/, if-no-files-found: ignore}
       - name: Logs on failure
         if: failure()
         working-directory: deploy
