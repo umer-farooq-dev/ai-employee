@@ -10,6 +10,7 @@ from datetime import timedelta
 import pytest
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import transaction
 from django.utils import timezone
 
 from apps.billing import services as billing
@@ -172,6 +173,39 @@ def test_only_owner_deletes_and_retention(client, realty, owner_a, set_setting):
     set_setting("retention.logs_days", 180)
     out = privacy.retention()
     assert out["api_logs"] == 1 and not ApiRequestLog.objects.filter(pk=old.pk).exists()
+
+
+@pytest.mark.django_db
+def test_retention_as_the_production_app_role(monkeypatch):
+    """The scheduler runs as the least-privilege role: old audit entries go only through audit_purge, the rest of the
+    audit log stays append-only (found by the production-stack smoke test: the role may not DELETE)."""
+    from django.core.management import call_command
+    from django.db import connection
+    from django.db.utils import DatabaseError
+
+    from apps.audit.models import AuditLog
+
+    monkeypatch.setattr(AuditLog._meta.get_field("created_at"), "auto_now_add", False)
+    old = AuditLog.objects.create(action="old", created_at=timezone.now() - timedelta(days=800))
+    recent = AuditLog.objects.create(action="recent", created_at=timezone.now() - timedelta(days=10))
+    call_command("setup_app_db_role", role="retention_probe")
+    with connection.cursor() as cur:
+        cur.execute("SET ROLE retention_probe")
+        try:
+            out = privacy.retention()  # the whole daily job, as in production
+            assert out["audit"] == 1
+            with pytest.raises(DatabaseError):
+                with transaction.atomic():
+                    cur.execute("DELETE FROM audit_auditlog")  # no privilege
+            with pytest.raises(DatabaseError, match="younger than 90 days"):
+                with transaction.atomic():
+                    cur.execute("SELECT audit_purge(now() - interval '10 days')")
+        finally:
+            cur.execute("RESET ROLE")
+    assert not AuditLog.objects.filter(pk=old.pk).exists() and AuditLog.objects.filter(pk=recent.pk).exists()
+    with pytest.raises(DatabaseError, match="append-only"):
+        with transaction.atomic():
+            AuditLog.objects.filter(pk=recent.pk).delete()  # not even the owner, outside audit_purge
 
 
 @pytest.mark.django_db

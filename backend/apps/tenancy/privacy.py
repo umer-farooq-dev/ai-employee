@@ -241,10 +241,23 @@ def run(now=None):
     return out
 
 
+def _purge_audit(cutoff):
+    """The audit log is append-only; old entries go only through the database function audit_purge (SEC-08)."""
+    from django.db import connection
+
+    from apps.audit.models import AuditLog
+
+    if connection.vendor != "postgresql":
+        return AuditLog.objects.filter(created_at__lt=cutoff).delete()[0]
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT audit_purge(%s)", [cutoff])
+        return cursor.fetchone()[0]
+
+
 def retention(now=None):
     """SEC-12: platform logs and alerts older than the retention settings; chat / WhatsApp transcripts like calls."""
     from apps.agents.models import Message
-    from apps.audit.models import ApiRequestLog, AuditLog, ErrorLog
+    from apps.audit.models import ApiRequestLog, ErrorLog
     from apps.notifications.models import Notification
 
     now = now or timezone.now()
@@ -252,9 +265,7 @@ def retention(now=None):
     out = {
         "api_logs": ApiRequestLog.objects.filter(created_at__lt=logs).delete()[0],
         "error_logs": ErrorLog.objects.filter(created_at__lt=logs).delete()[0],
-        "audit": AuditLog.objects.filter(created_at__lt=now - timedelta(days=setting("retention.audit_days"))).delete()[
-            0
-        ],
+        "audit": _purge_audit(now - timedelta(days=setting("retention.audit_days"))),
     }
     with platform_context():
         out["alerts"] = Notification.all_companies.filter(
