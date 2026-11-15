@@ -44,7 +44,7 @@ services:
       DATABASE_URL: ${OWNER_DATABASE_URL}
     command: >
       sh -c "python manage.py migrate --noinput &&
-             python manage.py setup_app_db_role --role $${APP_DB_USER} --password $${APP_DB_PASSWORD}"
+             python manage.py setup_app_db_role --role=\"$${APP_DB_USER}\" --password=\"$${APP_DB_PASSWORD}\""
     depends_on:
       db: {condition: service_healthy}
 
