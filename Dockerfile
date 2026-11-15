@@ -5,7 +5,9 @@
 FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     DJANGO_SETTINGS_MODULE=config.settings.production
-RUN useradd --create-home --uid 1000 app \
+# security updates of the Debian base packages (Trivy fails the build on fixable HIGH / CRITICAL)
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 app \
     && mkdir -p /app/media /app/private_media /app/staticfiles && chown -R app /app
 WORKDIR /app
 COPY backend/requirements /app/backend/requirements
