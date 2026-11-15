@@ -10,8 +10,8 @@ DRILL_DB=restore_drill
 start=$(date +%s)
 
 if [ -z "$DUMP" ]; then
-  DUMP="backups/drill-$(date +%Y%m%d-%H%M).dump"
-  mkdir -p backups
+  # a scratch file: ./backups belongs to the backup container (root) and may not be writable here
+  DUMP="$(mktemp -d)/drill-$(date +%Y%m%d-%H%M).dump"
   $COMPOSE exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$DUMP"
 fi
 echo "dump: $DUMP ($(du -h "$DUMP" | cut -f1))"
