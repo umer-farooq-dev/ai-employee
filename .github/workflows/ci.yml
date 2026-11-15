@@ -116,7 +116,7 @@ jobs:
           set -x
           curl -skf --resolve localhost:443:127.0.0.1 https://localhost/healthz/ | grep '"database": "ok"'
           curl -skf --resolve localhost:443:127.0.0.1 https://localhost/ -o /dev/null
-          curl -skf --resolve localhost:443:127.0.0.1 https://localhost/static/panel/css/bootstrap.min.css -o /dev/null
+          curl -skf --resolve localhost:443:127.0.0.1 https://localhost/static/webchat/widget.js -o /dev/null  # theme assets are not in git
           test "$(curl -sk --resolve admin.localhost:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://admin.localhost/superadmin/)" = 302
           curl -s --resolve localhost:80:127.0.0.1 -o /dev/null -w '%{http_code}\n' http://localhost/ | grep -E '30[18]'
           for i in $(seq 1 30); do

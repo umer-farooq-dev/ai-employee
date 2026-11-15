@@ -33,8 +33,11 @@ are entered in Super Admin. The server only holds infrastructure values (`deploy
 
 1. **DNS**: point `<domain>`, `www.<domain>`, `admin.<domain>` and `voice.<domain>` (A / AAAA records) at the server.
 2. **Server**: install Docker Engine with the compose plugin; open ports 80 and 443 only (SSH restricted to the team).
-3. **Code**: `git clone` the repository (or copy the release), then
+3. **Code**: `git clone` the repository (or copy the release). The purchased theme assets (panel and website CSS,
+   JavaScript, fonts, images) are licensed and **not in git**: on a development machine run
+   `sh deploy/theme_assets.sh pack`, copy `theme-assets.tgz` to the server privately, then
    ```bash
+   sh deploy/theme_assets.sh unpack theme-assets.tgz     # prints "theme assets in place"
    cp deploy/.env.production.example deploy/.env
    ```
    Fill in `deploy/.env`: the domain values, and new random values for `SECRET_KEY`, `FIELD_ENCRYPTION_KEY`,
