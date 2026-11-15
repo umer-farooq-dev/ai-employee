@@ -14,6 +14,7 @@ ENG-09). Used by Super Admin → AI Settings / Voice Settings / Languages & Voic
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -202,6 +203,18 @@ class RoutesView(TenantContextMixin, APIView):
     def get_permissions(self):
         return [permissions.IsAuthenticated(), perm(PERM)()]
 
+    @extend_schema(
+        responses=inline_serializer(
+            "TaskRoutes",
+            {
+                "task": serializers.CharField(),
+                "label": serializers.CharField(),
+                "capability": serializers.CharField(),
+                "routes": RouteSerializer(many=True),
+            },
+            many=True,
+        ),
+    )
     def get(self, request):
         chains = services.routes()
         return Response(
@@ -211,6 +224,10 @@ class RoutesView(TenantContextMixin, APIView):
             ]
         )
 
+    @extend_schema(
+        request=inline_serializer("TaskRoutesSave", {"routes": RouteSerializer(many=True)}),
+        responses=RouteSerializer(many=True),
+    )
     def put(self, request, task):
         if task not in {k for k, _, _ in TASKS}:
             raise NotFound("Unknown task.")

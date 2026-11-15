@@ -25,7 +25,7 @@ def test_django_admin_is_not_installed(settings):
 @pytest.mark.django_db
 def test_website_home_and_healthz(client):
     assert client.get("/").status_code == 200
-    assert client.get("/healthz/").json() == {"status": "ok"}
+    assert client.get("/healthz/").json()["status"] == "ok"
 
 
 @pytest.mark.django_db

@@ -21,6 +21,28 @@ def _is_api(request):
     return request.path.startswith(("/api/", "/public/"))
 
 
+class UserSessionsMiddleware:
+    """allauth's active-session tracking (Sessions page, new-device alerts) without a database write on every
+    request: refreshed once a minute, or at once when the IP address or browser of the session changes."""
+
+    SEEN = "_usersession_seen"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.session.session_key and request.user.is_authenticated:
+            from allauth.account.adapter import get_adapter
+            from allauth.usersessions.models import UserSession
+
+            client = f"{get_adapter().get_client_ip(request)}|{request.META.get('HTTP_USER_AGENT', '')[:200]}"
+            last = request.session.get(self.SEEN) or [0, ""]
+            if time.time() - last[0] >= SessionSecurityMiddleware.WRITE_EVERY or last[1] != client:
+                UserSession.objects.create_from_request(request)
+                request.session[self.SEEN] = [time.time(), client]
+        return self.get_response(request)
+
+
 class SessionSecurityMiddleware:
     """AUTH-03 inactivity timeout from settings (remember-me only controls the cookie lifetime),
     and the impersonating staff user on request.impersonator."""

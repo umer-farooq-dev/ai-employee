@@ -173,8 +173,11 @@ TemplateScoringViewSet = _child_viewset(ScoringRule, ScoringRuleSerializer)
 
 
 def _platform_viewset(model_, fields_, perm_key, filters=None):
+    serializer = _serializer(model_, fields_)
+    serializer.__name__ = f"Platform{model_.__name__}Serializer"  # the template's own one keeps the plain name
+
     class PlatformViewSet(AdminViewSet):
-        serializer_class = _serializer(model_, fields_)
+        serializer_class = serializer
         view_perm = manage_perm = perm_key
         pagination_class = None
 

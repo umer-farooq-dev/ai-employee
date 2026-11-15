@@ -184,6 +184,7 @@ _Telephony aur STT / TTS provider client ka faisla — development mein test acc
 - Migrations: backward-compatible, CI mein `makemigrations --check`
 
 ## Launch se pehle (Phase 8)
+Poori list ab [phase8/go-live-checklist.md](phase8/go-live-checklist.md) mein hai (server: [phase8/runbook.md](phase8/runbook.md)); production mein saare cron jobs `scheduler` container chalata hai.
 - Server scheduler (cron) mein har 5 minute: `python backend/manage.py send_task_reminders --base-url https://<domain>` (follow-up reminders)
 - `.env` mein `ADMIN_HOST=admin.<client domain>` aur dono hosts `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` mein (Super Admin alag address par)
 - Super Admin → Settings → Security → **"2FA mandatory for platform staff" on karna** (development mein owner ke kehne par off)

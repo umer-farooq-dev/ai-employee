@@ -80,7 +80,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "allauth.usersessions.middleware.UserSessionsMiddleware",
+    "apps.accounts.middleware.UserSessionsMiddleware",
     "apps.accounts.middleware.SessionSecurityMiddleware",
     "apps.tenancy.middleware.TenantMiddleware",
     "apps.accounts.middleware.AdminIPAllowlistMiddleware",
@@ -113,6 +113,7 @@ DATABASES = {"default": env.db("DATABASE_URL")}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CACHES = {"default": env.cache("REDIS_URL", default="locmemcache://")}
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"  # read from Redis, kept in the database too
 
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = [

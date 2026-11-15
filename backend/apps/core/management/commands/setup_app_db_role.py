@@ -37,6 +37,7 @@ class Command(BaseCommand):
                 "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {role}",
                 "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO {role}",
                 "REVOKE UPDATE, DELETE ON audit_auditlog FROM {role}",  # append-only, also enforced by a trigger
+                "GRANT EXECUTE ON FUNCTION audit_purge(timestamptz) TO {role}",  # retention: old entries only
             ):
                 cur.execute(sql.SQL(statement).format(db=db, role=name))
         self.stdout.write(self.style.SUCCESS(f"{verb.lower()}d least-privilege role {role}"))

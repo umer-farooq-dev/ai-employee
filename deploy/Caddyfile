@@ -1,0 +1,42 @@
+# HTTPS for the website / panels, the Super Admin host and the Voice Gateway. Certificates are automatic (Let's Encrypt)
+# once the DNS records of the three names point at this server. Behind the host's own load balancer, terminate TLS
+# there instead and proxy the same paths.
+{
+	email {$ACME_EMAIL}
+}
+
+(app) {
+	encode zstd gzip
+	handle /static/* {
+		root * /srv
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+	handle /media/* {
+		root * /srv
+		header X-Content-Type-Options nosniff
+		file_server
+	}
+	handle {
+		reverse_proxy web:8000
+	}
+	request_body {
+		max_size 60MB
+	}
+	header -Server
+	log {
+		output stdout
+	}
+}
+
+{$DOMAIN}, www.{$DOMAIN} {
+	import app
+}
+
+admin.{$DOMAIN} {
+	import app
+}
+
+voice.{$DOMAIN} {
+	reverse_proxy voice:8765
+}

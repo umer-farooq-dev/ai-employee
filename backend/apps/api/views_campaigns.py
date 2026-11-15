@@ -84,7 +84,7 @@ class CampaignSerializer(serializers.ModelSerializer):
         return campaigns.stats(obj)
 
 
-class MemberSerializer(serializers.ModelSerializer):
+class CampaignMemberSerializer(serializers.ModelSerializer):
     lead_reference = serializers.CharField(source="lead.reference", default="", read_only=True)
 
     class Meta:
@@ -206,14 +206,14 @@ class CampaignViewSet(TenantContextMixin, viewsets.ModelViewSet):
             {"status": campaign.status, "waiting_reason": campaign.waiting_reason, "stats": campaigns.stats(campaign)}
         )
 
-    @extend_schema(responses=MemberSerializer(many=True))
+    @extend_schema(responses=CampaignMemberSerializer(many=True))
     @action(detail=True, methods=["get"])
     def members(self, request, pk=None):
         qs = self.get_object().members.select_related("lead")
         if request.query_params.get("status"):
             qs = qs.filter(status=request.query_params["status"])
         page = self.paginate_queryset(qs.order_by("-created_at"))
-        return self.get_paginated_response(MemberSerializer(page, many=True).data)
+        return self.get_paginated_response(CampaignMemberSerializer(page, many=True).data)
 
     @extend_schema(responses=bytes)
     @action(detail=True, methods=["get"])

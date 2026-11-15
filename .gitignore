@@ -16,3 +16,13 @@ AdminTemplate/
 poc/output/
 backups/
 private_media/
+
+# Purchased theme assets (Rizz panel, eSoft website): licensed, never in git. They stay on disk for development and
+# are copied to a server with deploy/theme_assets.sh. Our own static files (brand/, webchat/, product screenshots) stay.
+backend/static/panel/
+backend/static/website/css/
+backend/static/website/fonts/
+backend/static/website/js/
+backend/static/website/img/*
+!backend/static/website/img/product/
+theme-assets.tgz
