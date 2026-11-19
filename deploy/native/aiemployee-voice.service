@@ -1,0 +1,21 @@
+[Unit]
+Description=AI Employee Voice Gateway (live phone and browser test calls)
+After=network.target postgresql.service redis-server.service
+
+[Service]
+User=aiemployee
+Group=aiemployee
+WorkingDirectory=/opt/ai-employee/app/backend
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production PYTHONUNBUFFERED=1
+ExecStart=/opt/ai-employee/venv/bin/python manage.py run_voice_gateway --bind 127.0.0.1:8765
+Restart=always
+RestartSec=3
+# lets calls in progress finish on a restart, like the stop grace period in docker-compose.prod.yml
+TimeoutStopSec=600
+Slice=aiemployee.slice
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

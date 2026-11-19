@@ -26,6 +26,8 @@ Contents: [1 Architecture](#1-what-runs-where) · [2 First deployment](#2-first-
 | `db-backup` | pgvector/pgvector:pg16 | Daily compressed dump to `deploy/backups/` |
 | `clamav` | clamav | Malware scan of every upload (`CLAMAV_ADDRESS=clamav:3310`); needs about 1 GB RAM |
 
+Without Docker, next to other sites on an existing server (for example Plesk): `deploy/native/README.md`.
+
 Business settings and **every provider key** (AI, telephony, WhatsApp, Razorpay, e-mail, SMS) live in the database and
 are entered in Super Admin. The server only holds infrastructure values (`deploy/.env`).
 

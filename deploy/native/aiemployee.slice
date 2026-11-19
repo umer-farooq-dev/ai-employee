@@ -1,0 +1,6 @@
+[Unit]
+Description=AI Employee services: one shared CPU and memory cap, the rest of the server stays with its other sites
+
+[Slice]
+CPUQuota=800%
+MemoryMax=16G

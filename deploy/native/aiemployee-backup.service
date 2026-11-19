@@ -1,0 +1,9 @@
+[Unit]
+Description=AI Employee daily database dump, kept BACKUP_KEEP_DAYS (SEC-10); copy the folder off the server
+
+[Service]
+Type=oneshot
+User=aiemployee
+Group=aiemployee
+EnvironmentFile=/opt/ai-employee/app/.env
+ExecStart=/bin/sh -c 'mkdir -p -m 700 /opt/ai-employee/backups && pg_dump -Fc -d "$${OWNER_DATABASE_URL}" > /opt/ai-employee/backups/db-$$(date +%%Y%%m%%d-%%H%%M).dump && find /opt/ai-employee/backups -name "db-*.dump" -mtime +$${BACKUP_KEEP_DAYS:-14} -delete'
