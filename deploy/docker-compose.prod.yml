@@ -64,7 +64,7 @@ services:
   voice:  # Voice Gateway, own image; reached at wss://voice.<domain>
     <<: *app
     image: ${IMAGE_VOICE:-aiemployee-voice:latest}
-    build: {context: .., target: voice}
+    build: {context: .., target: voice, args: {VOICE_REQUIREMENTS: "${VOICE_REQUIREMENTS:-voice.txt}"}}
     stop_grace_period: 10m  # lets calls in progress finish on a rollout
     depends_on:
       migrate: {condition: service_completed_successfully}

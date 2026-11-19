@@ -28,8 +28,10 @@ CMD ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--worker-class", "gth
      "--timeout", "60", "--graceful-timeout", "30", "--access-logfile", "-", "--forwarded-allow-ips", "*"]
 
 FROM base AS voice
+# voice-local.txt adds the free local Whisper + Kokoro engines (staging / demo only; test-only providers are blocked in production)
+ARG VOICE_REQUIREMENTS=voice.txt
 # gateway requirements, then the web pins on top: Pillow 13 (security fixes) over pipecat's Pillow<13 pin, see voice.txt
-RUN pip install -r backend/requirements/voice.txt && pip install -r backend/requirements/base.txt
+RUN pip install -r backend/requirements/${VOICE_REQUIREMENTS} && pip install -r backend/requirements/base.txt
 COPY backend /app/backend
 USER app
 WORKDIR /app/backend
