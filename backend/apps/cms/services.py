@@ -8,7 +8,7 @@ from apps.audit.services import record
 
 from .models import Page, Section, SectionVersion
 
-SCALAR_TYPES = {"text", "textarea", "rich", "image", "number"}
+SCALAR_TYPES = {"text", "textarea", "rich", "image", "video", "number"}
 
 
 def _clean_value(field, value):

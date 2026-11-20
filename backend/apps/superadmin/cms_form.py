@@ -1,21 +1,21 @@
 """Turns a section schema into editor fields and a submitted editor back into content (WEB-04).
 
 Field names: f.<key> (scalar), f.<key>.label / f.<key>.url (link), u.<key> (image upload),
-             l.<key>.<row>.<sub> (list cell), lu.<key>.<row>.<sub> (list image upload).
+             l.<key>.<row>.<sub> (list cell); video fields upload like images, lu.<key>.<row>.<sub> (list image upload).
 """
 
 import re
 
-from apps.core.uploads import save_public
+from apps.core.uploads import VIDEO_TYPES, save_public
 
 
 def _scalar(post, files, name, upload_name, field):
     if field["type"] == "link":
         return {"label": post.get(f"{name}.label", ""), "url": post.get(f"{name}.url", "")}
-    if field["type"] == "image":
+    if field["type"] in ("image", "video"):
         upload = files.get(upload_name)
         if upload:
-            return save_public(upload, "website")
+            return save_public(upload, "website", only=VIDEO_TYPES if field["type"] == "video" else None)
         return "" if post.get(f"{name}.clear") else post.get(name, "")
     return post.get(name, "")
 

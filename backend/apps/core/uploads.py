@@ -9,13 +9,16 @@ from django.core.files.storage import default_storage
 from apps.platform_config import services as config
 
 IMAGE_TYPES = {"png", "jpg", "jpeg", "webp", "svg", "ico", "gif"}
+VIDEO_TYPES = {"mp4", "webm"}
 
 
-def validate_upload(upload, images_only=False):
+def validate_upload(upload, images_only=False, only=None):
     ext = PurePosixPath(upload.name).suffix.lower().lstrip(".")
     allowed = set(config.get("security.upload_allowed_types"))
     if images_only:
         allowed &= IMAGE_TYPES
+    if only:
+        allowed &= only
     if ext not in allowed:
         raise ValidationError(f"File type .{ext} is not allowed. Allowed: {', '.join(sorted(allowed))}.")
     max_mb = config.get("security.upload_max_mb")
@@ -24,9 +27,9 @@ def validate_upload(upload, images_only=False):
     return ext
 
 
-def save_public(upload, folder, images_only=True) -> str:
+def save_public(upload, folder, images_only=True, only=None) -> str:
     """Store a public file (logos, website images) and return its URL. Original names never reach the path."""
-    ext = validate_upload(upload, images_only=images_only)
+    ext = validate_upload(upload, images_only=images_only and not only, only=only)
     path = default_storage.save(f"{folder}/{uuid.uuid4().hex}.{ext}", upload)
     return default_storage.url(path)
 
