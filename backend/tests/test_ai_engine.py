@@ -121,6 +121,27 @@ def test_conversation_opens_with_runtime_disclosure_in_the_customer_language(ctx
     assert conv.is_test and conv.employee_version == sara.config_version
 
 
+@pytest.mark.django_db
+def test_language_the_template_does_not_cover_uses_its_own_texts_never_another_language(ctx_a, sara):
+    from apps.providers.models import Language
+
+    Language.objects.create(
+        code="ur",
+        name="Urdu",
+        locale="ur-PK",
+        script="arabic",
+        texts={"greeting": "السلام علیکم! {{ company_name }}", "disclosure": "میں {{ employee_name }} ہوں"},
+    )
+    sara.primary_language, sara.languages = "ur", ["ur"]
+    sara.save()
+    conv = runtime.start(sara, customer={"language": "ur"})
+    opening = conv.messages.get().content
+    assert "السلام علیکم" in opening and "میں Sara ہوں" in opening  # Urdu texts from Languages & Voices
+    assert not any("ঀ" <= ch <= "৿" or "ऀ" <= ch <= "ॿ" for ch in opening)  # no Bengali / Hindi
+    prompt = runtime.system_prompt(conv, [])
+    assert not any("ঀ" <= ch <= "৿" for ch in prompt)  # template questions fall back to English
+
+
 # ---------------------------------------------------------------- tools write into the CRM (ENG-03, ENG-06, TOOL-02)
 @pytest.mark.django_db
 def test_tool_calls_create_and_update_the_lead_with_indian_values(ctx_a, sara, monkeypatch):
