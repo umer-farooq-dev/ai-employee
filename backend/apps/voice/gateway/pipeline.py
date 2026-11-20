@@ -126,6 +126,7 @@ class AgentBrain(FrameProcessor):
         # Segmented STT (Whisper) transcribes after the caller stops, and UserStoppedSpeakingFrame is a system frame
         # that overtakes the queued TranscriptionFrame: the turn then ends when its text arrives, not with the next one.
         self.awaiting_text, self.stopped_at = False, None
+        self.quiet_rounds = 0  # silence prompts since the caller last spoke
 
     def phrase(self, key):
         texts = self.s.phrases.get(self.language) or next(iter(self.s.phrases.values()))
@@ -173,7 +174,7 @@ class AgentBrain(FrameProcessor):
         elif isinstance(frame, ErrorFrame) and direction == FrameDirection.UPSTREAM:
             self.stats.errors.append({"stage": getattr(frame.processor, "name", ""), "error": str(frame.error)[:200]})
         if isinstance(frame, UserStartedSpeakingFrame) and direction == FrameDirection.DOWNSTREAM:
-            self.awaiting_text = False
+            self.awaiting_text, self.quiet_rounds = False, 0
             if self.stats.bot_speaking:
                 self.stats.interruptions += 1
             if self.pending and not self.pending.done():  # the caller spoke again: the old answer is stale
@@ -253,11 +254,13 @@ class AgentBrain(FrameProcessor):
             await sync_to_async(voice_session.note, thread_sensitive=False)(self.s, "ai", text, {key: True})
 
     async def on_idle(self):
-        """Caller silent: ask once per prompt period, hang up after the configured total."""
-        if self.closing:
+        """Caller silent: ask once per prompt period, hang up after the configured total of silence in a row. The
+        caller is not silent while their words are being transcribed or the AI is still working on the answer."""
+        if self.closing or self.awaiting_text or (self.pending and not self.pending.done()):
             return
         self.stats.silences += 1
-        waited = self.stats.silences * self.tuning["silence_prompt_seconds"]
+        self.quiet_rounds += 1
+        waited = self.quiet_rounds * self.tuning["silence_prompt_seconds"]
         if waited >= self.tuning["silence_hangup_seconds"]:
             await self.end_call("system", goodbye=True)
         else:
