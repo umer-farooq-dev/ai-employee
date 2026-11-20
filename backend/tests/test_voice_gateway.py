@@ -298,3 +298,42 @@ def test_route_parameters_reach_the_service_constructor_or_its_settings(monkeypa
     stt = speech.build("stt", route, None)
     assert stt.compute_type == "int8" and stt.settings.model == "small"  # e.g. int8 Whisper on a CPU
     assert stt.settings.extra == {"beam_size": 1}  # not a constructor option: passed on as a setting
+
+
+def test_silence_is_not_counted_while_the_ai_answers_and_only_in_a_row(monkeypatch):
+    """A slow AI answer is not caller silence, and the hang-up counts silence prompts since the caller last spoke."""
+    from types import SimpleNamespace
+
+    from pipecat.frames.frames import UserStartedSpeakingFrame
+    from pipecat.tests.utils import run_test
+
+    from apps.voice.gateway.pipeline import AgentBrain, CallStats
+
+    said, ended = [], []
+
+    async def end_call(by, goodbye):
+        ended.append(by)
+
+    tuning = {"filler_after_ms": 0, "silence_prompt_seconds": 8, "silence_hangup_seconds": 25}
+    brain = AgentBrain(SimpleNamespace(language="ur", phrases={"ur": {}}), tuning, CallStats(), {}, end_call)
+
+    async def note(key):
+        said.append(key)
+
+    brain.say_and_note = note
+
+    async def thinking_then_quiet():
+        brain.pending = asyncio.get_running_loop().create_future()  # the AI is still working on the answer
+        for _ in range(5):
+            await brain.on_idle()
+        assert said == [] and ended == []
+        brain.pending.set_result(None)
+        for _ in range(3):  # 8, 16, 24 s of real silence: asked, not hung up
+            await brain.on_idle()
+        assert said == ["silence"] * 3 and ended == []
+
+    asyncio.run(thinking_then_quiet())
+    asyncio.run(run_test(brain, frames_to_send=[UserStartedSpeakingFrame()]))  # the caller answered
+    assert brain.quiet_rounds == 0
+    asyncio.run(brain.on_idle())
+    assert ended == [] and said[-1] == "silence"  # a new round of silence starts from zero
