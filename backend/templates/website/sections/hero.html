@@ -11,12 +11,44 @@
         </div>
       </div>
       <div class="col-lg-7">
+        {% if c.main_video %}
+        <div class="hero-video">
+          <video src="{{ c.main_video }}"{% if c.main_image %} poster="{{ c.main_image }}"{% endif %} autoplay muted loop playsinline preload="auto" aria-label="{{ c.heading }}"></video>
+          <button type="button" class="hero-video-sound" aria-pressed="false" aria-label="Turn sound on"><i class="fa-solid fa-volume-xmark" aria-hidden="true"></i></button>
+        </div>
+        <style>
+          .hero-video { position: relative; margin-top: 40px; aspect-ratio: 16 / 9; border-radius: 20px; overflow: hidden;
+            background: #0b1626; box-shadow: 0 30px 70px rgba(38, 30, 120, .28), 0 0 0 1px rgba(255, 255, 255, .6); }
+          .hero-video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+          .hero-video-sound { position: absolute; right: 16px; bottom: 16px; width: 46px; height: 46px; border: 0; border-radius: 50%;
+            background: rgba(10, 20, 35, .7); color: #fff; font-size: 18px; backdrop-filter: blur(6px); cursor: pointer; transition: transform .2s; }
+          .hero-video-sound:hover, .hero-video-sound:focus-visible { transform: scale(1.08); outline: 2px solid #fff; outline-offset: 2px; }
+          @media (max-width: 991px) { .hero-video { margin-top: 30px; } }
+        </style>
+        <script>
+          document.querySelectorAll(".hero-video").forEach(function (box) {
+            var video = box.querySelector("video"), button = box.querySelector("button"), heard = false;
+            if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+              video.removeAttribute("autoplay"); video.pause(); video.controls = true;
+            }
+            button.addEventListener("click", function () {
+              video.muted = !video.muted;
+              if (!video.muted && !heard) { heard = true; video.currentTime = 0; }  // the narration from its first line
+              if (!video.muted) { video.play(); }
+              button.setAttribute("aria-pressed", String(!video.muted));
+              button.setAttribute("aria-label", video.muted ? "Turn sound on" : "Turn sound off");
+              button.firstElementChild.className = "fa-solid " + (video.muted ? "fa-volume-xmark" : "fa-volume-high");
+            });
+          });
+        </script>
+        {% else %}
         <div class="main-images">
           {% for f in c.floating_images %}{% if f.image %}
           <div class="image{{ forloop.counter }}{% cycle ' shape-animaiton3' ' shape-animaiton2' ' animate1' '' '' %}"><img src="{{ f.image }}" alt=""></div>
           {% endif %}{% endfor %}
           {% if c.main_image %}<div class="main-img"><img src="{{ c.main_image }}" alt="{{ c.heading }}"></div>{% endif %}
         </div>
+        {% endif %}
       </div>
     </div>
   </div>

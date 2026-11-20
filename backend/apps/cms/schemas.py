@@ -1,7 +1,8 @@
 """Section types for the website CMS, one per section of the eSoft HR template (docs/phase0/website-section-mapping.md).
 
 These are SEED definitions written to the database (SectionType); the content itself is entered in Super Admin.
-Field types: text, textarea, rich, image, link ({label, url}), number, list (repeatable rows of sub-fields).
+Field types: text, textarea, rich, image, video (MP4 / WebM), link ({label, url}), number,
+list (repeatable rows of sub-fields).
 """
 
 
@@ -38,6 +39,7 @@ SECTION_TYPES = [
             f("paragraph", "Paragraph", "textarea"),
             f("button", "Button", "link"),
             f("main_image", "Main image", "image"),
+            f("main_video", "Main video (plays muted on a loop; the main image shows until it loads)", "video"),
             f("floating_images", "Floating images (up to 5)", "list", max=5, fields=[f("image", "Image", "image")]),
         ],
     ),

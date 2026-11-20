@@ -107,3 +107,37 @@ def test_section_editor_and_api(admin_client, client):
     assert api.status_code == 200 and api.json()["has_draft"]
     assert admin_client.post(f"/api/v1/admin/cms/sections/{section.pk}/publish/").json()["version"] == 3
     assert client.get("/public/v1/cms/home/").json()["sections"][2]["content"]["items"][0]["label"] == "x"
+
+
+@pytest.mark.django_db
+def test_hero_video_is_uploaded_in_the_editor_and_plays_on_the_website(
+    admin_client, client, set_setting, settings, tmp_path
+):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    settings.MEDIA_ROOT = tmp_path
+    set_setting("security.upload_allowed_types", ["png", "jpg", "mp4", "webm"])
+    hero = Section.objects.get(page__key="home", section_type__key="hero")
+    assert [f["type"] for f in hero.section_type.schema if f["key"] == "main_video"] == ["video"]
+    form = {"op": "publish", "f.heading": "Hire an AI Employee", "f.main_image": "/media/website/poster.jpg"}
+
+    clip = SimpleUploadedFile("overview.mp4", b"\x00\x00\x00\x18ftypmp42", content_type="video/mp4")
+    assert (
+        admin_client.post(f"/superadmin/website/sections/{hero.pk}/", {**form, "u.main_video": clip}).status_code == 302
+    )
+    hero.refresh_from_db()
+    assert hero.content["main_video"].endswith(".mp4") and "overview" not in hero.content["main_video"]
+    page = client.get("/").content.decode()
+    assert (
+        f'<video src="{hero.content["main_video"]}" poster="/media/website/poster.jpg" autoplay muted loop playsinline'
+        in page
+    )
+
+    picture = SimpleUploadedFile("still.png", b"\x89PNG\r\n\x1a\n", content_type="image/png")
+    admin_client.post(f"/superadmin/website/sections/{hero.pk}/", {**form, "u.main_video": picture})
+    hero.refresh_from_db()
+    assert hero.content["main_video"].endswith(".mp4")  # an image is not accepted as the video
+
+    admin_client.post(f"/superadmin/website/sections/{hero.pk}/", {**form, "f.main_video.clear": "on"})
+    page = client.get("/").content.decode()
+    assert "<video" not in page and 'class="main-img"' in page  # no video: the main image as before
