@@ -229,6 +229,8 @@ def test_browser_serializer_and_spoken_text():
     assert '"transcript"' in msg
 
     assert spoken("Saved.\n\n- **Greater Noida**?\n- Villa\nhttps://x.y") == "Saved. Greater Noida? Villa."
+    assert spoken("جی، آپ کا بجٹ کیا ہے؟") == "جی, آپ کا بجٹ کیا ہے?"  # Urdu marks are paused on, not read out
+    assert spoken("گھر مل جائے گا۔") == "گھر مل جائے گا."
     stats = CallStats()
     for ms in (800, 1000, 3000):
         stats.turn_started()

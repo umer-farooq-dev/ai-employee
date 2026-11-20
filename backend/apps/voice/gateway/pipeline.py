@@ -287,9 +287,14 @@ class StatsTap(FrameProcessor):
         await self.push_frame(frame, direction)
 
 
+# Arabic-script punctuation (Urdu) → the marks speech engines pause on; Kokoro's phonemizer read "؟" out loud
+SCRIPT_PUNCTUATION = str.maketrans({"؟": "?", "۔": ".", "،": ",", "؛": ";"})
+
+
 def spoken(text):
     """Text for the voice: markdown, list markers and links removed (a model may still send them)."""
-    text = re.sub(r"https?://\S+", "", text or "")
+    text = (text or "").translate(SCRIPT_PUNCTUATION)
+    text = re.sub(r"https?://\S+", "", text)
     text = re.sub(r"[*_`#>]+", "", text)
     text = re.sub(r"\s*\n+\s*(?:[-•]|\d+[.)])?\s*", ". ", text)
     text = re.sub(r"(?:\.\s*){2,}", ". ", text)
