@@ -72,6 +72,8 @@ def _settings(cls, route, kind):
         values["speed"] = route["speed"]
     extra = {}
     for key, value in (route.get("params") or {}).items():
+        if key in _init_params(cls) and key not in names:
+            continue  # a constructor option (see build), not a setting
         (values if key in names else extra)[key] = value
     values = {k: v for k, v in values.items() if k in names}
     if extra and "extra" in names:
@@ -96,9 +98,17 @@ def _kwargs(cls, route, session):
     return {k: v for k, v in candidates.items() if k in accepted and v is not None}
 
 
+def _init_params(cls):
+    return set(inspect.signature(cls.__init__).parameters) - {"self", "settings", "params", "kwargs"}
+
+
 def build(kind, route, http_session):
     cls = _class(STT if kind == "stt" else TTS, route["vendor"])
     kwargs = _kwargs(cls, route, http_session)
+    # route parameters the service takes in its constructor, e.g. {"compute_type": "int8"} for Whisper on a CPU
+    for key, value in (route.get("params") or {}).items():
+        if key in _init_params(cls) and key not in kwargs:
+            kwargs[key] = value
     settings = _settings(cls, route, kind)
     if settings is not None and "settings" in inspect.signature(cls.__init__).parameters:
         kwargs["settings"] = settings

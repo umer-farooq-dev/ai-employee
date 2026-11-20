@@ -123,6 +123,9 @@ class AgentBrain(FrameProcessor):
         self.parts, self.pending, self.stale = [], None, set()
         self.closing = False
         self.after_speech = None
+        # Segmented STT (Whisper) transcribes after the caller stops, and UserStoppedSpeakingFrame is a system frame
+        # that overtakes the queued TranscriptionFrame: the turn then ends when its text arrives, not with the next one.
+        self.awaiting_text, self.stopped_at = False, None
 
     def phrase(self, key):
         texts = self.s.phrases.get(self.language) or next(iter(self.s.phrases.values()))
@@ -153,6 +156,9 @@ class AgentBrain(FrameProcessor):
                 confidence = _confidence(frame)
                 if confidence is not None:
                     self.stats.confidences.append(confidence)
+                if self.awaiting_text:
+                    self.awaiting_text = False
+                    await self._finish_turn()
             return
         if isinstance(frame, InterimTranscriptionFrame):
             return
@@ -167,17 +173,28 @@ class AgentBrain(FrameProcessor):
         elif isinstance(frame, ErrorFrame) and direction == FrameDirection.UPSTREAM:
             self.stats.errors.append({"stage": getattr(frame.processor, "name", ""), "error": str(frame.error)[:200]})
         if isinstance(frame, UserStartedSpeakingFrame) and direction == FrameDirection.DOWNSTREAM:
+            self.awaiting_text = False
             if self.stats.bot_speaking:
                 self.stats.interruptions += 1
             if self.pending and not self.pending.done():  # the caller spoke again: the old answer is stale
                 self.stale.add(self.pending)  # the AI thread still finishes; its answer is not spoken
         await self.push_frame(frame, direction)
         if isinstance(frame, UserStoppedSpeakingFrame) and not self.closing:
-            text, self.parts = " ".join(self.parts).strip(), []
-            if text:
-                self.stats.turn_started()
-                await self.show("customer", text)
-                self.pending = self.create_task(self.answer(text))
+            self.stopped_at = time.monotonic()
+            if self.parts:  # streaming STT: the text came while the caller spoke
+                await self._finish_turn()
+            else:  # segmented STT: the text of this turn is still on its way
+                self.awaiting_text = True
+
+    async def _finish_turn(self):
+        if self.closing:
+            return
+        text, self.parts = " ".join(self.parts).strip(), []
+        if text:
+            self.stats.turn_started()
+            self.stats.turn_t0 = self.stopped_at or self.stats.turn_t0  # latency counts from the caller's last word
+            await self.show("customer", text)
+            self.pending = self.create_task(self.answer(text))
 
     async def answer(self, text):
         filler = self.create_task(self._filler()) if self.tuning["filler_after_ms"] else None

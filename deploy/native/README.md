@@ -11,8 +11,9 @@ values and Super Admin setup are the same as in the Docker deployment (`docs/pha
 | Voice Gateway | `127.0.0.1:8765` | `aiemployee-voice` |
 | Daily database dump to `/opt/ai-employee/backups` | none | `aiemployee-backup.timer` |
 
-All three app units run in `aiemployee.slice`, which caps them together at 8 CPU cores and 16 GB of memory so the
-server's other sites keep the rest. Change the cap in that file.
+All three app units run in `aiemployee.slice`: low CPU priority (the server's other sites come first whenever the
+CPU is busy) and 16 GB of memory at most. A hard CPU quota is avoided on purpose: it throttles Whisper and Kokoro
+mid-sentence. Change the limits in that file.
 
 ## One-time server preparation (root)
 
@@ -20,7 +21,7 @@ On a server that hosts other sites, install only new packages and never run `apt
 
 1. PostgreSQL 14 or newer with the pgvector extension, and Redis with a password (`requirepass`). Both listen on
    localhost only (their package defaults).
-2. Database: a login role `aiemployee` that owns the database `aiemployee`, then, as the postgres superuser,
+2. Database: a login role `aiemployee` with CREATEROLE (it creates the app role) that owns the database `aiemployee`, then, as the postgres superuser,
    `CREATE EXTENSION vector;` in that database. The least-privilege app role is created by `update.sh`.
 3. The app user and its tools: `useradd --system --create-home --home-dir /opt/ai-employee --shell /usr/sbin/nologin aiemployee`,
    then `uv` in `/opt/ai-employee/bin` and Python 3.12 with
