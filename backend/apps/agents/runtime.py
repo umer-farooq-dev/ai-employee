@@ -43,26 +43,36 @@ def _render(text, employee, company=None):
 
 
 def _pick(texts, language, fallback_language="en"):
-    """Text for `language` from {lang: text}, else the employee / platform default language."""
+    """Text for `language` from {lang: text}, else the employee's default language, else English. Never some other
+    language: a language the template does not cover (Urdu on a template written in en / hi / bn) would get Bengali."""
     texts = texts or {}
-    return texts.get(language) or texts.get(fallback_language) or next(iter(texts.values()), "")
+    return texts.get(language) or texts.get(fallback_language) or texts.get("en") or ""
 
 
 # ------------------------------------------------------------------ texts the runtime itself says
+def _own_or_language_text(texts, employee, language, key):
+    """Employee override / industry template in this language → the language's own text (SA-11) → template default."""
+    lang = languages.get(language)
+    return (
+        (texts or {}).get(language)
+        or ((lang.texts or {}).get(key) if lang else "")
+        or _pick(texts, language, employee.primary_language)
+        or languages.text(language, key)
+    )
+
+
 def disclosure(employee, language):
     """COMP-01 / ENG-05 / VOICE-10: employee override → industry template → language default (SA-11)."""
     own = (employee.rules or {}).get("disclosure") or {}
     version = employee.template_version
     texts = own or (version.disclosure_texts if version else {})
-    text = _pick(texts, language, employee.primary_language) or languages.text(language, "disclosure")
-    return _render(text, employee)
+    return _render(_own_or_language_text(texts, employee, language, "disclosure"), employee)
 
 
 def greeting(employee, language):
     version = employee.template_version
     texts = employee.greetings or (version.greetings if version else {})
-    text = _pick(texts, language, employee.primary_language) or languages.text(language, "greeting")
-    return _render(text, employee)
+    return _render(_own_or_language_text(texts, employee, language, "greeting"), employee)
 
 
 def fallback_text(employee, language):
