@@ -143,7 +143,7 @@ def open_session(call_id, sig, vendor, mode="talk"):
         else:
             opening = opening_msg.content if opening_msg else ""
             if recording and lang_phrases["recording_consent"]:  # REC-03 / COMP-06: announced before anything else
-                opening = f"{opening} {lang_phrases['recording_consent']}".strip()
+                opening = f"{lang_phrases['recording_consent']} {opening}".strip()
                 if opening_msg:
                     opening_msg.content = opening
                     opening_msg.meta = {**opening_msg.meta, "recording_consent": True}

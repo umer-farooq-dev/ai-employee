@@ -101,6 +101,7 @@ def test_open_session_checks_the_link_and_says_disclosure_and_recording_consent(
         assert call.conversation.state["voice"] is True
         opening = call.conversation.messages.get(meta__opening=True)
     assert "AI assistant" in s.opening and "recorded" in s.opening and opening.content == s.opening
+    assert s.opening.index("recorded") < s.opening.index("AI assistant")  # REC-03: announced first
     assert s.recording is True and s.max_seconds == 15 * 60 and s.language == "en"
     stt = s.speech["en"]["stt"]
     assert [r["provider"] for r in stt] == ["deepgram", "whisper-local"] and stt[0]["api_key"] == "k-deepgram"
@@ -235,3 +236,65 @@ def test_browser_serializer_and_spoken_text():
         stats.bot_started()
     summary = stats.summary()
     assert summary["p50_ms"] == 1000 and summary["p95_ms"] == 3000 and len(summary["turns"]) == 3
+
+
+# ---------------------------------------------------------------- turn order with segmented STT (Whisper)
+@pytest.mark.parametrize("text_first", [False, True])
+def test_brain_answers_the_turn_whose_text_arrives_after_the_caller_stopped(monkeypatch, text_first):
+    """UserStoppedSpeakingFrame is a system frame and overtakes the queued transcript of a segmented STT: the turn
+    must still be answered with its own text, not held back until the caller speaks again."""
+    from types import SimpleNamespace
+
+    from pipecat.frames.frames import (
+        TranscriptionFrame,
+        TTSSpeakFrame,
+        UserStartedSpeakingFrame,
+        UserStoppedSpeakingFrame,
+    )
+    from pipecat.tests.utils import SleepFrame, run_test
+
+    from apps.voice.gateway.pipeline import AgentBrain, CallStats
+
+    heard = []
+
+    def reply(s, text):
+        heard.append(text)
+        return {"text": "جی، بتائیے", "language": "ur", "ended": False, "transfer": None}
+
+    monkeypatch.setattr(session, "agent_reply", reply)
+    brain = AgentBrain(
+        SimpleNamespace(language="ur", phrases={"ur": {}}), {"filler_after_ms": 0}, CallStats(), {}, None
+    )
+    said, stop = TranscriptionFrame("مجھے گھر چاہیے", "caller", "now"), UserStoppedSpeakingFrame()
+    frames = [UserStartedSpeakingFrame(), *([said, stop] if text_first else [stop, said]), SleepFrame(sleep=0.5)]
+    down, _ = asyncio.run(run_test(brain, frames_to_send=frames))
+    assert heard == ["مجھے گھر چاہیے"]
+    assert any(isinstance(f, TTSSpeakFrame) for f in down)
+
+
+def test_route_parameters_reach_the_service_constructor_or_its_settings(monkeypatch):
+    import dataclasses
+
+    from apps.voice.gateway import speech
+
+    class FakeSTT:
+        @dataclasses.dataclass
+        class Settings:
+            model: str | None = None
+            language: object = None
+            extra: dict | None = None
+
+        def __init__(self, model=None, compute_type="default", settings=None):
+            self.compute_type, self.settings = compute_type, settings
+
+    monkeypatch.setattr(speech, "_class", lambda table, vendor: FakeSTT)
+    route = {
+        "vendor": "whisper_local",
+        "provider": "whisper-local",
+        "model": "small",
+        "locale": "ur-PK",
+        "params": {"compute_type": "int8", "beam_size": 1},
+    }
+    stt = speech.build("stt", route, None)
+    assert stt.compute_type == "int8" and stt.settings.model == "small"  # e.g. int8 Whisper on a CPU
+    assert stt.settings.extra == {"beam_size": 1}  # not a constructor option: passed on as a setting

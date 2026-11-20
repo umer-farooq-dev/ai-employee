@@ -1,6 +1,8 @@
 [Unit]
-Description=AI Employee services: one shared CPU and memory cap, the rest of the server stays with its other sites
+Description=AI Employee services: low CPU priority and a memory cap, the server's other sites come first
 
 [Slice]
-CPUQuota=800%
+# A low weight, not a hard quota: the server's other sites win whenever the CPU is busy, and an idle CPU still runs
+# a call at full speed. A CPUQuota throttled Whisper / Kokoro (they start a thread per core) and broke up the audio.
+CPUWeight=20
 MemoryMax=16G

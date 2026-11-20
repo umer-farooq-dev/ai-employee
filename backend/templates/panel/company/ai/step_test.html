@@ -88,8 +88,9 @@
         if (m.meta && m.meta.grounding_blocked) flags.push("Blocked an invented amount: " + m.meta.grounding_blocked.join(", ") + " — fallback sent");
         if (m.meta && m.meta.fallback) flags.push("Facts missing — fallback sent, question logged");
         if (m.meta && m.meta.error) flags.push("No AI provider available: " + m.meta.error);
-        box.insertAdjacentHTML("beforeend", '<div class="bubble ' + (m.role === "customer" ? "customer" : "ai") + '">' + esc(m.content) +
-            (flags.length ? '<span class="flag">⚑ ' + esc(flags.join(" · ")) + "</span>" : "") + "</div>");
+        // dir="auto": an Urdu / Arabic-script reply with English names in it reads right to left in the right order
+        box.insertAdjacentHTML("beforeend", '<div class="bubble ' + (m.role === "customer" ? "customer" : "ai") + '"><div dir="auto">' + esc(m.content) + "</div>" +
+            (flags.length ? '<span class="flag" dir="ltr">⚑ ' + esc(flags.join(" · ")) + "</span>" : "") + "</div>");
         box.scrollTop = box.scrollHeight;
     }
     function side(m, lead) {
