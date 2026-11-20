@@ -56,6 +56,26 @@ def test_orm_is_scoped_and_fails_closed(owner_a, owner_b, company_a):
 
 
 @pytest.mark.django_db
+def test_app_role_rerun_touches_privilege_attributes_only_when_they_must_change():
+    """Every rollout reruns setup_app_db_role; a non-superuser owner may not name SUPERUSER / BYPASSRLS again."""
+    from django.core.management import call_command
+    from django.test.utils import CaptureQueriesContext
+
+    call_command("setup_app_db_role", role="rerun_probe", password="first-secret")
+    with CaptureQueriesContext(connection) as queries:
+        call_command("setup_app_db_role", role="rerun_probe", password="second-secret")
+    alter = next(q["sql"] for q in queries.captured_queries if q["sql"].startswith("ALTER ROLE"))
+    assert "SUPERUSER" not in alter and "BYPASSRLS" not in alter and "LOGIN PASSWORD" in alter
+
+    with connection.cursor() as cur:
+        cur.execute('ALTER ROLE "rerun_probe" CREATEDB')
+    call_command("setup_app_db_role", role="rerun_probe", password="third-secret")  # widened role is narrowed again
+    with connection.cursor() as cur:
+        cur.execute("SELECT rolsuper OR rolbypassrls OR rolcreatedb FROM pg_roles WHERE rolname = 'rerun_probe'")
+        assert cur.fetchone()[0] is False
+
+
+@pytest.mark.django_db
 def test_postgres_row_level_security_with_app_role(owner_a, owner_b, company_a):
     """SEC-05 + TEN-01: the least-privilege app role only sees the current company's rows, even with raw SQL."""
     from django.core.management import call_command

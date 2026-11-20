@@ -26,8 +26,16 @@ class Command(BaseCommand):
         login = sql.SQL("LOGIN PASSWORD {}").format(sql.Literal(password)) if password else sql.SQL("NOLOGIN")
         db = sql.Identifier(connection.settings_dict["NAME"])
         with connection.cursor() as cur:
-            cur.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
-            verb = "ALTER" if cur.fetchone() else "CREATE"
+            cur.execute(
+                "SELECT rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole FROM pg_roles WHERE rolname = %s",
+                [role],
+            )
+            row = cur.fetchone()
+            verb = "ALTER" if row else "CREATE"
+            if row and not row[0]:
+                # already least-privilege: a CREATEROLE owner (managed or native PostgreSQL, not a superuser) may not
+                # name SUPERUSER / BYPASSRLS in ALTER ROLE even to keep them off, so only the login changes
+                attrs = sql.SQL("")
             cur.execute(sql.SQL(verb + " ROLE {} {} {}").format(name, attrs, login))
             for statement in (
                 "GRANT CONNECT ON DATABASE {db} TO {role}",
