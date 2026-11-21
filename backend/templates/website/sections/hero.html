@@ -23,11 +23,12 @@
           .hero-video-sound { position: absolute; right: 16px; bottom: 16px; width: 46px; height: 46px; border: 0; border-radius: 50%;
             background: rgba(10, 20, 35, .7); color: #fff; font-size: 18px; backdrop-filter: blur(6px); cursor: pointer; transition: transform .2s; }
           .hero-video-sound:hover, .hero-video-sound:focus-visible { transform: scale(1.08); outline: 2px solid #fff; outline-offset: 2px; }
-          /* desktop: the video takes the whole right side of the hero, past the column like the theme's own images */
+          /* desktop: from its column (the gutter keeps it clear of the text) towards the screen edge: 48px short of it, at most 120px past the column;
+             (100vw - container width) / 2 is the space between the container and the screen edge */
           .hero-area9:has(.hero-video) { overflow-x: clip; }
-          @media (min-width: 992px) { .hero-video { margin-top: 0; width: calc(100% + 80px); margin-left: -20px; } }
-          @media (min-width: 1200px) { .hero-video { width: calc(100% + 170px); margin-left: -40px; } }
-          @media (min-width: 1600px) { .hero-video { width: calc(100% + 240px); } }
+          @media (min-width: 992px) { .hero-video { margin-top: 0; width: calc(100% + clamp(0px, (100vw - 960px) / 2 - 48px, 120px)); } }
+          @media (min-width: 1200px) { .hero-video { width: calc(100% + clamp(0px, (100vw - 1140px) / 2 - 48px, 120px)); } }
+          @media (min-width: 1400px) { .hero-video { width: calc(100% + clamp(0px, (100vw - 1320px) / 2 - 48px, 120px)); } }
           @media (max-width: 991px) { .hero-video { margin-top: 30px; } }
         </style>
         <script>
