@@ -29,13 +29,31 @@ def public_plans(code=""):
     """Public plans; with a currency each carries .monthly / .yearly (minor units in it, None = not priced)."""
     from apps.billing import currency
 
-    plans = list(Plan.objects.filter(is_public=True, status=Plan.ACTIVE).prefetch_related("prices"))
+    plans = list(Plan.objects.filter(is_public=True, status=Plan.ACTIVE).prefetch_related("prices", "entitlements"))
+    for plan in plans:
+        plan.points = plan_points(plan)
     if code:
         rows = currency.offered()
         for plan in plans:
             plan.monthly = currency.plan_amount(plan, "monthly", code, rows)
             plan.yearly = currency.plan_amount(plan, "yearly", code, rows)
     return plans
+
+
+def plan_points(plan):
+    """What a plan includes, from Super Admin → Plans: its feature bullets, then the limits that are set; a plan
+    without bullets also lists the features switched on for it."""
+    from apps.billing.models import ENTITLEMENTS, FEATURES
+
+    points = list(plan.features or [])
+    limits = {e.key: e.limit_value for e in plan.entitlements.all() if e.limit_value}
+    for key, label in ENTITLEMENTS:
+        if key in limits:
+            text = label if label[:2].isupper() else label[0].lower() + label[1:]
+            points.append(f"{limits[key]:,} {text}")
+    if not plan.features:
+        points += [label for key, label in FEATURES if (plan.flags or {}).get(key, True)]
+    return points
 
 
 def region_context(request):

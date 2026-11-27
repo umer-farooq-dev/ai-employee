@@ -1,13 +1,14 @@
 {% load panel_tags %}
-<div class="row justify-content-center">
+<div class="row justify-content-center g-4">
   {% for plan in plans %}
+  {% with custom=plan.is_custom %}
   <div class="col-md-6 col-lg-4 col-xl-3">
-    <div class="pricing-box">
-      <div class="pricing-box-single">
+    <div class="pricing-box plan-card h-100">
+      <div class="pricing-box-single h-100 d-flex flex-column">
         <div class="text-center">
           <span class="span">{{ plan.name }}</span>
-          {% if plan.is_custom or plan.monthly is None and plan.yearly is None %}
-          <h3>{{ c.custom_price_text }}</h3>
+          {% if custom or plan.monthly is None and plan.yearly is None %}
+          <h3>{{ c.custom_price_text }}</h3><p class="pera" aria-hidden="true">&nbsp;</p>
           {% elif yearly and plan.yearly is not None %}
           <h3>{{ plan.yearly|money_short:region.currency }}</h3><p class="pera">{{ c.per_year_text }}</p>
           {% elif plan.monthly is not None %}
@@ -16,19 +17,30 @@
           <h3>{{ plan.yearly|money_short:region.currency }}</h3><p class="pera">{{ c.per_year_text }}</p>
           {% endif %}
         </div>
-        {% if plan.is_custom or plan.monthly is None and plan.yearly is None %}
+        {% if custom or plan.monthly is None and plan.yearly is None %}
         <a href="{% url 'website:page' 'contact' %}" class="theme-btn2">{{ c.custom_button_label }}</a>
         {% else %}
         <a href="{% url 'account_signup' %}?plan={{ plan.key|urlencode }}" class="theme-btn2">{{ c.button_label }}</a>
         {% endif %}
-        {% if plan.description %}<p class="pera mt-3">{{ plan.description }}</p>{% endif %}
-        {% if plan.features %}
-        <ul class="list">
-          {% for feature in plan.features %}<li><span><i class="fa-solid fa-check" aria-hidden="true"></i></span> {{ feature }}</li>{% endfor %}
+        {% if plan.description %}<p class="plan-desc">{{ plan.description }}</p>{% endif %}
+        {% if plan.points %}
+        <ul class="list plan-points">
+          {% for point in plan.points %}<li><span><i class="fa-solid fa-check" aria-hidden="true"></i></span>{{ point }}</li>{% endfor %}
         </ul>
         {% endif %}
       </div>
     </div>
   </div>
+  {% endwith %}
   {% endfor %}
 </div>
+<style>
+  .plan-card .pricing-box-single { background: #fff; border: 1px solid #E9E7F7; border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(23, 19, 61, .06); transition: transform .25s, box-shadow .25s; }
+  .plan-card:hover .pricing-box-single { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(23, 19, 61, .10); }
+  .plan-card .plan-desc { color: #4E4D61; font-size: 15px; line-height: 1.5; margin: 14px 0 0; text-align: center; }
+  .plan-card .plan-points { margin: 18px 0 0; padding: 18px 0 0; border-top: 1px solid #EFEEF8; }
+  .plan-card .plan-points li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px !important;
+    line-height: 1.45 !important; padding-top: 10px !important; }
+  .plan-card .plan-points li span { margin-right: 0 !important; flex-shrink: 0; }
+</style>
