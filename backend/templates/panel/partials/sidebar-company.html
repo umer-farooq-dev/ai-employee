@@ -10,7 +10,7 @@
                     <li class="menu-label pt-0 mt-0"><span>{{ request.company.name|default:"Main Menu" }}</span></li>
                     {% company_menu as items %}
                     {% for item in items %}
-                    <li class="nav-item"><a class="nav-link{% if request.path == item.url %} active{% endif %}" href="{{ item.url }}">
+                    <li class="nav-item"><a class="nav-link{% if request.path == item.url %} active{% endif %}" href="{{ item.url }}" data-tour="{{ item.key }}">
                         <i class="iconoir-{{ item.icon }} menu-icon"></i><span>{{ item.label }}</span>
                         {% if not item.ready %}<span class="badge bg-light text-muted ms-auto">Soon</span>{% endif %}</a></li>
                     {% endfor %}
