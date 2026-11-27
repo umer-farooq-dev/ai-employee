@@ -219,9 +219,7 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
         base = currency.base()
         self.fields["price_monthly"].label = f"Monthly price ({base})"
         self.fields["price_yearly"].label = f"Yearly price ({base})"
-        self.fields[
-            "price_monthly"
-        ].help_text = (
+        self.fields["price_monthly"].help_text = (
             "Empty = custom / on request. Other currencies: their own price below, else converted at today's rate."
         )
         self._price_rows(plan, base)
