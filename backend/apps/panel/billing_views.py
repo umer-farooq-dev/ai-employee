@@ -8,7 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.billing import access, gst, razorpay, usage
+from apps.billing import access, currency, gst, razorpay, usage
 from apps.billing import services as billing
 from apps.billing.models import FEATURES, CreditAdjustment, Invoice, Payment, Plan, Subscription
 from apps.platform_config.services import get as setting
@@ -23,18 +23,21 @@ def _can_manage(request):
 
 
 def _details(company, data, request):
-    """Billing details printed on GST invoices."""
+    """Billing details printed on invoices (GSTIN and state for customers who pay GST; state / region abroad)."""
     company = Company.objects.get(pk=company.pk)
     company.legal_name = str(data.get("legal_name", "")).strip()[:200]
-    company.gstin = gst.clean_gstin(data.get("gstin"))
     company.address = str(data.get("address", "")).strip()[:1000]
     company.city = str(data.get("city", "")).strip()[:100]
     state = str(data.get("state", "")).strip()
-    if state and state not in gst.NAMES:
-        raise ValidationError("Choose your state.")
-    if company.gstin and state and company.gstin[:2] != state:
-        raise ValidationError("The GSTIN belongs to another state than the one chosen.")
-    company.state = gst.NAMES.get(state, "")
+    if billing.domestic(company):
+        company.gstin = gst.clean_gstin(data.get("gstin"))
+        if state and state not in gst.NAMES:
+            raise ValidationError("Choose your state.")
+        if company.gstin and state and company.gstin[:2] != state:
+            raise ValidationError("The GSTIN belongs to another state than the one chosen.")
+        company.state = gst.NAMES.get(state, "")
+    else:
+        company.gstin, company.state = "", state[:100]
     company.save(update_fields=["legal_name", "gstin", "address", "city", "state", "updated_at"])
     from apps.audit.services import record
 
@@ -88,10 +91,13 @@ def billing_page(request):
             "states": gst.STATES,
             "state_code": gst.state_code(company.gstin, company.state),
             "can_manage": _can_manage(request),
-            "online": bool(razorpay.provider()),
-            "checkout_js": razorpay.CHECKOUT_JS,
+            "online": billing.online(company),
+            "checkout_js": razorpay.CHECKOUT_JS if billing.gateway_name(company) == Subscription.RAZORPAY else "",
             "month": usage.month_start(company),
             "includes_gst": setting("billing.prices_include_gst"),
+            "domestic": billing.domestic(company),
+            "currency": billing.company_currency(company),
+            "country_name": currency.country_name(company.country) if company.country else "",
         },
     )
 
@@ -127,10 +133,12 @@ def plans_page(request):
             "has_yearly": any("yearly" in c["prices"] for c in cards),
             "interval": request.GET.get("interval") or sub.interval or "monthly",
             "can_manage": _can_manage(request),
-            "online": bool(razorpay.provider()),
-            "checkout_js": razorpay.CHECKOUT_JS,
+            "online": billing.online(company),
+            "checkout_js": razorpay.CHECKOUT_JS if billing.gateway_name(company) == Subscription.RAZORPAY else "",
             "includes_gst": setting("billing.prices_include_gst"),
             "gst_rate": setting("billing.gst_rate"),
+            "domestic": billing.domestic(company),
+            "currency": billing.company_currency(company),
             "running": sub.status == Subscription.ACTIVE
             and bool(sub.current_period_end)
             and not sub.cancel_at_period_end,
@@ -181,6 +189,21 @@ def confirm(request):
         return JsonResponse({"error": " ".join(exc.messages)}, status=400)
     messages.success(request, "Payment received — thank you. Your invoice is in Billing and on its way by e-mail.")
     return JsonResponse({"ok": True})
+
+
+@company_perm("billing.manage")
+def stripe_return(request):
+    """Back from Stripe's payment page: the session is read from Stripe; the webhook covers a closed browser."""
+    try:
+        inv = billing.confirm_stripe(request.company, request.GET.get("session_id", ""), request.user)
+    except ValidationError as exc:
+        _errors(request, exc)
+        return redirect("panel:billing")
+    if inv:
+        messages.success(request, "Payment received — thank you. Your invoice is in Billing and on its way by e-mail.")
+    else:
+        messages.info(request, "Your payment is being processed. This page updates as soon as it is confirmed.")
+    return redirect("panel:billing")
 
 
 @company_perm("billing.view")

@@ -19,7 +19,7 @@
         <div class="card h-100 mb-0"><div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-2"><span class="text-muted small">Plan</span><span class="bl-status {{ sub.status }}">{{ sub.get_status_display }}</span></div>
             <div class="bl-plan mb-1">{{ company.plan.name|default:"No plan" }}</div>
-            <div class="bl-price mb-3">{% if price is not None %}{{ price|money:False }} <span class="text-muted small fw-normal">/ {{ sub.interval }}{% if sub.custom_price_paise is not None %} · custom price{% endif %}</span>{% else %}<span class="text-muted small">Not priced</span>{% endif %}</div>
+            <div class="bl-price mb-3">{% if price is not None %}{{ price|money_short:currency }} <span class="text-muted small fw-normal">/ {{ sub.interval }}{% if sub.custom_price_paise is not None %} · custom price{% endif %}</span>{% else %}<span class="text-muted small">Not priced</span>{% endif %}</div>
             <dl class="bl-kv mb-0">
                 <dt>Billing</dt><dd>{% if sub.manual %}By invoice{% else %}Razorpay (automatic){% endif %}</dd>
                 {% if company.trial_ends_at %}<dt>Trial ends</dt><dd>{{ company.trial_ends_at|date:"d M Y" }}</dd>{% endif %}
@@ -28,7 +28,8 @@
                 {% if sub.cancel_at_period_end %}<dt>Cancelled</dt><dd>{{ sub.cancel_reason|default:"—" }}</dd>{% endif %}
                 {% if sub.grace_until %}<dt>Grace until</dt><dd>{{ sub.grace_until|date:"d M Y" }}</dd>{% endif %}
                 <dt>Failed payments</dt><dd>{{ sub.failed_payments }}</dd>
-                {% if sub.gateway_subscription_id %}<dt>Razorpay id</dt><dd class="small">{{ sub.gateway_subscription_id }}</dd>{% endif %}
+                <dt>Country · currency</dt><dd class="small">{% if company.country %}{{ company.country }}{% else %}— (your country){% endif %} · {{ currency }}{% if not domestic %} · no GST (abroad){% endif %}</dd>
+                {% if sub.gateway_subscription_id %}<dt>{{ sub.gateway|title }} id</dt><dd class="small">{{ sub.gateway_subscription_id }}</dd>{% endif %}
             </dl>
         </div></div>
     </div>
@@ -48,12 +49,19 @@
             <div class="card-body">
                 <div class="row g-2 mb-3">
                     <div class="col-md-6"><label class="form-label small" for="t-gw">Billing method</label>
-                        <select id="t-gw" class="form-select form-select-sm" name="gateway"><option value="razorpay"{% if not sub.manual %} selected{% endif %}>Razorpay — automatic renewal</option><option value="manual"{% if sub.manual %} selected{% endif %}>By invoice — we issue invoices, the company pays by bank / online</option></select></div>
-                    <div class="col-md-6"><label class="form-label small" for="t-price">Custom price per {% if sub.interval == "yearly" %}year{% else %}month{% endif %} (₹, before GST)</label>
-                        <input id="t-price" class="form-control form-control-sm" name="custom_price" value="{{ sub.custom_price_paise|rupees }}" placeholder="Empty = plan price" inputmode="decimal"></div>
+                        <select id="t-gw" class="form-select form-select-sm" name="gateway"><option value="razorpay"{% if sub.gateway == 'razorpay' %} selected{% endif %}>Razorpay — automatic renewal</option><option value="stripe"{% if sub.gateway == 'stripe' %} selected{% endif %}>Stripe — automatic renewal</option><option value="manual"{% if sub.manual %} selected{% endif %}>By invoice — we issue invoices, the company pays by bank / online</option></select>
+                        <div class="form-text">New online payments in {{ currency }} go through {{ gateway_now|title }} (Billing → Currencies).</div></div>
+                    <div class="col-md-6"><label class="form-label small" for="t-country">Country</label>
+                        <select id="t-country" class="form-select form-select-sm" name="country"><option value="">— your country —</option>{% for code, name in countries %}<option value="{{ code }}"{% if code == company.country %} selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+                        <div class="form-text">Customers abroad get invoices without GST.</div></div>
+                    <div class="col-md-6"><label class="form-label small" for="t-currency">Billing currency</label>
+                        <select id="t-currency" class="form-select form-select-sm" name="currency"><option value="">{{ base_currency }} (base)</option>{% for code in currencies %}{% if code != base_currency %}<option value="{{ code }}"{% if code == company.currency %} selected{% endif %}>{{ code }}</option>{% endif %}{% endfor %}</select>
+                        <div class="form-text">Locked while an automatic renewal runs.</div></div>
+                    <div class="col-md-6"><label class="form-label small" for="t-price">Custom price per {% if sub.interval == "yearly" %}year{% else %}month{% endif %} ({{ currency }}{% if domestic %}, before GST{% endif %})</label>
+                        <input id="t-price" class="form-control form-control-sm" name="custom_price" value="{{ sub.custom_price_paise|rupees:currency }}" placeholder="Empty = plan price" inputmode="decimal"></div>
                 </div>
                 <div class="table-responsive"><table class="table table-sm align-middle mb-3">
-                    <thead class="table-light"><tr><th>Limit</th><th>Plan</th><th style="width:110px">Use</th><th style="width:100px">Limit</th><th style="width:130px">When reached</th><th style="width:100px">Overage ₹</th></tr></thead>
+                    <thead class="table-light"><tr><th>Limit</th><th>Plan</th><th style="width:110px">Use</th><th style="width:100px">Limit</th><th style="width:130px">When reached</th><th style="width:100px">Overage {{ base_currency }}</th></tr></thead>
                     <tbody>{% for r in limits_rows %}<tr>
                         <td class="small">{{ r.label }}</td>
                         <td class="small text-muted">{% if r.plan.limit_value is not None %}{{ r.plan.limit_value }}{% else %}∞{% endif %}{% if r.plan.enforcement == 'soft' %} · overage{% endif %}</td>
@@ -85,7 +93,7 @@
             <div class="card-header"><h4 class="card-title mb-0">Issue an invoice</h4><span class="text-muted small">GST is added by the company's state. E-mailed with the PDF.</span></div>
             <div class="card-body row g-2">
                 <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="Description, e.g. Setup and onboarding" aria-label="Description"></div>
-                <div class="col-6"><input class="form-control form-control-sm" name="amount" placeholder="Amount ₹ (before GST)" inputmode="decimal" aria-label="Amount"></div>
+                <div class="col-6"><input class="form-control form-control-sm" name="amount" placeholder="Amount {{ currency }}{% if domestic %} (before GST){% endif %}" inputmode="decimal" aria-label="Amount"></div>
                 <div class="col-6"><select class="form-select form-select-sm" name="plan" aria-label="Plan period"><option value="">One-off</option>{% for p in plans %}<option value="{{ p.pk }}">{{ p.name }} period</option>{% endfor %}</select></div>
                 <div class="col-6"><select class="form-select form-select-sm" name="interval" aria-label="Interval">{% for v, l in intervals %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
                 <div class="col-6"><input class="form-control form-control-sm" type="date" name="period_start" value="{{ today|date:'Y-m-d' }}" aria-label="Period start"></div>
@@ -101,7 +109,7 @@
                 <thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>For</th><th class="text-end">Total</th><th>Status</th><th></th></tr></thead>
                 <tbody>{% for i in invoices %}<tr>
                     <td class="fw-medium">{{ i.number }}</td><td>{{ i.issued_at|date:"d M Y" }}</td><td class="text-truncate" style="max-width:300px">{{ i.lines.0.description }}</td>
-                    <td class="text-end fw-semibold">{{ i.total_paise|money }}</td><td><span class="bl-pill {{ i.status }}">{{ i.get_status_display }}</span></td>
+                    <td class="text-end fw-semibold">{{ i.total_paise|money:i.currency }}</td><td><span class="bl-pill {{ i.status }}">{{ i.get_status_display }}</span></td>
                     <td class="text-end"><a class="btn btn-sm btn-light" target="_blank" rel="noopener" href="{% url 'superadmin:invoice_pdf' i.pk %}">PDF</a>
                         {% if can_manage and i.status == 'due' %}<button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#paid-{{ i.pk }}">Mark paid</button>
                         <form method="post" action="{% url 'superadmin:invoice_action' i.pk %}" class="d-inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="reason" value="Cancelled by the platform team"><button class="btn btn-sm btn-outline-danger" name="op" value="void" onclick="return confirm('Cancel invoice {{ i.number }}? The number stays used and cannot be reissued.')">Cancel</button></form>{% endif %}</td>
@@ -112,7 +120,7 @@
         <div class="card"><div class="card-header"><h4 class="card-title mb-0">Payments</h4></div>
             <div class="table-responsive"><table class="table align-middle mb-0 bl-table">
                 <thead class="table-light"><tr><th>Date</th><th class="text-end">Amount</th><th>Status</th><th>Details</th></tr></thead>
-                <tbody>{% for p in payments %}<tr><td>{{ p.created_at|date:"d M Y H:i" }}</td><td class="text-end">{{ p.amount_paise|money }}</td><td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
+                <tbody>{% for p in payments %}<tr><td>{{ p.created_at|date:"d M Y H:i" }}</td><td class="text-end">{{ p.amount_paise|money:p.currency }}</td><td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
                     <td class="small text-muted">{{ p.error|default:p.method }}{% if p.invoice %} · {{ p.invoice.number }}{% endif %}{% if p.gateway_payment_id %} · {{ p.gateway_payment_id }}{% endif %}</td></tr>
                 {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">No payments yet.</td></tr>{% endfor %}</tbody>
             </table></div></div>
@@ -123,7 +131,7 @@
 <div class="modal fade" id="paid-{{ i.pk }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" action="{% url 'superadmin:invoice_action' i.pk %}">{% csrf_token %}
     <input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="op" value="paid">
     <div class="modal-header"><h5 class="modal-title">Mark {{ i.number }} paid</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-    <div class="modal-body"><p class="small">{{ i.total_paise|money }}</p>
+    <div class="modal-body"><p class="small">{{ i.total_paise|money:i.currency }}</p>
         <label class="form-label small" for="m-{{ i.pk }}">Method</label><select id="m-{{ i.pk }}" class="form-select form-select-sm mb-2" name="method"><option value="bank">Bank transfer (NEFT / RTGS / IMPS)</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="cash">Cash</option></select>
         <label class="form-label small" for="r-{{ i.pk }}">Reference (UTR, cheque no.)</label><input id="r-{{ i.pk }}" class="form-control form-control-sm" name="reference" required></div>
     <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button><button class="btn btn-success">Mark paid</button></div>

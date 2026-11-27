@@ -1,5 +1,6 @@
 """Super Admin figures across companies (SA-02 platform dashboard, SA-13 billing, SA-14 usage, USE-06 margin).
-Run inside platform_context() (the Super Admin area). Revenue is invoiced value before GST."""
+Run inside platform_context() (the Super Admin area). Revenue is invoiced value before GST, in the base currency
+(amounts in other currencies at today's exchange rate)."""
 
 from datetime import date, datetime, time, timedelta
 
@@ -7,6 +8,7 @@ from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
+from . import currency
 from .models import Invoice, Payment, Subscription
 
 S = Subscription
@@ -28,14 +30,16 @@ def mrr():
     """Monthly recurring revenue: paying subscriptions at their monthly-equivalent price (before GST)."""
     from . import services
 
-    total = 0
+    total, rows = 0, currency.offered()
     for sub in S.all_companies.filter(status__in=(S.ACTIVE, S.PAST_DUE)).select_related("company__plan"):
         company = sub.company
         if not company.plan_id or company.deleted_at or not sub.current_period_end:
             continue
         price = services.price(company, company.plan, sub.interval)
         if price:
-            value = services.taxable(price, company.plan)
+            value = currency.to_base(
+                services.taxable(price, company.plan, company), services.company_currency(company), rows
+            )
             total += value / 12 if sub.interval == "yearly" else value
     return round(total)
 
@@ -48,16 +52,25 @@ def revenue_by_month(months=6):
     rows = (
         Invoice.all_companies.filter(status=Invoice.PAID, paid_at__gte=first)
         .annotate(m=TruncMonth("paid_at"))
-        .values("m")
+        .values("m", "currency")
         .annotate(v=Sum("subtotal_paise"))
     )
-    by = {timezone.localtime(r["m"]).strftime("%Y-%m") if r["m"] else "": r["v"] for r in rows}
+    by, rates = {}, currency.offered()
+    for r in rows:
+        key = timezone.localtime(r["m"]).strftime("%Y-%m") if r["m"] else ""
+        by[key] = by.get(key, 0) + currency.to_base(r["v"], r["currency"], rates)
     out, cursor = [], timezone.localtime(first).date()
     for _ in range(months):
         key = cursor.strftime("%Y-%m")
         out.append({"month": cursor.strftime("%b %Y"), "key": key, "revenue": by.get(key, 0) or 0})
         cursor = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1)
     return out
+
+
+def _in_base(invoices):
+    rates = currency.offered()
+    rows = invoices.values("currency").annotate(s=Sum("subtotal_paise")).values_list("currency", "s")
+    return sum(currency.to_base(value, code, rates) for code, value in rows)
 
 
 def dashboard():
@@ -94,9 +107,7 @@ def dashboard():
     cost = UsageEvent.all_companies.filter(occurred_at__gte=start, occurred_at__lt=end).aggregate(
         s=Sum("provider_cost_paise")
     )["s"]
-    revenue = Invoice.all_companies.filter(status=Invoice.PAID, paid_at__gte=start, paid_at__lt=end).aggregate(
-        s=Sum("subtotal_paise")
-    )["s"]
+    revenue = _in_base(Invoice.all_companies.filter(status=Invoice.PAID, paid_at__gte=start, paid_at__lt=end))
     providers = [p for p in Provider.objects.filter(is_active=True).order_by("name") if p.health]
     return {
         "companies": companies,
@@ -131,12 +142,14 @@ def usage_report(month=None):
         row = per.setdefault(r["company_id"], {"meters": {}, "cost": 0})
         row["meters"][r["meter"]] = r["q"] or 0
         row["cost"] += r["c"] or 0
-    revenue = dict(
+    revenue, rates = {}, currency.offered()
+    for cid, code, value in (
         Invoice.all_companies.filter(status=Invoice.PAID, paid_at__gte=start, paid_at__lt=end)
-        .values_list("company_id")
+        .values_list("company_id", "currency")
         .annotate(s=Sum("subtotal_paise"))
-        .values_list("company_id", "s")
-    )
+        .values_list("company_id", "currency", "s")
+    ):
+        revenue[cid] = revenue.get(cid, 0) + currency.to_base(value, code, rates)
     names = dict(Company.objects.filter(pk__in=set(per) | set(revenue)).values_list("pk", "name"))
     companies = []
     for cid in set(per) | set(revenue):

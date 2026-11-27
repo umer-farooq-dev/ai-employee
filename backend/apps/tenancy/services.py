@@ -80,6 +80,16 @@ def _start_subscription(company):
         company.billing_hold = timezone.now()
 
 
+def _billing_currency(country):
+    """A new company pays in its country's currency when the platform sells in it (else the fallback currency)."""
+    from apps.billing import currency
+
+    if not country:
+        return ""
+    code = currency.for_country(country)
+    return "" if code == currency.base() else code
+
+
 def owners(company):
     with platform_context():
         return list(
@@ -99,6 +109,8 @@ def register_company(owner, data: dict, request=None) -> Company:
         template_version=data["industry"].published_version if data.get("industry") else None,
         city=data.get("city", ""),
         state=data.get("state", ""),
+        country=data.get("country") or "",
+        currency=_billing_currency(data.get("country") or ""),
         business_size=data.get("business_size", ""),
         website=data.get("website", ""),
         gstin=(data.get("gstin") or "").upper(),

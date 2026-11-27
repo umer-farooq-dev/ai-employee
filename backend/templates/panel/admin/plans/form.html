@@ -19,13 +19,24 @@
         </div>{% endfor %}
         <div class="form-text">GST rate and trial days: empty = the platform setting (System Settings → Billing &amp; GST / Registration).</div>
         </div></div>
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Prices in other currencies</h5>
+            <span class="text-muted small">Visitors see prices in their own currency. Set a price here to fix it (e.g. $49); without one the base price is converted at today's rate and rounded. Empty amounts remove the row.</span></div>
+            <div class="card-body">
+            {% if form.auto_prices %}<div class="small text-muted mb-2">Converted today (monthly): {{ form.auto_prices|join:" · " }}</div>{% endif %}
+            {% for cur, monthly, yearly in form.price_rows %}<div class="row g-2 mb-2">
+                <div class="col-5">{{ cur }}{% for e in cur.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                <div class="col-3">{{ monthly }}</div><div class="col-4">{{ yearly }}</div>
+            </div>{% endfor %}
+            <div class="row g-2 small text-muted"><div class="col-5"></div><div class="col-3">Monthly</div><div class="col-4">Yearly</div></div>
+            <div class="form-text"><a href="{% url 'superadmin:currencies' %}">Billing → Currencies</a>: which currencies are on, their rates and payment gateway.</div>
+            </div></div>
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Features in this plan</h5>
             <span class="text-muted small">Switched off: the menu, screens and API for it disappear for companies on this plan. A company can be given its own setting on its Billing page.</span></div>
             <div class="card-body">{% for f in form.feature_fields %}<div class="form-check mb-2">{{ f }} <label class="form-check-label" for="{{ f.id_for_label }}">{{ f.label }}</label></div>{% endfor %}</div></div>
     </div>
     <div class="col-lg-7"><div class="card"><div class="card-header"><h5 class="card-title mb-0">Limits</h5>
         <span class="text-muted small">Empty = unlimited, 0 = not included. "Allow overage" keeps working past the limit and bills the overage price per unit.</span></div><div class="card-body p-0">
-        <div class="table-responsive"><table class="table mb-0 align-middle"><thead class="table-light"><tr><th>Limit</th><th style="width:110px">Value</th><th style="width:160px">When reached</th><th style="width:130px">Overage (₹ / unit)</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table mb-0 align-middle"><thead class="table-light"><tr><th>Limit</th><th style="width:110px">Value</th><th style="width:160px">When reached</th><th style="width:130px">Overage (base / unit)</th></tr></thead><tbody>
         {% for label, limit, enforce, overage in form.entitlement_rows %}<tr><td class="small">{{ label }}</td><td>{{ limit }}{% for e in limit.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td><td>{{ enforce }}</td><td>{{ overage }}</td></tr>{% endfor %}
         </tbody></table></div>
     </div></div></div>

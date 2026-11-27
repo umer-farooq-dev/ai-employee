@@ -265,8 +265,14 @@ class RegistrationOptionsView(APIView):
 
     @extend_schema(responses=dict)
     def get(self, request):
+        from apps.billing.currency import countries
+
+        region = website.region_context(request)
         return Response(
             {
+                "country": region["country"],
+                "currency": region["currency"],
+                "countries": [{"code": c, "name": n} for c, n in countries()],
                 "enabled": config.get("registration.enabled"),
                 "approval_required": config.get("registration.approval_required"),
                 "email_verification": config.get("registration.email_verification"),
@@ -274,9 +280,10 @@ class RegistrationOptionsView(APIView):
                 "industries": s.PublicIndustrySerializer(Industry.objects.filter(is_active=True), many=True).data,
                 "states": STATES,
                 "business_sizes": config.get("registration.business_sizes"),
-                "plans": s.PublicPlanSerializer(website.public_plans(), many=True).data,
+                "plans": s.PublicPlanSerializer(website.public_plans(region["currency"]), many=True).data,
                 "fields": [
                     "email",
+                    "country",
                     "password",
                     "business_name",
                     "full_name",

@@ -3,8 +3,9 @@
 billing/                    GET {subscription, plan, usage: [...], meters, features, credits}       (billing.view)
 billing/plans/              GET plans the company can choose, with prices and GST quotes            (billing.view)
 billing/checkout/           POST {plan, interval} | {what: "resume"} | {what: "invoice", invoice}   (billing.manage)
-                            → Razorpay checkout options, or {"scheduled": date} for a change at renewal
-billing/confirm/            POST the checkout handler's razorpay_* fields                           (billing.manage)
+                            → {"gateway": "stripe", "url"} (open it), Razorpay checkout options, or
+                              {"scheduled": date} for a change at renewal
+billing/confirm/            POST {session_id} after Stripe, or the Razorpay handler's razorpay_* fields (billing.manage)
 billing/cancel/             POST {reason}                                                           (billing.manage)
 billing/details/            GET / PATCH {legal_name, gstin, address, city, state (GST code)}        (billing.manage)
 billing/invoices/           GET · billing/invoices/<id>/pdf/ GET (PDF)                              (billing.view)
@@ -69,6 +70,8 @@ class SummaryView(_Billing):
                 "subscription": _sub(sub),
                 "plan": {"key": company.plan.key, "name": company.plan.name} if company.plan_id else None,
                 "price_paise": billing.price(company, company.plan, sub.interval) if company.plan_id else None,
+                "currency": billing.company_currency(company),
+                "pays_gst": billing.domestic(company),
                 "trial_ends_at": company.trial_ends_at,
                 "on_hold": bool(company.billing_hold),
                 "usage": usage.overview(company),
@@ -157,14 +160,18 @@ class DetailsView(_Billing):
     @extend_schema(responses=dict)
     def get(self, request):
         c = request.company
+        local = billing.domestic(c)
         return Response(
             {
                 "legal_name": c.legal_name,
                 "gstin": c.gstin,
                 "address": c.address,
                 "city": c.city,
-                "state": gst.state_code(c.gstin, c.state),
-                "states": dict(gst.STATES),
+                "state": gst.state_code(c.gstin, c.state) if local else c.state,
+                "states": dict(gst.STATES) if local else {},
+                "country": c.country,
+                "currency": billing.company_currency(c),
+                "pays_gst": local,
             }
         )
 
@@ -186,6 +193,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "number",
             "kind",
             "status",
+            "currency",
             "issued_at",
             "due_at",
             "paid_at",
@@ -231,6 +239,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "amount_paise",
+            "currency",
             "status",
             "purpose",
             "method",

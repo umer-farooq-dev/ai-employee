@@ -30,9 +30,9 @@ def key_id(p):
     return _cfg(p, "key_id")
 
 
-def ensure_plan(p, plan, interval, amount_paise):
-    """A Razorpay plan per (our plan, interval, amount incl. GST); its id is kept on our plan."""
-    tag = f"{interval}:{amount_paise}"
+def ensure_plan(p, plan, interval, amount_paise, currency="INR"):
+    """A Razorpay plan per (our plan, interval, currency, amount incl. GST); its id is kept on our plan."""
+    tag = f"{interval}:{amount_paise}" if currency == "INR" else f"{currency}:{interval}:{amount_paise}"
     ids = dict(plan.gateway_plans or {})
     if ids.get(tag):
         return ids[tag]
@@ -43,7 +43,7 @@ def ensure_plan(p, plan, interval, amount_paise):
         {
             "period": "monthly" if interval == "monthly" else "yearly",
             "interval": 1,
-            "item": {"name": f"{plan.name} ({interval})", "amount": amount_paise, "currency": "INR"},
+            "item": {"name": f"{plan.name} ({interval})", "amount": amount_paise, "currency": currency},
             "notes": {"plan": plan.key},
         },
     )
@@ -76,9 +76,9 @@ def cancel_subscription(p, subscription_id, at_cycle_end=True):
     return _call(p, "POST", f"/v1/subscriptions/{subscription_id}/cancel", {"cancel_at_cycle_end": int(at_cycle_end)})
 
 
-def create_order(p, amount_paise, receipt, notes):
+def create_order(p, amount_paise, receipt, notes, currency="INR"):
     return _call(
-        p, "POST", "/v1/orders", {"amount": amount_paise, "currency": "INR", "receipt": receipt, "notes": notes}
+        p, "POST", "/v1/orders", {"amount": amount_paise, "currency": currency, "receipt": receipt, "notes": notes}
     )
 
 

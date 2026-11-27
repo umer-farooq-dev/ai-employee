@@ -17,9 +17,11 @@ from .forms import EnquiryForm
 
 
 def _render(request, template, context, status=200):
+    region = services.region_context(request)
     context = {
         "site": services.site_sections(),
-        "plans": services.public_plans(),
+        "region": region,
+        "plans": services.public_plans(region["currency"]),
         "industries": services.active_industries(),
         "enquiry_form": EnquiryForm(),
         "structured_data": services.structured_data(request),

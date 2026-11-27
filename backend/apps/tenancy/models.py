@@ -72,6 +72,8 @@ class Company(BaseModel):
     address = models.TextField(blank=True)
     city = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=2, blank=True, help_text="ISO code; empty = the seller's country")
+    currency = models.CharField(max_length=3, blank=True, help_text="Billing currency; empty = the base currency")
     timezone = models.CharField(max_length=50, blank=True, help_text="Empty = platform default")
     default_language = models.CharField(max_length=10, blank=True, help_text="Empty = platform default")
     require_2fa = models.BooleanField(default=False, help_text="Company enforces 2FA for all its users")

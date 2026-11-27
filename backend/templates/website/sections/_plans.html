@@ -1,4 +1,4 @@
-{% load admin_tags %}
+{% load panel_tags %}
 <div class="row justify-content-center">
   {% for plan in plans %}
   <div class="col-md-6 col-lg-4 col-xl-3">
@@ -6,15 +6,17 @@
       <div class="pricing-box-single">
         <div class="text-center">
           <span class="span">{{ plan.name }}</span>
-          {% if plan.is_custom %}
+          {% if plan.is_custom or plan.monthly is None and plan.yearly is None %}
           <h3>{{ c.custom_price_text }}</h3>
-          {% elif yearly and plan.price_yearly_paise %}
-          <h3>{{ plan.price_yearly_paise|inr }}</h3><p class="pera">{{ c.per_year_text }}</p>
+          {% elif yearly and plan.yearly is not None %}
+          <h3>{{ plan.yearly|money_short:region.currency }}</h3><p class="pera">{{ c.per_year_text }}</p>
+          {% elif plan.monthly is not None %}
+          <h3>{{ plan.monthly|money_short:region.currency }}</h3><p class="pera">{{ c.per_month_text }}</p>
           {% else %}
-          <h3>{{ plan.price_monthly_paise|inr }}</h3><p class="pera">{{ c.per_month_text }}</p>
+          <h3>{{ plan.yearly|money_short:region.currency }}</h3><p class="pera">{{ c.per_year_text }}</p>
           {% endif %}
         </div>
-        {% if plan.is_custom %}
+        {% if plan.is_custom or plan.monthly is None and plan.yearly is None %}
         <a href="{% url 'website:page' 'contact' %}" class="theme-btn2">{{ c.custom_button_label }}</a>
         {% else %}
         <a href="{% url 'account_signup' %}?plan={{ plan.key|urlencode }}" class="theme-btn2">{{ c.button_label }}</a>

@@ -295,9 +295,24 @@ class PlanSerializer(serializers.ModelSerializer):
 
 
 class PublicPlanSerializer(serializers.ModelSerializer):
+    """price_*_paise: the base currency; monthly / yearly: the visitor's currency (minor units)."""
+
+    monthly = serializers.IntegerField(read_only=True, default=None)
+    yearly = serializers.IntegerField(read_only=True, default=None)
+
     class Meta:
         model = Plan
-        fields = ["key", "name", "description", "price_monthly_paise", "price_yearly_paise", "is_custom", "features"]
+        fields = [
+            "key",
+            "name",
+            "description",
+            "price_monthly_paise",
+            "price_yearly_paise",
+            "monthly",
+            "yearly",
+            "is_custom",
+            "features",
+        ]
 
 
 class SectionSerializer(serializers.ModelSerializer):

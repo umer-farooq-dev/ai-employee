@@ -32,10 +32,12 @@ Image: General Settings → Login page image. Fields come from apps/accounts/for
               {% include 'account/_signup_field.html' with f=form.phone %}
               {% include 'account/_signup_field.html' with f=form.industry col=6 %}
               {% include 'account/_signup_field.html' with f=form.business_size col=6 %}
+              {% include 'account/_signup_field.html' with f=form.country %}
               {% include 'account/_signup_field.html' with f=form.city col=6 %}
               {% include 'account/_signup_field.html' with f=form.state col=6 %}
               {% include 'account/_signup_field.html' with f=form.website col=6 %}
-              {% include 'account/_signup_field.html' with f=form.gstin col=6 %}
+              <div class="col-lg-6" id="signup-gstin">{% include 'account/_signup_field.html' with f=form.gstin col=12 %}</div>
+              <datalist id="signup-states"></datalist>
               {% include 'account/_signup_field.html' with f=form.password1 col=6 %}
               {% include 'account/_signup_field.html' with f=form.password2 col=6 %}
               {% if form.password1.help_text %}<div class="col-12 small text-muted mb-3 signup-help">{{ form.password1.help_text|safe }}</div>{% endif %}
@@ -62,6 +64,20 @@ Image: General Settings → Login page image. Fields come from apps/accounts/for
   <img class="shape1" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
   <img class="shape2" src="{% static 'website/img/shapes/apps-shape1.png' %}" alt="">
 </main>
+<script>
+  // State list and GSTIN only for the seller's country (GST); elsewhere the state / region is free text
+  (function () {
+    var country = document.getElementById("id_country"), list = document.getElementById("signup-states");
+    var gstin = document.getElementById("signup-gstin"), home = "{{ form.seller_country|escapejs }}";
+    var states = {{ form.states_json|safe }};
+    function sync() {
+      var local = country.value === home;
+      gstin.style.display = local ? "" : "none";
+      list.innerHTML = local ? states.map(function (s) { return '<option value="' + s + '">'; }).join("") : "";
+    }
+    country.addEventListener("change", sync); sync();
+  })();
+</script>
 <style>
   .signup-area .login-form .single-inputs select {
     width: 100%; padding: 15px; border: none; border-radius: 74px; background-color: #F5F8FF; margin-bottom: 20px;

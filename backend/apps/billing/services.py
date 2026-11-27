@@ -1,6 +1,8 @@
 """SUB-03 … SUB-06, USE-02 … USE-04, NOTI-01: the subscription lifecycle (trial → paid → renewals → overdue → hold),
-Razorpay checkout and webhooks, prorated upgrades, scheduled downgrades, cancellation, GST invoices with PDF, manual
-(enterprise) invoicing, AI credit adjustments. Prices, GST, grace days and texts are data (Super Admin)."""
+Razorpay and Stripe checkout and webhooks, prorated upgrades, scheduled downgrades, cancellation, invoices with PDF
+(GST for customers in the seller's country, export invoices abroad), manual (enterprise) invoicing, AI credit
+adjustments. Every company is billed in its own currency; the gateway per currency is set in Super Admin.
+Prices, rates, GST, grace days and texts are data (Super Admin)."""
 
 import calendar
 import json
@@ -8,6 +10,7 @@ import logging
 from datetime import UTC, timedelta
 from decimal import Decimal
 
+from babel.numbers import get_currency_name
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.urls import reverse
@@ -19,29 +22,32 @@ from apps.providers.adapters import ProviderError
 from apps.tenancy.context import company_context, platform_context
 from apps.tenancy.models import Company
 
-from . import gst, razorpay
-from .models import CreditAdjustment, Invoice, InvoiceSequence, Payment, Plan, Subscription
+from . import currency, gst, razorpay, stripe
+from .models import CreditAdjustment, Currency, Invoice, InvoiceSequence, Payment, Plan, Subscription
 
 logger = logging.getLogger(__name__)
 S = Subscription
 
 
 # ------------------------------------------------------------------ money
-def fmt(paise, decimals=True):
-    """Paise → "₹1,23,456.00" in the platform number format."""
-    rupees = Decimal(paise or 0) / 100
-    sign, rupees = ("-" if rupees < 0 else ""), abs(rupees)
-    whole, frac = f"{rupees:.2f}".split(".")
-    if setting("locale.number_format") == "indian" and len(whole) > 3:
-        head, tail = whole[:-3], whole[-3:]
-        groups = []
-        while len(head) > 2:
-            groups.insert(0, head[-2:])
-            head = head[:-2]
-        whole = ",".join([head, *groups, tail]) if head else ",".join([*groups, tail])
-    else:
-        whole = f"{int(whole):,}"
-    return f"{sign}₹{whole}" + (f".{frac}" if decimals else "")
+def fmt(minor, code="", decimals=True):
+    """Minor units → "₹1,23,456.00", "$1,234.00", "Rs 9,900" (INR follows the platform number format setting)."""
+    code = code or currency.base()
+    country = "GB" if code == "INR" and setting("locale.number_format") != "indian" else ""
+    return currency.fmt(minor or 0, code, country, decimals=decimals is not False)
+
+
+def company_currency(company):
+    return company.currency or currency.base()
+
+
+def seller_country():
+    return setting("billing.seller_country") or "IN"
+
+
+def domestic(company):
+    """GST applies to customers in the seller's country (a company without a country is a local one)."""
+    return (company.country or seller_country()) == seller_country()
 
 
 def period_text(plan, interval, start, end):
@@ -75,32 +81,46 @@ def gst_rate(plan=None):
 
 
 def price(company, plan, interval):
-    """List price (paise, as entered: with or without GST per setting) or None when not sold online."""
+    """List price in the company's currency (minor units; with or without GST per setting), None = not sold online."""
     sub = Subscription.objects.filter(company=company).first()
     if sub and sub.custom_price_paise is not None and plan.pk == company.plan_id:
         return sub.custom_price_paise
-    return plan.price_yearly_paise if interval == "yearly" else plan.price_monthly_paise
+    return currency.plan_amount(plan, interval, company_currency(company))
 
 
-def taxable(gross_or_net, plan=None):
-    """The taxable value of a list price."""
-    if setting("billing.prices_include_gst"):
+def taxable(gross_or_net, plan=None, company=None):
+    """The taxable value of a list price (prices include GST only for customers who pay GST)."""
+    if setting("billing.prices_include_gst") and (company is None or domestic(company)):
         return gst.taxable_from_inclusive(gross_or_net, gst_rate(plan))
     return gross_or_net
 
 
 def quote(company, amount_taxable, plan=None):
-    """GST on a taxable amount for this company → {taxable, cgst, sgst, igst, total, intra_state, rate}."""
+    """Tax on a taxable amount for this company → {taxable, cgst, sgst, igst, total, intra_state, rate, domestic,
+    currency}. Customers abroad: no GST (export of services)."""
+    code = company_currency(company)
+    if not domestic(company):
+        return {
+            "intra_state": False,
+            "cgst": 0,
+            "sgst": 0,
+            "igst": 0,
+            "total": amount_taxable,
+            "taxable": amount_taxable,
+            "rate": "0",
+            "domestic": False,
+            "currency": code,
+        }
     rate = gst_rate(plan)
     tax = gst.split(amount_taxable, rate, setting("billing.seller_state"), gst.state_code(company.gstin, company.state))
-    return {**tax, "taxable": amount_taxable, "rate": str(rate)}
+    return {**tax, "taxable": amount_taxable, "rate": str(rate), "domestic": True, "currency": code}
 
 
 def plan_quote(company, plan, interval):
     amount = price(company, plan, interval)
     if amount is None:
         raise ValidationError(f"The {plan.name} plan is not sold online. Please contact us.")
-    return quote(company, taxable(amount, plan), plan)
+    return quote(company, taxable(amount, plan, company), plan)
 
 
 def purchasable(company):
@@ -116,6 +136,7 @@ def purchasable(company):
 def seller():
     code = setting("billing.seller_state")
     return {
+        "country": currency.country_name(seller_country()),
         "name": setting("contact.legal_name") or setting("general.platform_name"),
         "gstin": setting("contact.gstin"),
         "pan": setting("contact.pan"),
@@ -128,6 +149,17 @@ def seller():
 
 
 def buyer(company):
+    if not domestic(company):
+        return {
+            "name": company.legal_name or company.name,
+            "gstin": "",
+            "address": "\n".join(x for x in (company.address, company.city, company.state) if x),
+            "state": "",
+            "state_code": "",
+            "country": currency.country_name(company.country),
+            "email": company.email,
+            "phone": company.phone,
+        }
     code = gst.state_code(company.gstin, company.state)
     return {
         "name": company.legal_name or company.name,
@@ -168,11 +200,17 @@ def issue_invoice(
     now = now or timezone.now()
     q = quote(company, amount_taxable, plan)
     b = buyer(company)
+    if q["domestic"]:
+        supply = f"{b['state']} ({b['state_code']})" if b["state_code"] else ""
+    else:
+        supply = b["country"]
     return Invoice.objects.create(
         company=company,
         number=next_number(now),
         kind=kind,
         status=Invoice.PAID if paid else Invoice.DUE,
+        currency=q["currency"],
+        domestic=q["domestic"],
         issued_at=now,
         due_at=None if paid else now + timedelta(days=setting("billing.invoice_due_days")),
         paid_at=now if paid else None,
@@ -182,7 +220,7 @@ def issue_invoice(
         interval=interval,
         seller=seller(),
         buyer=b,
-        place_of_supply=f"{b['state']} ({b['state_code']})" if b["state_code"] else "",
+        place_of_supply=supply,
         intra_state=q["intra_state"],
         lines=[
             {
@@ -199,13 +237,15 @@ def issue_invoice(
         sgst_paise=q["sgst"],
         igst_paise=q["igst"],
         total_paise=q["total"],
-        notes=notes,
+        notes=notes if q["domestic"] else "\n".join(x for x in (notes, setting("billing.export_note")) if x),
         payment_ref=payment_ref,
     )
 
 
 def taxable_in(company, total_paise, plan=None):
     """The taxable value inside an amount that was charged with GST (gateway renewals)."""
+    if not domestic(company):
+        return total_paise
     rate = gst_rate(plan)
     base = gst.taxable_from_inclusive(total_paise, rate)
     for guess in (base, base - 1, base + 1, base - 2, base + 2):
@@ -240,6 +280,30 @@ def _words(n):
     return " ".join(parts)
 
 
+def _words_intl(n):
+    """Whole units in words, international system (thousand / million / billion)."""
+    if n < 1000:
+        return _words(n)
+    parts = []
+    for div, label in ((10**9, "Billion"), (10**6, "Million"), (1000, "Thousand")):
+        if n >= div:
+            parts.append(f"{_words_intl(n // div)} {label}")
+            n %= div
+    if n:
+        parts.append(_words(n))
+    return " ".join(parts)
+
+
+def amount_in_words(minor, code):
+    digits = currency.exponent(code)
+    whole, part = divmod(minor, 10**digits) if digits else (minor, 0)
+    if code == "INR":
+        return f"Rupees {_words(whole)}" + (f" and {_words(part)} Paise" if part else "") + " Only"
+    tail = f" and {part:0{digits}d}/{10**digits}" if part else ""
+    plural = get_currency_name(code, count=2, locale="en")
+    return f"{plural} {_words_intl(whole)}{tail} Only"
+
+
 def invoice_pdf(inv):
     from .pdf import A4, Document, wrap
 
@@ -256,7 +320,7 @@ def invoice_pdf(inv):
         if s.get(key):
             d.text(M, y, f"{label}: {s[key]}", 9, colour="#4b5563")
             y += 12
-    d.text(W - M, 30, "TAX INVOICE", 16, bold=True, colour=brand, align="right")
+    d.text(W - M, 30, "TAX INVOICE" if inv.domestic else "INVOICE", 16, bold=True, colour=brand, align="right")
     rows = [
         ("Invoice no.", inv.number),
         ("Date", timezone.localtime(inv.issued_at).strftime("%d %b %Y")),
@@ -287,7 +351,10 @@ def invoice_pdf(inv):
     if b.get("state"):
         d.text(M, y, f"State: {b['state']}" + (f" ({b['state_code']})" if b.get("state_code") else ""), 9)
         y += 12
-    d.text(M, y, f"GSTIN: {b.get('gstin') or 'Unregistered'}", 9)
+    if inv.domestic:
+        d.text(M, y, f"GSTIN: {b.get('gstin') or 'Unregistered'}", 9)
+    elif b.get("country"):
+        d.text(M, y, f"Country: {b['country']}", 9)
     y += 24
     # line items
     cols = [M + 8, M + 30, W - M - 210, W - M - 150, W - M - 80, W - M - 8]
@@ -304,28 +371,29 @@ def invoice_pdf(inv):
             d.text(cols[1], y + j * 12, t, 9)
         d.text(cols[2], y, line.get("sac") or "-", 9)
         d.text(cols[3], y, str(line.get("quantity", 1)), 9, align="right")
-        d.text(cols[4], y, fmt(line["unit_paise"]), 9, align="right")
-        d.text(cols[5], y, fmt(line["amount_paise"]), 9, align="right")
+        d.text(cols[4], y, fmt(line["unit_paise"], inv.currency), 9, align="right")
+        d.text(cols[5], y, fmt(line["amount_paise"], inv.currency), 9, align="right")
         y += 12 * len(text) + 10
         d.line(M, y - 4, W - M, y - 4)
     # totals
     y += 8
     rate = Decimal(inv.gst_rate)
-    totals = [("Taxable value", inv.subtotal_paise)]
-    if inv.intra_state:
+    totals = [("Taxable value" if inv.domestic else "Subtotal", inv.subtotal_paise)]
+    if not inv.domestic:
+        pass
+    elif inv.intra_state:
         totals += [(f"CGST @ {rate / 2:g}%", inv.cgst_paise), (f"SGST @ {rate / 2:g}%", inv.sgst_paise)]
     else:
         totals.append((f"IGST @ {rate:g}%", inv.igst_paise))
     for label, value in totals:
         d.text(W - M - 150, y, label, 9, colour="#4b5563")
-        d.text(cols[5], y, fmt(value), 9, align="right")
+        d.text(cols[5], y, fmt(value, inv.currency), 9, align="right")
         y += 15
     d.box(W - M - 160, y - 2, 160, 24, "#f3f4f6")
-    d.text(W - M - 150, y + 5, "Total", 11, bold=True)
-    d.text(cols[5], y + 5, fmt(inv.total_paise), 11, bold=True, align="right")
+    d.text(W - M - 150, y + 5, f"Total ({inv.currency})", 11, bold=True)
+    d.text(cols[5], y + 5, fmt(inv.total_paise, inv.currency), 11, bold=True, align="right")
     y += 36
-    rupees, paise = divmod(inv.total_paise, 100)
-    words = f"Rupees {_words(rupees)}" + (f" and {_words(paise)} Paise" if paise else "") + " Only"
+    words = amount_in_words(inv.total_paise, inv.currency)
     for line in wrap(f"Amount in words: {words}", 9, W - 2 * M):
         d.text(M, y, line, 9, colour="#374151")
         y += 12
@@ -381,7 +449,7 @@ def _invoice_mail(company, inv, description):
         "billing/invoice" if inv.status == Invoice.PAID else "billing/invoice_due",
         {
             "invoice_number": inv.number,
-            "amount": fmt(inv.total_paise),
+            "amount": fmt(inv.total_paise, inv.currency),
             "description": description,
             "due_date": timezone.localtime(inv.due_at).strftime("%d %b %Y") if inv.due_at else "",
         },
@@ -451,7 +519,8 @@ def _paid(
         sub.status, sub.interval = S.ACTIVE, interval
         sub.current_period_start, sub.current_period_end = start, end
         if gateway_sub:
-            sub.gateway, sub.gateway_subscription_id = S.RAZORPAY, gateway_sub
+            sub.gateway = payment.gateway if payment.gateway in (S.RAZORPAY, S.STRIPE) else S.RAZORPAY
+            sub.gateway_subscription_id = gateway_sub
             sub.cancel_at_period_end, sub.cancel_reason, sub.cancelled_at = False, "", None
         if sub.pending_plan_id == plan.pk:
             sub.pending_plan, sub.pending_interval = None, ""
@@ -478,25 +547,57 @@ def _paid(
 
 
 # ------------------------------------------------------------------ checkout (SUB-03)
-def _gateway():
-    p = razorpay.provider()
+def gateway_name(company):
+    """Which gateway charges this company's currency (Super Admin → Billing → Currencies)."""
+    row = Currency.objects.filter(code=company_currency(company)).first()
+    if row:
+        return row.gateway
+    return S.RAZORPAY if company_currency(company) == "INR" else S.STRIPE
+
+
+def _module(name):
+    return stripe if name == S.STRIPE else razorpay
+
+
+def online(company):
+    """Can this company pay online now (its currency's gateway is set up)?"""
+    return bool(_module(gateway_name(company)).provider())
+
+
+def _gateway(company):
+    name = gateway_name(company)
+    p = _module(name).provider()
     if not p:
         raise ValidationError("Online payment is not set up yet. Please contact support.")
-    return p
+    return name, p
 
 
 def _checkout(company, user, amount, description, **ids):
     return {
-        "key": razorpay.key_id(_gateway()),
+        "gateway": S.RAZORPAY,
+        "key": razorpay.key_id(razorpay.provider()),
         "name": setting("general.platform_name"),
         "description": description,
         "amount": amount,
-        "currency": "INR",
+        "currency": company_currency(company),
         "prefill": {"name": user.full_name or "", "email": user.email, "contact": user.phone or company.phone},
         "notes": {"company": str(company.pk)},
         "theme": {"color": setting("general.color_company_panel")},
         **ids,
     }
+
+
+def _return_urls():
+    """Stripe sends the payer back here; {CHECKOUT_SESSION_ID} is filled in by Stripe."""
+    from django.conf import settings
+
+    base = settings.PUBLIC_BASE_URL.rstrip("/")
+    done = base + reverse("panel:billing_return") + "?session_id={CHECKOUT_SESSION_ID}"
+    return done, base + reverse("panel:billing") + "?payment=cancelled"
+
+
+def _stripe_customer(sub):
+    return sub.gateway_customer_id if sub.gateway_customer_id.startswith("cus_") else ""
 
 
 def _check_plan(company, plan, interval):
@@ -507,48 +608,78 @@ def _check_plan(company, plan, interval):
 
 
 def subscribe(company, plan, interval, user, request=None, start_at=None):
-    """New subscription with auto-renewal: Razorpay subscription → checkout opens on the page."""
+    """New subscription with auto-renewal: Razorpay checkout opens on the page, Stripe's hosted page opens."""
     _check_plan(company, plan, interval)
     sub = subscription(company)
     if sub.status == S.ACTIVE and sub.gateway_subscription_id and not sub.cancel_at_period_end:
         raise ValidationError("You already have an active subscription. Change the plan instead.")
     q = plan_quote(company, plan, interval)
-    p = _gateway()
+    name, p = _gateway(company)
+    code = company_currency(company)
+    meta = {"company": str(company.pk), "plan": plan.key, "interval": interval}
     try:
-        rp_plan = razorpay.ensure_plan(p, plan, interval, q["total"])
-        rsub = razorpay.create_subscription(
-            p, rp_plan, interval, {"company": str(company.pk), "plan": plan.key, "interval": interval}, start_at
-        )
+        if name == S.STRIPE:
+            done, back = _return_urls()
+            price_id = stripe.ensure_price(p, plan, interval, code, q["total"])
+            ref = stripe.checkout_subscription(p, price_id, meta, done, back, _stripe_customer(sub), user.email)
+        else:
+            ref = razorpay.create_subscription(
+                p, razorpay.ensure_plan(p, plan, interval, q["total"], code), interval, meta, start_at
+            )
     except ProviderError as exc:
         raise ValidationError(f"Payment could not be started: {exc}") from None
     Payment.objects.create(
         company=company,
         amount_paise=q["total"],
+        currency=code,
         purpose="subscription",
-        gateway_order_id=rsub["id"],
-        data={"plan": plan.key, "interval": interval, "subscription_id": rsub["id"], "quote": q},
+        gateway=name,
+        gateway_order_id=ref["id"],
+        data={"plan": plan.key, "interval": interval, "subscription_id": ref["id"], "quote": q},
     )
     record(request, "billing.checkout", "plan", plan.id, company=company, changes={"interval": interval})
-    return _checkout(company, user, q["total"], f"{plan.name} plan · {interval}", subscription_id=rsub["id"])
+    if name == S.STRIPE:
+        return {"gateway": S.STRIPE, "url": ref["url"]}
+    return _checkout(company, user, q["total"], f"{plan.name} plan · {interval}", subscription_id=ref["id"])
 
 
 def _order(company, user, amount, purpose, data, description):
-    p = _gateway()
+    """One-time payment (prorated upgrade, invoice) in the company's currency."""
+    name, p = _gateway(company)
+    code = company_currency(company)
     try:
-        order = razorpay.create_order(
-            p, amount, f"{purpose}-{timezone.now():%y%m%d%H%M%S}", {"company": str(company.pk)}
-        )
+        if name == S.STRIPE:
+            done, back = _return_urls()
+            meta = {"company": str(company.pk), "purpose": purpose}
+            customer = _stripe_customer(subscription(company))
+            ref = stripe.checkout_payment(p, amount, code, description, meta, done, back, customer, user.email)
+        else:
+            receipt = f"{purpose}-{timezone.now():%y%m%d%H%M%S}"
+            ref = razorpay.create_order(p, amount, receipt, {"company": str(company.pk)}, code)
     except ProviderError as exc:
         raise ValidationError(f"Payment could not be started: {exc}") from None
     Payment.objects.create(
-        company=company, amount_paise=amount, purpose=purpose, gateway_order_id=order["id"], data=data
+        company=company,
+        amount_paise=amount,
+        currency=code,
+        purpose=purpose,
+        gateway=name,
+        gateway_order_id=ref["id"],
+        data=data,
     )
-    return _checkout(company, user, amount, description, order_id=order["id"])
+    if name == S.STRIPE:
+        return {"gateway": S.STRIPE, "url": ref["url"]}
+    return _checkout(company, user, amount, description, order_id=ref["id"])
 
 
 def confirm(company, data, user=None, request=None):
-    """Checkout handler data: razorpay_payment_id, razorpay_signature and the order or subscription id."""
-    p = _gateway()
+    """After paying: Stripe → {session_id}; Razorpay checkout handler → razorpay_payment_id, razorpay_signature and
+    the order or subscription id."""
+    if data.get("session_id"):
+        return confirm_stripe(company, str(data["session_id"]), user)
+    p = razorpay.provider()
+    if not p:
+        raise ValidationError("Online payment is not set up yet. Please contact support.")
     pay_id = str(data.get("razorpay_payment_id", ""))
     order_id, sub_id = str(data.get("razorpay_order_id", "")), str(data.get("razorpay_subscription_id", ""))
     payment = Payment.objects.filter(company=company, gateway_order_id=order_id or sub_id).first()
@@ -563,11 +694,53 @@ def confirm(company, data, user=None, request=None):
     return _apply(company, payment, pay_id, user=user, gateway_sub=sub_id)
 
 
+def confirm_stripe(company, session_id, user=None):
+    """The payer is back from Stripe: read the Checkout Session from Stripe (never trust the browser)."""
+    p = stripe.provider()
+    payment = Payment.objects.filter(company=company, gateway=S.STRIPE, gateway_order_id=session_id).first()
+    if not p or not payment:
+        raise ValidationError("Unknown payment.")
+    if payment.status == Payment.CAPTURED:
+        return payment.invoice
+    try:
+        return _stripe_session_paid(company, payment, stripe.session(p, session_id), user)
+    except ProviderError as exc:
+        raise ValidationError(f"The payment could not be checked: {exc}") from None
+
+
+def _stripe_session_paid(company, payment, session, user=None):
+    """A completed Checkout Session → payment applied (None while Stripe is still processing it)."""
+    if str((session.get("metadata") or {}).get("company", "")) != str(company.pk):
+        raise ValidationError("Unknown payment.")
+    if session.get("status") != "complete" or session.get("payment_status") not in ("paid", "no_payment_required"):
+        return None
+    sub = subscription(company)
+    if str(session.get("customer") or "").startswith("cus_") and sub.gateway_customer_id != session["customer"]:
+        sub.gateway_customer_id = session["customer"]
+        sub.save(update_fields=["gateway_customer_id", "updated_at"])
+    if session.get("mode") == "subscription":
+        start = end = None
+        inv_id = session.get("invoice") or ""
+        if inv_id:
+            start, end = stripe.period(stripe.invoice(stripe.provider(), inv_id))
+        return _apply(
+            company,
+            payment,
+            inv_id or session["id"],
+            user=user,
+            gateway_sub=session.get("subscription") or "",
+            start=_ts(start),
+            end=_ts(end),
+            method="card",
+        )
+    return _apply(company, payment, session.get("payment_intent") or session["id"], user=user, method="card")
+
+
 def _apply(company, payment, pay_id, user=None, gateway_sub="", start=None, end=None, method=""):
     info = payment.data or {}
     if payment.purpose == "invoice":
         inv = Invoice.objects.filter(company=company, pk=info.get("invoice")).first()
-        return mark_paid(inv, pay_id, user, method="razorpay", payment=payment) if inv else None
+        return mark_paid(inv, pay_id, user, method=payment.gateway, payment=payment) if inv else None
     plan = Plan.objects.get(key=info["plan"])
     kind = "upgrade" if payment.purpose == "upgrade" else "subscription"
     inv = _paid(
@@ -578,7 +751,7 @@ def _apply(company, payment, pay_id, user=None, gateway_sub="", start=None, end=
         info.get("interval", "monthly"),
         start=start,
         end=end,
-        gateway_sub=gateway_sub or info.get("subscription_id", ""),
+        gateway_sub=gateway_sub or info.get("subscription_id", "") if payment.gateway == S.RAZORPAY else gateway_sub,
         kind=kind,
         method=method,
         user=user,
@@ -589,19 +762,21 @@ def _apply(company, payment, pay_id, user=None, gateway_sub="", start=None, end=
 
 
 def _schedule_gateway_price(company, plan, interval):
-    """From the next renewal Razorpay charges the new plan's price."""
+    """From the next renewal the gateway charges the new plan's price."""
     sub = subscription(company)
-    p = razorpay.provider()
+    p = _module(sub.gateway).provider() if sub.gateway in (S.RAZORPAY, S.STRIPE) else None
     if not (p and sub.gateway_subscription_id):
         return
     try:
-        razorpay.update_subscription(
-            p,
-            sub.gateway_subscription_id,
-            razorpay.ensure_plan(p, plan, interval, plan_quote(company, plan, interval)["total"]),
-        )
+        amount = plan_quote(company, plan, interval)["total"]
+        if sub.gateway == S.STRIPE:
+            price_id = stripe.ensure_price(p, plan, interval, company_currency(company), amount)
+            stripe.change_price(p, sub.gateway_subscription_id, price_id)
+        else:
+            rp_plan = razorpay.ensure_plan(p, plan, interval, amount, company_currency(company))
+            razorpay.update_subscription(p, sub.gateway_subscription_id, rp_plan)
     except (ProviderError, ValidationError) as exc:
-        logger.warning("Razorpay plan change for %s failed: %s", company.pk, exc)
+        logger.warning("Gateway plan change for %s failed: %s", company.pk, exc)
 
 
 # ------------------------------------------------------------------ change plan / cancel
@@ -617,7 +792,8 @@ def proration(company, plan, interval, now=None):
     if old is None or new is None or new <= old:
         return 0
     left = (sub.current_period_end - now) / (sub.current_period_end - sub.current_period_start)
-    return gst.paise(Decimal(taxable(new, plan) - taxable(old, company.plan)) * Decimal(str(left)))
+    diff = taxable(new, plan, company) - taxable(old, company.plan, company)
+    return gst.paise(Decimal(diff) * Decimal(str(left)))
 
 
 def change_plan(company, plan, interval, user, request=None):
@@ -663,10 +839,13 @@ def cancel(company, user, reason="", request=None):
         raise ValidationError("There is no running subscription to cancel.")
     if sub.cancel_at_period_end:
         raise ValidationError("The subscription is already set to end.")
-    p = razorpay.provider()
-    if sub.gateway_subscription_id and p:
+    if sub.gateway_subscription_id and sub.gateway in (S.RAZORPAY, S.STRIPE):
+        p = _module(sub.gateway).provider()
         try:
-            razorpay.cancel_subscription(p, sub.gateway_subscription_id, at_cycle_end=True)
+            if p and sub.gateway == S.STRIPE:
+                stripe.set_cancel_at_period_end(p, sub.gateway_subscription_id, True)
+            elif p:
+                razorpay.cancel_subscription(p, sub.gateway_subscription_id, at_cycle_end=True)
         except ProviderError as exc:
             raise ValidationError(f"Could not cancel at the payment provider: {exc}") from None
     sub.cancel_at_period_end, sub.cancel_reason, sub.cancelled_at = True, reason[:300], timezone.now()
@@ -679,13 +858,22 @@ def cancel(company, user, reason="", request=None):
 
 
 def resume(company, user, request=None):
-    """Undo a cancellation before the period ends: a new auto-renewal starting when the paid period ends."""
+    """Undo a cancellation before the period ends. Stripe: the same subscription renews again. Razorpay: a new
+    auto-renewal starting when the paid period ends."""
     sub = subscription(company)
     if not sub.cancel_at_period_end or sub.status != S.ACTIVE:
         raise ValidationError("Nothing to resume.")
     if sub.gateway == S.RAZORPAY and sub.gateway_subscription_id:
         out = subscribe(company, company.plan, sub.interval, user, request, start_at=sub.current_period_end)
         return out
+    if sub.gateway == S.STRIPE and sub.gateway_subscription_id:
+        p = stripe.provider()
+        if not p:
+            raise ValidationError("Online payment is not set up yet. Please contact support.")
+        try:
+            stripe.set_cancel_at_period_end(p, sub.gateway_subscription_id, False)
+        except ProviderError as exc:
+            raise ValidationError(f"Could not resume at the payment provider: {exc}") from None
     sub.cancel_at_period_end, sub.cancel_reason, sub.cancelled_at = False, "", None
     sub.save()
     return {"resumed": True}
@@ -699,7 +887,9 @@ def mark_paid(inv, reference, user=None, method="manual", payment=None, request=
         raise ValidationError("A cancelled invoice cannot be paid.")
     company = inv.company
     now = timezone.now()
-    payment = payment or Payment(company=company, amount_paise=inv.total_paise, purpose="invoice", gateway=method)
+    payment = payment or Payment(
+        company=company, amount_paise=inv.total_paise, currency=inv.currency, purpose="invoice", gateway=method
+    )
     payment.status, payment.invoice, payment.method = Payment.CAPTURED, inv, method
     payment.gateway_payment_id = payment.gateway_payment_id or reference[:60]
     payment.recorded_by = user if user and user.is_authenticated else None
@@ -788,14 +978,15 @@ def save_terms(company, data, user=None, request=None):
 
     sub = subscription(company)
     gateway = data.get("gateway", sub.gateway)
-    if gateway not in (S.RAZORPAY, S.MANUAL):
+    if gateway not in (S.RAZORPAY, S.STRIPE, S.MANUAL):
         raise ValidationError("Unknown billing method.")
     sub.gateway = gateway
+    _set_region(company, sub, data)
     raw = str(data.get("custom_price", "")).strip()
     try:
-        sub.custom_price_paise = round(Decimal(raw) * 100) if raw else None
+        sub.custom_price_paise = currency.to_minor(raw, company_currency(company)) if raw else None
     except ArithmeticError:
-        raise ValidationError("Custom price: enter an amount in rupees.") from None
+        raise ValidationError("Custom price: enter an amount.") from None
     if sub.custom_price_paise is not None and sub.custom_price_paise < 0:
         raise ValidationError("Custom price cannot be negative.")
     limits_out = {}
@@ -830,9 +1021,38 @@ def save_terms(company, data, user=None, request=None):
         company.id,
         company=company,
         user=user,
-        changes={"gateway": gateway, "custom_price": sub.custom_price_paise, "limits": limits_out, "features": flags},
+        changes={
+            "gateway": gateway,
+            "currency": company.currency,
+            "country": company.country,
+            "custom_price": sub.custom_price_paise,
+            "limits": limits_out,
+            "features": flags,
+        },
     )
     return sub
+
+
+def _set_region(company, sub, data):
+    """Country and billing currency of a company; the currency cannot change under a running auto-renewal."""
+    fields = []
+    country = str(data.get("country", company.country) or "").upper()
+    if country != company.country:
+        if country and not currency.valid_country(country):
+            raise ValidationError("Choose a country.")
+        company.country = country
+        fields.append("country")
+    code = str(data.get("currency", company.currency) or "").upper()
+    if code != company.currency:
+        if code and code != currency.base() and code not in currency.offered():
+            raise ValidationError(f"{code} is not switched on in Billing → Currencies.")
+        running = sub.status == S.ACTIVE and sub.gateway_subscription_id and not sub.cancel_at_period_end
+        if running and (code or currency.base()) != company_currency(company):
+            raise ValidationError("Cancel the running auto-renewal before changing the currency.")
+        company.currency = code
+        fields.append("currency")
+    if fields:
+        company.save(update_fields=[*fields, "updated_at"])
 
 
 # ------------------------------------------------------------------ Razorpay webhooks (SEC-13)
@@ -841,19 +1061,26 @@ def _sub_by_gateway(gateway_id):
         return Subscription.all_companies.select_related("company").filter(gateway_subscription_id=gateway_id).first()
 
 
-def _payment_failed(company, sub, amount, reason):
+def _payment_failed(company, sub, amount, reason, gateway=""):
     now = timezone.now()
     sub.status = S.PAST_DUE
     sub.failed_payments += 1
     sub.grace_until = sub.grace_until or now + timedelta(days=setting("billing.grace_days"))
     sub.save()
-    Payment.objects.create(company=company, amount_paise=amount or 0, status=Payment.FAILED, error=reason[:300])
+    Payment.objects.create(
+        company=company,
+        amount_paise=amount or 0,
+        currency=company_currency(company),
+        status=Payment.FAILED,
+        gateway=gateway or sub.gateway,
+        error=reason[:300],
+    )
     _email(
         company,
         "billing/payment_failed",
         {
             "plan_name": company.plan.name if company.plan_id else "",
-            "amount": fmt(amount),
+            "amount": fmt(amount, company_currency(company)),
             "reason": reason,
             "grace_until": timezone.localtime(sub.grace_until).strftime("%d %b %Y"),
         },
@@ -901,6 +1128,92 @@ def webhook(body, signature):
     return "ignored"
 
 
+def _ended(company, sub, gateway_id):
+    """The gateway ended the subscription: now (period over) or at the end of the paid period."""
+    if sub.gateway_subscription_id == gateway_id and sub.status != S.CANCELLED:
+        end = sub.current_period_end
+        if not end or end <= timezone.now():
+            sub.status = S.CANCELLED
+            sub.save(update_fields=["status", "updated_at"])
+            hold(company, "The subscription has ended.")
+        else:
+            sub.cancel_at_period_end = True
+            sub.save(update_fields=["cancel_at_period_end", "updated_at"])
+    return "cancelled"
+
+
+# ------------------------------------------------------------------ Stripe webhooks (SEC-13)
+def stripe_webhook(body, signature):
+    """Stripe events → payments and subscription state. Returns a short result for the log."""
+    p = stripe.provider()
+    if not p:
+        raise ProviderError("Payments are not set up.")
+    stripe.verify_webhook(p, body, signature)
+    event = json.loads(body)
+    kind, obj = event.get("type", ""), (event.get("data") or {}).get("object") or {}
+    if kind.startswith("checkout.session."):
+        with platform_context():
+            payment = (
+                Payment.all_companies.select_related("company")
+                .filter(gateway=S.STRIPE, gateway_order_id=obj.get("id", ""))
+                .first()
+            )
+        if not payment or payment.status == Payment.CAPTURED:
+            return "ignored"
+        with company_context(payment.company_id):
+            if kind in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+                done = _stripe_session_paid(payment.company, payment, obj)
+                return "checkout paid" if done else "checkout pending"
+            if kind in ("checkout.session.expired", "checkout.session.async_payment_failed"):
+                payment.status = Payment.FAILED
+                payment.error = "The payment page expired." if kind.endswith("expired") else "The payment failed."
+                payment.save(update_fields=["status", "error", "updated_at"])
+                return "checkout failed"
+        return "ignored"
+    if kind in ("invoice.paid", "invoice.payment_failed"):
+        sub = _sub_by_gateway(obj.get("subscription") or "")
+        if not sub:
+            return "unknown subscription"  # the first invoice: applied with checkout.session.completed
+        company = sub.company
+        with company_context(company.id):
+            sub = subscription(company)
+            if kind == "invoice.payment_failed":
+                error = (obj.get("last_finalization_error") or {}).get("message") or "the card was declined"
+                _payment_failed(company, sub, int(obj.get("amount_due") or 0), error, S.STRIPE)
+                return "past due"
+            if obj.get("billing_reason") != "subscription_cycle":
+                return "ignored"  # first invoice (checkout) or a change without a charge
+            plan, interval = sub.pending_plan or company.plan, sub.pending_interval or sub.interval
+            payment = Payment(
+                company=company,
+                amount_paise=int(obj.get("amount_paid") or 0),
+                currency=str(obj.get("currency") or company_currency(company)).upper(),
+                purpose="subscription",
+                gateway=S.STRIPE,
+                data={"plan": plan.key, "interval": interval},
+            )
+            start, end = stripe.period(obj)
+            _paid(
+                company,
+                payment,
+                obj.get("id", ""),
+                plan,
+                interval,
+                start=_ts(start),
+                end=_ts(end),
+                gateway_sub=obj.get("subscription") or "",
+                method="card",
+            )
+            return "charged"
+    if kind == "customer.subscription.deleted":
+        sub = _sub_by_gateway(obj.get("id", ""))
+        if not sub:
+            return "unknown subscription"
+        with company_context(sub.company_id):
+            return _ended(sub.company, subscription(sub.company), obj.get("id"))
+    return "ignored"
+
+
 def _ts(value):
     from datetime import datetime
 
@@ -919,7 +1232,12 @@ def _subscription_event(company, sub, kind, rsub, pay):
             interval = notes.get("interval") or sub.interval
         payment = Payment.objects.filter(
             company=company, gateway_order_id=rsub.get("id", ""), status=Payment.CREATED
-        ).first() or Payment(company=company, amount_paise=int(pay.get("amount") or 0), purpose="subscription")
+        ).first() or Payment(
+            company=company,
+            amount_paise=int(pay.get("amount") or 0),
+            currency=str(pay.get("currency") or company_currency(company)).upper(),
+            purpose="subscription",
+        )
         payment.amount_paise = int(pay.get("amount") or payment.amount_paise)
         payment.data = {**(payment.data or {}), "plan": plan.key, "interval": interval}
         _paid(
@@ -938,16 +1256,7 @@ def _subscription_event(company, sub, kind, rsub, pay):
         _payment_failed(company, sub, int(pay.get("amount") or 0), str(pay.get("error_description") or "declined"))
         return "past due"
     if kind in ("subscription.cancelled", "subscription.completed"):
-        if sub.gateway_subscription_id == rsub.get("id") and sub.status != S.CANCELLED:
-            end = sub.current_period_end
-            if not end or end <= timezone.now():
-                sub.status = S.CANCELLED
-                sub.save(update_fields=["status", "updated_at"])
-                hold(company, "The subscription has ended.")
-            else:
-                sub.cancel_at_period_end = True
-                sub.save(update_fields=["cancel_at_period_end", "updated_at"])
-        return "cancelled"
+        return _ended(company, sub, rsub.get("id"))
     if kind == "subscription.authenticated" and sub.gateway_subscription_id != rsub.get("id"):
         # a new mandate (resumed after a cancellation, or the first checkout): renewals continue on it
         if sub.cancel_at_period_end and sub.status == S.ACTIVE:
@@ -964,6 +1273,7 @@ def run(now=None):
     now = now or timezone.now()
     done = 0
     with platform_context():
+        currency.refresh_if_due(now)
         companies = list(Company.objects.filter(status__in=(Company.TRIAL, Company.ACTIVE), deleted_at__isnull=True))
     for company in companies:
         with company_context(company.id):
@@ -1021,7 +1331,7 @@ def _manual_renewal(company, sub, now):
         manual_invoice(
             company,
             period_text(plan, interval, start, end),
-            taxable(amount, plan),
+            taxable(amount, plan, company),
             plan=plan,
             interval=interval,
             period=(start, end),
@@ -1031,6 +1341,6 @@ def _manual_renewal(company, sub, now):
         sub.status = S.PAST_DUE
         sub.grace_until = inv.due_at + timedelta(days=setting("billing.grace_days"))
         sub.save(update_fields=["status", "grace_until", "updated_at"])
-        _alert(company, f"Invoice {inv.number} is overdue", f"Pay {fmt(inv.total_paise)} in Billing.")
+        _alert(company, f"Invoice {inv.number} is overdue", f"Pay {fmt(inv.total_paise, inv.currency)} in Billing.")
         return 1
     return 0

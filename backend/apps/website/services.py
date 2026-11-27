@@ -25,8 +25,32 @@ def site_sections() -> dict:
     return {s["type"]: s["content"] for s in sections}
 
 
-def public_plans():
-    return Plan.objects.filter(is_public=True, status=Plan.ACTIVE)
+def public_plans(code=""):
+    """Public plans; with a currency each carries .monthly / .yearly (minor units in it, None = not priced)."""
+    from apps.billing import currency
+
+    plans = list(Plan.objects.filter(is_public=True, status=Plan.ACTIVE).prefetch_related("prices"))
+    if code:
+        rows = currency.offered()
+        for plan in plans:
+            plan.monthly = currency.plan_amount(plan, "monthly", code, rows)
+            plan.yearly = currency.plan_amount(plan, "yearly", code, rows)
+    return plans
+
+
+def region_context(request):
+    """The visitor's country and currency, and the currencies the price switcher offers."""
+    from apps.billing import currency, region
+    from apps.billing.services import seller_country
+
+    country, code = region.visitor_country(request), region.visitor_currency(request)
+    return {
+        "country": country,
+        "country_name": currency.country_name(country),
+        "currency": code,
+        "currencies": region.sellable(),
+        "pays_gst": country == seller_country(),
+    }
 
 
 def active_industries():

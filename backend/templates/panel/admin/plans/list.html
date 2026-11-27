@@ -1,5 +1,5 @@
 {% extends 'panel/admin/layout.html' %}
-{% load admin_tags %}
+{% load admin_tags panel_tags %}
 {% block title %}Plans & Pricing{% endblock %}
 {% block page_content %}
 <div class="card mt-3">
@@ -11,8 +11,8 @@
         <thead class="table-light"><tr><th>Plan</th><th>Monthly</th><th>Yearly</th><th>Public</th><th>Status</th><th>Companies</th></tr></thead>
         <tbody>{% for p in plans %}<tr>
             <td>{% if can_manage %}<a href="{% url 'superadmin:plan_edit' p.pk %}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}<div class="text-muted small">{{ p.key }}</div></td>
-            <td>{% if p.is_custom and p.price_monthly_paise is None %}Custom{% else %}{{ p.price_monthly_paise|inr }}{% endif %}</td>
-            <td>{{ p.price_yearly_paise|inr }}</td><td>{{ p.is_public|yesno:"Yes,No" }}</td><td>{{ p.get_status_display }}</td><td>{{ p.companies_count }}</td>
+            <td>{% if p.is_custom and p.price_monthly_paise is None %}Custom{% else %}{{ p.price_monthly_paise|money_short }}{% endif %}{% for x in p.prices.all %}<div class="small text-muted">{{ x.monthly_paise|money_short:x.currency }}</div>{% endfor %}</td>
+            <td>{{ p.price_yearly_paise|money_short }}{% for x in p.prices.all %}<div class="small text-muted">{{ x.yearly_paise|money_short:x.currency }}</div>{% endfor %}</td><td>{{ p.is_public|yesno:"Yes,No" }}</td><td>{{ p.get_status_display }}</td><td>{{ p.companies_count }}</td>
         </tr>{% endfor %}</tbody>
     </table></div>
     <div class="card-footer text-muted small">Prices and limits are edited here only; the website and the company panels read them live.</div>

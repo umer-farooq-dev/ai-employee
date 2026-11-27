@@ -87,6 +87,7 @@ MIDDLEWARE = [
     "apps.accounts.middleware.Require2FAMiddleware",
     "apps.accounts.middleware.TimezoneMiddleware",
     "apps.accounts.middleware.MaintenanceMiddleware",
+    "apps.billing.region.RegionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -104,6 +105,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.platform_config.context_processors.platform",
+                "apps.billing.region.context",
             ],
         },
     },

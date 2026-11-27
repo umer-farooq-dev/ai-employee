@@ -203,6 +203,7 @@ CONTENT = {
     ("home", "pricing"): {
         **heading("Pricing", "Simple Plans For Every Business"),
         "subtext": "Start with a free trial. Prices exclude GST.",
+        "subtext_abroad": "Start with a free trial.",
         "monthly_label": "Monthly",
         "yearly_label": "Yearly",
         "yearly_saving_text": "",
@@ -391,6 +392,7 @@ CONTENT = {
     ("pricing", "pricing"): {
         **heading("Plans", "Choose Your Plan"),
         "subtext": "Prices exclude GST.",
+        "subtext_abroad": "",
         "monthly_label": "Monthly",
         "yearly_label": "Yearly",
         "yearly_saving_text": "",

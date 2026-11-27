@@ -159,6 +159,7 @@ SECTION_TYPES = [
         HEADING
         + [
             f("subtext", "Sub-text", "textarea"),
+            f("subtext_abroad", "Sub-text for visitors abroad (shown instead; empty = no sub-text)", "textarea"),
             f("monthly_label", "Monthly toggle label"),
             f("yearly_label", "Yearly toggle label"),
             f("yearly_saving_text", "Yearly saving text"),

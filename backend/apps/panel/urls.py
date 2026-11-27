@@ -36,6 +36,7 @@ urlpatterns = [
     path("app/billing/plans/", billing_views.plans_page, name="billing_plans"),
     path("app/billing/checkout/", billing_views.checkout, name="billing_checkout"),
     path("app/billing/confirm/", billing_views.confirm, name="billing_confirm"),
+    path("app/billing/return/", billing_views.stripe_return, name="billing_return"),
     path("app/billing/invoices/<uuid:pk>/pdf/", billing_views.invoice_pdf, name="billing_invoice_pdf"),
     path("app/notifications/", alerts_views.notifications, name="notifications"),
     path("app/campaigns/", campaign_views.campaign_list, name="campaigns"),
