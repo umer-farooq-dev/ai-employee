@@ -14,6 +14,7 @@
         {% if c.main_video %}
         <div class="hero-video">
           <video src="{{ c.main_video }}"{% if c.main_image %} poster="{{ c.main_image }}"{% endif %} autoplay muted loop playsinline preload="auto" aria-label="{{ c.heading }}"></video>
+          <span class="hero-video-hint" aria-hidden="true"><i class="fa-solid fa-volume-high"></i> Tap for sound</span>
           <button type="button" class="hero-video-sound" aria-pressed="false" aria-label="Turn sound on"><i class="fa-solid fa-volume-xmark" aria-hidden="true"></i></button>
         </div>
         <style>
@@ -22,6 +23,10 @@
           .hero-video video { width: 100%; height: 100%; object-fit: cover; display: block; }
           .hero-video-sound { position: absolute; right: 16px; bottom: 16px; width: 46px; height: 46px; border: 0; border-radius: 50%;
             background: rgba(10, 20, 35, .7); color: #fff; font-size: 18px; backdrop-filter: blur(6px); cursor: pointer; transition: transform .2s; }
+          .hero-video-hint { position: absolute; left: 16px; bottom: 16px; padding: 8px 14px; border-radius: 999px; background: rgba(10, 20, 35, .7);
+            color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(6px); pointer-events: none; animation: heroHint 1.6s ease-in-out infinite; }
+          .hero-video-hint[hidden] { display: none; }
+          @keyframes heroHint { 50% { opacity: .65; } }
           .hero-video-sound:hover, .hero-video-sound:focus-visible { transform: scale(1.08); outline: 2px solid #fff; outline-offset: 2px; }
           /* desktop: from its column (the gutter keeps it clear of the text) towards the screen edge: 48px short of it, at most 120px past the column;
              (100vw - container width) / 2 is the space between the container and the screen edge */
@@ -32,19 +37,34 @@
           @media (max-width: 991px) { .hero-video { margin-top: 30px; } }
         </style>
         <script>
+          // Sound on from the start where the browser allows it; browsers block sound before the first click or tap,
+          // so then the video plays muted and the narration starts from the beginning on the visitor's first tap.
           document.querySelectorAll(".hero-video").forEach(function (box) {
-            var video = box.querySelector("video"), button = box.querySelector("button"), heard = false;
+            var video = box.querySelector("video"), button = box.querySelector("button"), hint = box.querySelector(".hero-video-hint");
             if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-              video.removeAttribute("autoplay"); video.pause(); video.controls = true;
+              video.removeAttribute("autoplay"); video.pause(); video.controls = true; hint.hidden = true; return;
             }
-            button.addEventListener("click", function () {
-              video.muted = !video.muted;
-              if (!video.muted && !heard) { heard = true; video.currentTime = 0; }  // the narration from its first line
-              if (!video.muted) { video.play(); }
+            function show() {
               button.setAttribute("aria-pressed", String(!video.muted));
               button.setAttribute("aria-label", video.muted ? "Turn sound on" : "Turn sound off");
               button.firstElementChild.className = "fa-solid " + (video.muted ? "fa-volume-xmark" : "fa-volume-high");
-            });
+              hint.hidden = !video.muted;
+            }
+            function soundOn(fromStart) {
+              video.muted = false;
+              if (fromStart) video.currentTime = 0;
+              video.play().catch(function () { video.muted = true; }).then(show);
+              show();
+            }
+            function firstTap(e) {
+              ["pointerdown", "keydown", "touchstart"].forEach(function (t) { document.removeEventListener(t, firstTap, true); });
+              if (video.muted && !button.contains(e.target)) soundOn(true);
+            }
+            ["pointerdown", "keydown", "touchstart"].forEach(function (t) { document.addEventListener(t, firstTap, true); });
+            video.muted = false;
+            video.play().then(show).catch(function () { video.muted = true; video.play(); show(); });
+            button.addEventListener("click", function () { if (video.muted) { soundOn(video.currentTime > 0 && !box.dataset.heard); box.dataset.heard = "1"; } else { video.muted = true; show(); } });
+            video.addEventListener("volumechange", function () { if (!video.muted) box.dataset.heard = "1"; });
           });
         </script>
         {% else %}

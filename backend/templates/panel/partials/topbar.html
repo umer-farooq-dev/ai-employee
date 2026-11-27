@@ -24,6 +24,7 @@
                 </li>
                 {% endif %}
                 {% if request.company and not request.user.is_staff %}{% company_can "handoffs.receive" as receives %}{% if receives %}{% include 'panel/partials/handoff_pop.html' %}{% endif %}{% endif %}
+                {% if request.company and not request.user.is_staff %}<li class="topbar-item"><a class="nav-link nav-icon" href="{% url 'panel:company_home' %}?tour=1" title="Take the tour" aria-label="Take the tour"><i class="iconoir-help-circle"></i></a></li>{% endif %}
                 {% if request.company and not request.user.is_staff %}{% include 'panel/partials/bell.html' %}{% endif %}
                 <li class="dropdown topbar-item">
                     <a class="nav-link dropdown-toggle arrow-none nav-icon" data-bs-toggle="dropdown" href="#" role="button"

@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -73,8 +73,33 @@ def dashboard(request):
             "template_update": templates.update_available(company),
             "can_manage": has_perm(request.user, "company.manage", company),
             "stats": _dashboard_stats(request.user, company),
+            "show_tour": _tour_due(request),
         },
     )
+
+
+def _tour_due(request):
+    """The guided tour opens on a person's first visit after approval (and with ?tour=1); staff on support login
+    never get it."""
+    from apps.tenancy.models import Membership
+
+    if request.GET.get("tour") == "1":
+        return True
+    if request.user.is_staff:
+        return False
+    return Membership.objects.filter(company=request.company, user=request.user, tour_done_at__isnull=True).exists()
+
+
+@require_POST
+@company_perm("company.view")
+def tour_done(request):
+    """The tour was finished or skipped: it does not open by itself again."""
+    from apps.tenancy.models import Membership
+
+    Membership.objects.filter(company=request.company, user=request.user, tour_done_at__isnull=True).update(
+        tour_done_at=timezone.now()
+    )
+    return HttpResponse(status=204)
 
 
 def _dashboard_stats(user, company):

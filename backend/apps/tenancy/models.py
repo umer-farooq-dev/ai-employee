@@ -123,6 +123,7 @@ class Membership(TenantModel):
     role = models.ForeignKey("rbac.Role", on_delete=models.PROTECT, limit_choices_to={"scope": "company"})
     status = models.CharField(max_length=20, choices=STATUSES, default=ACTIVE)
     joined_at = models.DateTimeField(null=True, blank=True)
+    tour_done_at = models.DateTimeField(null=True, blank=True, help_text="Finished or skipped the panel tour")
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["company", "user"], name="uniq_membership")]
