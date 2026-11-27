@@ -40,20 +40,35 @@ def public_plans(code=""):
     return plans
 
 
+# how a limit reads on a pricing card: (singular, plural)
+LIMIT_TEXT = {
+    "ai_employees": ("{n} AI Employee", "{n} AI Employees"),
+    "users": ("{n} team member", "{n} team members"),
+    "voice_minutes": ("{n} voice minute a month", "{n} voice minutes a month"),
+    "calls": ("{n} call a month", "{n} calls a month"),
+    "whatsapp_conversations": ("{n} WhatsApp conversation a month", "{n} WhatsApp conversations a month"),
+    "ai_credits": ("{n} AI credit a month", "{n} AI credits a month"),
+    "concurrent_calls": ("{n} call at the same time", "{n} calls at the same time"),
+    "campaigns": ("{n} active campaign", "{n} active campaigns"),
+    "kb_storage_mb": ("{n} MB knowledge storage", "{n} MB knowledge storage"),
+    "kb_sources": ("{n} knowledge source", "{n} knowledge sources"),
+    "custom_fields": ("{n} custom CRM field", "{n} custom CRM fields"),
+}
+
+
 def plan_points(plan):
-    """What a plan includes, from Super Admin → Plans: its feature bullets, then the limits that are set; a plan
-    without bullets also lists the features switched on for it."""
+    """What a plan includes, from Super Admin → Plans: the limits that are set, the features switched on for it, then
+    its own bullet points (e.g. "Dedicated onboarding")."""
     from apps.billing.models import ENTITLEMENTS, FEATURES
 
-    points = list(plan.features or [])
     limits = {e.key: e.limit_value for e in plan.entitlements.all() if e.limit_value}
+    points = []
     for key, label in ENTITLEMENTS:
         if key in limits:
-            text = label if label[:2].isupper() else label[0].lower() + label[1:]
-            points.append(f"{limits[key]:,} {text}")
-    if not plan.features:
-        points += [label for key, label in FEATURES if (plan.flags or {}).get(key, True)]
-    return points
+            one, many = LIMIT_TEXT.get(key, (f"{{n}} {label}", f"{{n}} {label}"))
+            points.append((one if limits[key] == 1 else many).format(n=f"{limits[key]:,}"))
+    points += [label for key, label in FEATURES if (plan.flags or {}).get(key, True)]
+    return points + list(plan.features or [])
 
 
 def region_context(request):
