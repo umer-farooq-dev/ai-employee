@@ -319,3 +319,17 @@ def test_super_admin_currencies_plan_prices_and_company_terms(admin_client, us_c
     )
     co = Company.objects.get(pk=us_co.pk)
     assert (co.currency, co.country) == ("PKR", "PK")
+
+
+def test_plan_cards_list_limits_and_only_the_plans_features(db):
+    from apps.billing.models import PlanEntitlement
+    from apps.website.services import plan_points
+
+    plan = Plan.objects.get(key="starter")
+    PlanEntitlement.objects.update_or_create(plan=plan, key="ai_employees", defaults={"limit_value": 1})
+    PlanEntitlement.objects.update_or_create(plan=plan, key="voice_minutes", defaults={"limit_value": 1500})
+    plan.flags, plan.features = {"recordings": False}, ["Email support"]
+    plan.save()
+    points = plan_points(plan)
+    assert points[:2] == ["1 AI Employee", "1,500 voice minutes a month"]
+    assert "Call recordings" not in points and "WhatsApp" in points and points[-1] == "Email support"
