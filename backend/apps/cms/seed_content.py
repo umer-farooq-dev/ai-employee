@@ -36,8 +36,8 @@ FAQ_ITEMS = [
     },
     {
         "question": "Which languages does it speak?",
-        "answer": "Hindi, English and Bengali at launch, including mixed Hinglish. More Indian languages are added "
-        "over time.",
+        "answer": "English, Urdu, Hindi and Bengali today, including mixed speech like Hinglish. More languages are "
+        "added over time, and each business chooses the ones its customers speak.",
     },
     {
         "question": "Does it make up prices or offers?",
@@ -72,7 +72,7 @@ CONTENT = {
     },
     ("site", "footer"): {
         "badges": [
-            {"icon": IMG + "icons/footer-icon1.png", "text": "Works 24/7 in Indian languages"},
+            {"icon": IMG + "icons/footer-icon1.png", "text": "Works 24/7 in your customers' languages"},
             {"icon": IMG + "icons/footer-icon2.png", "text": "Serious about security & privacy"},
             {"icon": IMG + "icons/footer-icon3.png", "text": "Your data stays separate from every other business"},
         ],
@@ -97,7 +97,7 @@ CONTENT = {
     # ---------------------------------------------------------------- home
     ("home", "hero"): {
         **heading("Your 24/7 AI workforce", "Hire An AI Employee For Your Business"),
-        "paragraph": "It answers calls, WhatsApp and website chats in Hindi, English and Bengali, qualifies your leads "
+        "paragraph": "It answers calls, WhatsApp and website chats in your customers' language, qualifies your leads "
         "and books appointments — while your team focuses on closing.",
         "button": REGISTER,
         "main_image": IMG + "hero/hero9-main.png",
@@ -166,7 +166,7 @@ CONTENT = {
             {
                 "icon": IMG + "icons/system-icon1.svg",
                 "title": "Speaks your customers' language",
-                "text": "Hindi, English, Bengali and mixed Hinglish.",
+                "text": "English, Urdu, Hindi, Bengali and more, even when customers mix languages.",
                 "url": "",
             },
             {
@@ -348,7 +348,7 @@ CONTENT = {
             {
                 "badge": "Voice",
                 "title": "Human-like phone calls",
-                "text": "Answers and makes calls in Indian languages, transfers to your team when needed.",
+                "text": "Answers and makes calls in your customers' languages, transfers to your team when needed.",
                 "image": IMG + "features/features-page-stapes1.png",
                 "button": {"label": "", "url": ""},
             },
@@ -401,7 +401,7 @@ CONTENT = {
     ("pricing", "faq"): {**heading("FAQ", "Pricing Questions"), "items": []},
     ("about", "page_hero"): {
         "heading": "About Us",
-        "paragraph": "We help Indian businesses answer every customer, every time.",
+        "paragraph": "We help businesses answer every customer, every time.",
         "button": DEMO,
         "button2": {"label": "", "url": ""},
         "image": IMG + "about/about-main-img.png",
@@ -439,8 +439,8 @@ CONTENT = {
             },
             {
                 "icon": IMG + "icons/about-page-sec-icon3.png",
-                "title": "Built for India",
-                "text": "Indian languages, Indian numbers, Indian businesses.",
+                "title": "Built for every market",
+                "text": "Local languages, local phone numbers and prices in your customers' currency.",
                 "url": "",
             },
         ],
