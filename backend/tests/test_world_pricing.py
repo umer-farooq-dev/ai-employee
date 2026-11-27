@@ -115,7 +115,7 @@ def test_website_prices_follow_the_visitor(client, rates):
     india = client.get("/pricing/").content.decode()
     assert "₹2,999" in india
     us = client.get("/pricing/", HTTP_CF_IPCOUNTRY="US").content.decode()
-    assert "$36" in us and "₹2,999" not in us and 'value="USD" selected' in us
+    assert "$36" in us and "₹2,999" not in us and "Prices in" not in us
     picked = client.get("/pricing/?currency=PKR", HTTP_CF_IPCOUNTRY="US")
     assert "Rs 10,000" in picked.content.decode() and picked.cookies["currency"].value == "PKR"
     assert "Rs 10,000" in client.get("/pricing/", HTTP_CF_IPCOUNTRY="US").content.decode()  # remembered

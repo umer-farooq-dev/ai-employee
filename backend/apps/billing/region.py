@@ -47,13 +47,6 @@ def visitor_currency(request):
     return request._currency
 
 
-def sellable(rows=None):
-    """[(code, name)] the visitor can switch prices to: the base currency and active currencies with a rate."""
-    rows = currency.offered() if rows is None else rows
-    codes = {currency.base(), *(code for code, row in rows.items() if row.rate)}
-    return [(code, f"{code} — {currency.name(code)}") for code in sorted(codes)]
-
-
 def context(request):
     """{{ visitor_country }} in every template (phone fields start on it); worked out only when a template uses it."""
     from django.utils.functional import SimpleLazyObject
