@@ -150,6 +150,15 @@ VENDORS = {
         "config": [("key_id", "Key ID", "rzp_test_…", True)],
         "base_url": "https://api.razorpay.com",
     },
+    # Worldwide payments in the customer's currency. Secret key from Stripe → Developers → API keys (test: sk_test_…);
+    # webhook endpoint <site>/webhooks/stripe/ with its signing secret (whsec_…).
+    "stripe": {
+        "label": "Stripe",
+        "secret": "Secret key (sk_live_… or sk_test_…)",  # nosec B105 — field label, not a secret
+        "webhook_secret": "Webhook signing secret (whsec_…): renewals, failed payments",  # nosec B105 — label
+        "config": [],
+        "base_url": "https://api.stripe.com",
+    },
     "fcm": {
         "label": "Firebase Cloud Messaging (mobile app)",
         "secret": "Service account JSON",  # nosec B105 — field label, not a secret
@@ -298,6 +307,10 @@ def test(provider, timeout=30):
         from apps.billing.razorpay import test as razorpay_test
 
         return razorpay_test(provider, timeout)
+    if v == "stripe":
+        from apps.billing.stripe import test as stripe_test
+
+        return stripe_test(provider, timeout)
     if v == "meta_whatsapp":
         data = _request("GET", f"{base}/me?fields=id,name", {"Authorization": f"Bearer {key}"}, timeout=timeout)
         note = "" if provider.webhook_secret else " · add the app secret to receive messages"

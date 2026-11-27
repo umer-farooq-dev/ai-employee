@@ -26,6 +26,7 @@ class Plan(BaseModel):
     key = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    # in the base currency's minor unit (System Settings → Localisation → Currency); other currencies: PlanPrice
     price_monthly_paise = models.BigIntegerField(null=True, blank=True, help_text="Empty = custom / on request")
     price_yearly_paise = models.BigIntegerField(null=True, blank=True)
     gst_rate = models.DecimalField(
@@ -49,6 +50,42 @@ class Plan(BaseModel):
     @property
     def price_monthly_inr(self):
         return None if self.price_monthly_paise is None else self.price_monthly_paise / 100
+
+
+class PlanPrice(BaseModel):
+    """A plan's own price in one currency (minor units). Missing = converted from the base price at the rate."""
+
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="prices")
+    currency = models.CharField(max_length=3)
+    monthly_paise = models.BigIntegerField(null=True, blank=True)
+    yearly_paise = models.BigIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["currency"]
+        constraints = [models.UniqueConstraint(fields=["plan", "currency"], name="uniq_plan_price_currency")]
+
+
+class Currency(BaseModel):
+    """A currency the platform can charge in (Super Admin → Billing → Currencies). Names and symbols: CLDR."""
+
+    RAZORPAY, STRIPE = "razorpay", "stripe"
+    GATEWAYS = [(RAZORPAY, "Razorpay"), (STRIPE, "Stripe")]
+
+    code = models.CharField(max_length=3, unique=True)
+    is_active = models.BooleanField(default=False, help_text="Visitors and companies can be charged in it")
+    rate = models.DecimalField(
+        max_digits=18, decimal_places=6, null=True, blank=True, help_text="Units per 1 unit of the base currency"
+    )
+    manual_rate = models.BooleanField(default=False, help_text="Kept as entered; the daily update skips it")
+    rate_updated_at = models.DateTimeField(null=True, blank=True)
+    gateway = models.CharField(max_length=20, choices=GATEWAYS, default=STRIPE)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name_plural = "currencies"
+
+    def __str__(self):
+        return self.code
 
 
 class PlanEntitlement(BaseModel):
@@ -93,7 +130,7 @@ class Subscription(TenantModel):
         (PAST_DUE, "Payment overdue"),
         (CANCELLED, "Cancelled"),
     ]
-    RAZORPAY, MANUAL = "razorpay", "manual"
+    RAZORPAY, STRIPE, MANUAL = "razorpay", "stripe", "manual"
 
     interval = models.CharField(max_length=10, choices=INTERVALS, default="monthly")
     status = models.CharField(max_length=10, choices=STATUSES, default=TRIALING, db_index=True)
@@ -108,11 +145,13 @@ class Subscription(TenantModel):
     failed_payments = models.PositiveSmallIntegerField(default=0)
     last_payment_at = models.DateTimeField(null=True, blank=True)
     reminded_at = models.DateTimeField(null=True, blank=True, help_text="Last trial / renewal reminder")
-    gateway = models.CharField(max_length=20, default=RAZORPAY, help_text="razorpay / manual")
+    gateway = models.CharField(max_length=20, default=RAZORPAY, help_text="razorpay / stripe / manual")
     gateway_subscription_id = models.CharField(max_length=60, blank=True, db_index=True)
     gateway_customer_id = models.CharField(max_length=60, blank=True)
     # SUB-04 enterprise: set by Super Admin for this company only
-    custom_price_paise = models.BigIntegerField(null=True, blank=True, help_text="Price per interval, before GST")
+    custom_price_paise = models.BigIntegerField(
+        null=True, blank=True, help_text="Price per interval in the company's currency, before GST"
+    )
     custom_limits = models.JSONField(
         default=dict, blank=True, help_text='{key: {"limit": n|null, "enforcement": "hard"|"soft", "overage": paise}}'
     )
@@ -147,6 +186,8 @@ class Invoice(TenantModel):
     number = models.CharField(max_length=16, unique=True)
     kind = models.CharField(max_length=15, choices=KINDS, default="subscription")
     status = models.CharField(max_length=5, choices=STATUSES, default=DUE, db_index=True)
+    currency = models.CharField(max_length=3, default="INR", help_text="Amounts are in its minor unit")
+    domestic = models.BooleanField(default=True, help_text="Buyer in the seller's country: GST applies")
     issued_at = models.DateTimeField()
     due_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
@@ -187,6 +228,7 @@ class Payment(TenantModel):
 
     invoice = models.ForeignKey(Invoice, null=True, blank=True, on_delete=models.SET_NULL, related_name="payments")
     amount_paise = models.BigIntegerField()
+    currency = models.CharField(max_length=3, default="INR")
     status = models.CharField(max_length=10, choices=STATUSES, default=CREATED, db_index=True)
     purpose = models.CharField(max_length=20, default="subscription", help_text="subscription / upgrade / invoice")
     gateway = models.CharField(max_length=20, default="razorpay")

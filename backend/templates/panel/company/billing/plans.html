@@ -6,7 +6,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
     <div><a class="small text-muted" href="{% url 'panel:billing' %}">← Billing &amp; Usage</a>
         <h4 class="mb-0 mt-1">Choose your plan</h4>
-        <span class="text-muted small">Prices {% if includes_gst %}include{% else %}are before{% endif %} GST ({{ gst_rate }}%). {% if running %}Upgrades start now and you pay only for the rest of this period; downgrades start at your next renewal.{% else %}Renews automatically; cancel any time.{% endif %}</span></div>
+        <span class="text-muted small">{% if domestic %}Prices {% if includes_gst %}include{% else %}are before{% endif %} GST ({{ gst_rate }}%).{% else %}Prices in {{ currency }}.{% endif %} {% if running %}Upgrades start now and you pay only for the rest of this period; downgrades start at your next renewal.{% else %}Renews automatically; cancel any time.{% endif %}</span></div>
     <div class="btn-group btn-group-sm pl-toggle{% if not has_yearly %} d-none{% endif %}" role="group" aria-label="Billing interval">
         <input type="radio" class="btn-check" name="interval" id="iv-monthly" value="monthly"{% if interval != 'yearly' %} checked{% endif %}><label class="btn btn-outline-secondary" for="iv-monthly">Monthly</label>
         <input type="radio" class="btn-check" name="interval" id="iv-yearly" value="yearly"{% if interval == 'yearly' %} checked{% endif %}><label class="btn btn-outline-secondary" for="iv-yearly">Yearly</label>
@@ -22,15 +22,15 @@
             <p class="text-muted small mb-3" style="min-height:2.4em">{{ c.plan.description|default:"" }}</p>
             {% for iv, p in c.prices.items %}
             <div class="pl-price mb-3" data-interval="{{ iv }}">
-                <div class="pl-amount">{{ p.list|money:False }} <small>/ {% if iv == 'yearly' %}year{% else %}month{% endif %}</small></div>
-                <div class="small text-muted mt-1">{% if includes_gst %}incl. GST{% else %}+ GST = {{ p.quote.total|money }}{% endif %}</div>
+                <div class="pl-amount">{{ p.list|money_short:currency }} <small>/ {% if iv == 'yearly' %}year{% else %}month{% endif %}</small></div>
+                <div class="small text-muted mt-1">{% if not domestic %}{{ currency }}{% elif includes_gst %}incl. GST{% else %}+ GST = {{ p.quote.total|money:currency }}{% endif %}</div>
             </div>
             {% endfor %}
             <div class="pl-price mb-3 pl-none">
                 <div class="pl-amount" style="font-size:1.4rem">Custom</div><div class="small text-muted mt-1">Priced for your business</div></div>
             <ul class="pl-list">
                 {% for f in c.plan.features %}<li><i class="iconoir-check"></i><span>{{ f }}</span></li>{% endfor %}
-                {% for label, e in c.limits %}<li><i class="iconoir-check"></i><span>{% if e.limit_value is None %}Unlimited{% else %}{{ e.limit_value }}{% endif %} {{ label|lower|cut:" / month" }}{% if '/ month' in label %} a month{% endif %}{% if e.enforcement == 'soft' and e.overage_price_paise %} · then {{ e.overage_price_paise|money }} each{% endif %}</span></li>{% endfor %}
+                {% for label, e in c.limits %}<li><i class="iconoir-check"></i><span>{% if e.limit_value is None %}Unlimited{% else %}{{ e.limit_value }}{% endif %} {{ label|lower|cut:" / month" }}{% if '/ month' in label %} a month{% endif %}{% if e.enforcement == 'soft' and e.overage_price_paise %} · then {{ e.overage_price_paise|convert:currency|money:currency }} each{% endif %}</span></li>{% endfor %}
             </ul>
             <div class="mt-auto">
                 {% for iv, p in c.prices.items %}
@@ -39,7 +39,7 @@
                     {% elif c.current and iv == sub.interval and running %}<button class="btn btn-light w-100" disabled>Current plan</button>
                     {% elif not online %}<button class="btn btn-outline-secondary w-100" disabled>Online payment coming soon</button>
                     {% elif running and iv == sub.interval and c.upgrade|get:iv %}<button class="btn btn-primary w-100" data-pay='{"what":"plan","plan":"{{ c.plan.pk }}","interval":"{{ iv }}"}'>Upgrade now</button>
-                        <div class="small text-muted text-center mt-1">Pay {{ c.upgrade|get:iv|money }} + GST for the rest of this period</div>
+                        <div class="small text-muted text-center mt-1">Pay {{ c.upgrade|get:iv|money:currency }}{% if domestic %} + GST{% endif %} for the rest of this period</div>
                     {% elif running %}<button class="btn btn-outline-primary w-100" data-pay='{"what":"plan","plan":"{{ c.plan.pk }}","interval":"{{ iv }}"}'>Switch at renewal</button>
                         <div class="small text-muted text-center mt-1">From {{ sub.current_period_end|date:"d M Y" }}</div>
                     {% else %}<button class="btn btn-primary w-100" data-pay='{"what":"plan","plan":"{{ c.plan.pk }}","interval":"{{ iv }}"}'>Choose {{ c.plan.name }}</button>{% endif %}

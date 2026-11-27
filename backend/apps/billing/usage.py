@@ -84,7 +84,11 @@ def current(company, key, now=None):
 
 
 def overview(company, now=None):
-    """USE-02 / USE-03: every limit with its use, what is left, and the overage so far for soft limits."""
+    """USE-02 / USE-03: every limit with its use, what is left, and the overage so far for soft limits (overage
+    prices are set in the base currency; shown in the company's currency)."""
+    from . import currency
+
+    code = company.currency or currency.base()
     rows = []
     for key, label in ENTITLEMENTS:
         e = limits.entitlement(company, key)
@@ -102,7 +106,11 @@ def overview(company, now=None):
                 "percent": min(round(count * 100 / cap), 100) if cap else (100 if cap == 0 and count else 0),
                 "enforcement": e["enforcement"],
                 "over": over,
-                "overage_paise": over * (e["overage"] or 0) if e["enforcement"] == "soft" else 0,
+                "overage_paise": (
+                    over * (currency.convert(e["overage"] or 0, code, rounded=False) or 0)
+                    if e["enforcement"] == "soft"
+                    else 0
+                ),
             }
         )
     return rows

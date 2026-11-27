@@ -1,0 +1,59 @@
+{% extends 'panel/admin/layout.html' %}
+{% load panel_tags admin_tags %}
+{% block title %}Currencies{% endblock %}
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+    <div><h4 class="mb-0">Currencies</h4>
+        <div class="text-muted small">Visitors see prices in their country's currency and companies pay in it. Base currency: <strong>{{ base }}</strong> (plan prices are entered in it) · countries without an offered currency pay in <strong>{{ fallback }}</strong>. Both: System Settings → Billing.</div></div>
+    {% if can_manage %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="refresh"><button class="btn btn-sm btn-light"><i class="iconoir-refresh-double me-1"></i>Update exchange rates now</button></form>{% endif %}
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Show">
+                    <a class="btn {% if show == 'active' %}btn-primary{% else %}btn-light{% endif %}" href="?show=active&q={{ q|urlencode }}">On</a>
+                    <a class="btn {% if show != 'active' %}btn-primary{% else %}btn-light{% endif %}" href="?show=all&q={{ q|urlencode }}">All</a>
+                </div>
+                <form method="get" class="d-flex gap-2"><input type="hidden" name="show" value="{{ show }}">
+                    <input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Code or name" aria-label="Search currencies"><button class="btn btn-sm btn-light">Search</button></form>
+            </div>
+            <form method="post">{% csrf_token %}
+            <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+                <thead class="table-light"><tr><th>Currency</th><th class="text-center">On</th><th style="width:150px">Rate (per 1 {{ base }})</th><th class="text-center" title="Keep this rate; the daily update skips it">Manual</th><th style="width:130px">Gateway</th><th>Updated</th></tr></thead>
+                <tbody>{% for r, name in rows %}<tr>
+                    <td><input type="hidden" name="codes" value="{{ r.code }}"><strong>{{ r.code }}</strong> <span class="small text-muted">{{ name }}</span>{% if r.code == base %} <span class="badge bg-light text-dark">base</span>{% endif %}</td>
+                    <td class="text-center"><input class="form-check-input" type="checkbox" name="active_{{ r.code }}" aria-label="{{ r.code }} on"{% if r.is_active %} checked{% endif %}{% if not can_manage %} disabled{% endif %}></td>
+                    <td>{% if r.code == base %}<span class="small text-muted">1</span><input type="hidden" name="rate_{{ r.code }}" value="{{ r.rate|default_if_none:'' }}">{% else %}<input class="form-control form-control-sm" name="rate_{{ r.code }}" value="{{ r.rate|default_if_none:'' }}" inputmode="decimal" aria-label="{{ r.code }} rate"{% if not can_manage %} disabled{% endif %}>{% endif %}</td>
+                    <td class="text-center"><input class="form-check-input" type="checkbox" name="manual_{{ r.code }}" aria-label="{{ r.code }} manual rate"{% if r.manual_rate %} checked{% endif %}{% if not can_manage %} disabled{% endif %}></td>
+                    <td><select class="form-select form-select-sm" name="gateway_{{ r.code }}" aria-label="{{ r.code }} gateway"{% if not can_manage %} disabled{% endif %}>{% for key, label in gateways %}<option value="{{ key }}"{% if key == r.gateway %} selected{% endif %}>{{ label }}{% if not ready|get:key %} (not set up){% endif %}</option>{% endfor %}</select></td>
+                    <td class="small text-muted">{{ r.rate_updated_at|date:"d M Y H:i"|default:"—" }}</td>
+                </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No currencies match.</td></tr>{% endfor %}</tbody>
+            </table></div>
+            {% if can_manage and rows %}<div class="card-footer d-flex justify-content-between align-items-center"><span class="small text-muted">A currency is offered when it is on and has a rate.</span><button class="btn btn-sm btn-primary">Save</button></div>{% endif %}
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">Payment gateways</h5></div><div class="card-body small">
+            <p class="mb-2">Keys: <strong>Voice &amp; Channels → Razorpay / Stripe</strong> (Super Admin only). Each currency is charged through the gateway chosen in the table.</p>
+            <ul class="list-unstyled mb-3">
+                <li>Razorpay: {% if ready.razorpay %}<span class="text-success">ready</span>{% else %}<span class="text-warning">not set up</span>{% endif %}</li>
+                <li>Stripe: {% if ready.stripe %}<span class="text-success">ready</span>{% else %}<span class="text-warning">not set up</span>{% endif %}</li>
+            </ul>
+            <p class="mb-1 fw-semibold">Webhook addresses</p>
+            {% for name, url in hooks.items %}<div class="mb-2">{{ name }}<input class="form-control form-control-sm mt-1" value="{{ url }}" readonly aria-label="{{ name }} webhook address" onclick="this.select()"></div>{% endfor %}
+            <p class="text-muted mb-0">Stripe → Developers → Webhooks → Add endpoint, with the events: {{ stripe_events }}. Paste its signing secret (whsec_…) into the Stripe card.</p>
+        </div></div>
+        <div class="card"><div class="card-header"><h5 class="card-title mb-0">How prices are chosen</h5></div><div class="card-body small text-muted">
+            <ol class="ps-3 mb-0">
+                <li>The visitor's country (Cloudflare) or the currency they pick on the pricing page.</li>
+                <li>The plan's own price in that currency (Plans → Prices in other currencies).</li>
+                <li>Else the base price × the rate, rounded to a clean amount (36, 9,900, 128,000).</li>
+                <li>Customers in your country pay GST; customers abroad get an export invoice without GST.</li>
+            </ol>
+        </div></div>
+    </div>
+</div>
+{% endblock %}

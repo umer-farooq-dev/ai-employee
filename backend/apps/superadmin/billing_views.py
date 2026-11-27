@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from apps.billing import access, gst, reports, usage
+from apps.billing import access, currency, gst, reports, usage
 from apps.billing import services as billing
 from apps.billing.models import (
     ENTITLEMENTS,
@@ -31,12 +31,12 @@ from apps.tenancy.models import Company
 from .views import _errors, page_of, staff_perm
 
 
-def _rupees_to_paise(value, label):
+def _to_minor(value, label, code):
     try:
         amount = Decimal(str(value).strip())
     except (InvalidOperation, ValueError):
-        raise ValidationError(f"{label}: enter an amount in rupees.") from None
-    return int(amount * 100)
+        raise ValidationError(f"{label}: enter an amount in {code}.") from None
+    return currency.to_minor(amount, code)
 
 
 @staff_perm("subscriptions.view")
@@ -149,12 +149,12 @@ def company_billing(request, pk):
                         period = (start, billing.add_period(start, interval))
                         description = description or billing.period_text(plan, interval, *period)
                     if request.POST.get("amount", "").strip() or not period:
-                        amount = _rupees_to_paise(request.POST.get("amount", ""), "Amount")
+                        amount = _to_minor(request.POST.get("amount", ""), "Amount", billing.company_currency(company))
                     else:  # plan period without an amount: the plan's (or the company's custom) price
                         list_price = billing.price(company, plan, interval)
                         if not list_price:
                             raise ValidationError(f"{plan.name} has no {interval} price; enter the amount.")
-                        amount = billing.taxable(list_price, plan)
+                        amount = billing.taxable(list_price, plan, company)
                     inv = billing.manual_invoice(
                         company,
                         description or "Services",
@@ -210,6 +210,12 @@ def company_billing(request, pk):
             "intervals": INTERVALS,
             "price": billing.price(company, company.plan, sub.interval) if company.plan_id else None,
             "state": gst.NAMES.get(gst.state_code(company.gstin, company.state), company.state),
+            "currency": billing.company_currency(company),
+            "base_currency": currency.base(),
+            "domestic": billing.domestic(company),
+            "countries": currency.countries(),
+            "currencies": sorted({currency.base(), *currency.offered()}),
+            "gateway_now": billing.gateway_name(company),
             "can_manage": can_manage,
             "today": timezone.localdate(),
         }
@@ -226,3 +232,82 @@ def usage_report(request):
         months.append((cursor.strftime("%Y-%m"), cursor.strftime("%b %Y")))
         cursor = (cursor - timedelta(days=1)).replace(day=1)
     return render(request, "panel/admin/billing/usage.html", {"data": data, "months": months, "start": start})
+
+
+@staff_perm("plans.view")
+def currencies(request):
+    """Which currencies visitors and companies are charged in, today's rates and the gateway per currency."""
+    from apps.billing import razorpay, stripe
+    from apps.billing.models import Currency
+    from apps.providers.adapters import ProviderError
+
+    can_manage = has_perm(request.user, "plans.manage")
+    q, show = request.GET.get("q", "").strip().upper(), request.GET.get("show", "active")
+    if request.method == "POST" and can_manage:
+        if request.POST.get("op") == "refresh":
+            try:
+                messages.success(request, f"Exchange rates updated for {currency.refresh_rates()} currencies.")
+            except ProviderError as exc:
+                messages.error(request, f"Rates could not be updated: {exc}")
+        else:
+            changed = 0
+            for row in Currency.objects.filter(code__in=request.POST.getlist("codes")):
+                raw = request.POST.get(f"rate_{row.code}", "").strip()
+                try:
+                    rate = Decimal(raw) if raw else None
+                except InvalidOperation:
+                    messages.error(request, f"{row.code}: the rate must be a number.")
+                    continue
+                if rate is not None and rate <= 0:
+                    messages.error(request, f"{row.code}: the rate must be above zero.")
+                    continue
+                new = {
+                    "is_active": f"active_{row.code}" in request.POST,
+                    "manual_rate": f"manual_{row.code}" in request.POST,
+                    "gateway": request.POST.get(f"gateway_{row.code}", row.gateway),
+                    "rate": rate.quantize(Decimal("0.000001")) if rate is not None else None,
+                }
+                if new["gateway"] not in dict(Currency.GATEWAYS):
+                    continue
+                if any(getattr(row, k) != v for k, v in new.items()):
+                    if new["rate"] != row.rate:
+                        row.rate_updated_at = timezone.now()
+                    for k, v in new.items():
+                        setattr(row, k, v)
+                    row.save()
+                    changed += 1
+            from apps.audit.services import record
+
+            record(request, "billing.currencies", "currency", None, changes={"changed": changed})
+            messages.success(request, f"Saved ({changed} changed).")
+        return redirect(f"{request.path}?show={show}&q={q}")
+    rows = Currency.objects.all()
+    if show == "active":
+        rows = rows.filter(is_active=True)
+    if q:
+        rows = [r for r in rows if q in r.code or q in currency.name(r.code).upper()]
+    from django.conf import settings
+    from django.urls import reverse
+
+    base_url = settings.PUBLIC_BASE_URL.rstrip("/")
+    return render(
+        request,
+        "panel/admin/billing/currencies.html",
+        {
+            "rows": [(r, currency.name(r.code)) for r in rows],
+            "base": currency.base(),
+            "fallback": billing.setting("billing.fallback_currency"),
+            "q": q,
+            "show": show,
+            "can_manage": can_manage,
+            "gateways": Currency.GATEWAYS,
+            "ready": {"razorpay": bool(razorpay.provider()), "stripe": bool(stripe.provider())},
+            "hooks": {
+                "Razorpay": base_url + reverse("billing:razorpay_webhook"),
+                "Stripe": base_url + reverse("billing:stripe_webhook"),
+            },
+            "stripe_events": "checkout.session.completed, checkout.session.async_payment_succeeded, "
+            "checkout.session.async_payment_failed, checkout.session.expired, invoice.paid, "
+            "invoice.payment_failed, customer.subscription.deleted",
+        },
+    )

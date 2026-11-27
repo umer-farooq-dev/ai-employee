@@ -38,7 +38,7 @@
                 <td><span class="bl-status {{ s.status }}">{{ s.get_status_display }}</span>{% if s.cancel_at_period_end %} <span class="small text-danger">ending</span>{% endif %}</td>
                 <td>{% if s.manual %}Invoice{% else %}Razorpay{% endif %}</td>
                 <td>{% if s.status == 'trialing' %}<span class="text-muted">trial to {{ s.company.trial_ends_at|date:"d M Y" }}</span>{% else %}{{ s.current_period_end|date:"d M Y"|default:"—" }}{% endif %}</td>
-                <td class="text-end">{% if s.custom_price_paise is not None %}{{ s.custom_price_paise|money:False }}{% elif s.company.plan %}{% if s.interval == 'yearly' %}{{ s.company.plan.price_yearly_paise|money:False }}{% else %}{{ s.company.plan.price_monthly_paise|money:False }}{% endif %}{% endif %} <span class="small text-muted">/{% if s.interval == 'yearly' %}yr{% else %}mo{% endif %}</span></td>
+                <td class="text-end">{% if s.custom_price_paise is not None %}{{ s.custom_price_paise|money_short:s.company.currency }}{% elif s.company.plan %}{% if s.interval == 'yearly' %}{{ s.company.plan.price_yearly_paise|convert:s.company.currency|money_short:s.company.currency }}{% else %}{{ s.company.plan.price_monthly_paise|convert:s.company.currency|money_short:s.company.currency }}{% endif %}{% endif %} <span class="small text-muted">/{% if s.interval == 'yearly' %}yr{% else %}mo{% endif %}</span></td>
                 <td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'superadmin:company_billing' s.company_id %}">Open</a></td>
             </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No subscriptions match.</td></tr>{% endfor %}</tbody>
         </table>
@@ -48,7 +48,7 @@
             <tbody>{% for i in page %}<tr>
                 <td class="fw-medium">{{ i.number }}<div class="small text-muted">{{ i.get_kind_display }}</div></td>
                 <td><a href="{% url 'superadmin:company_billing' i.company_id %}">{{ i.company.name }}</a></td>
-                <td>{{ i.issued_at|date:"d M Y" }}</td><td class="text-end">{{ i.subtotal_paise|money }}</td><td class="text-end">{{ i.tax_paise|money }}</td><td class="text-end fw-semibold">{{ i.total_paise|money }}</td>
+                <td>{{ i.issued_at|date:"d M Y" }}</td><td class="text-end">{{ i.subtotal_paise|money:i.currency }}</td><td class="text-end">{{ i.tax_paise|money:i.currency }}</td><td class="text-end fw-semibold">{{ i.total_paise|money:i.currency }}</td>
                 <td><span class="bl-pill {{ i.status }}">{{ i.get_status_display }}</span>{% if i.status == 'due' and i.due_at %}<div class="small text-muted">by {{ i.due_at|date:"d M" }}</div>{% endif %}</td>
                 <td class="text-end"><a class="btn btn-sm btn-light" target="_blank" rel="noopener" href="{% url 'superadmin:invoice_pdf' i.pk %}">PDF</a>
                     {% if can_manage and i.status == 'due' %}<button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#paid-{{ i.pk }}">Mark paid</button>{% endif %}</td>
@@ -59,7 +59,7 @@
             <thead class="table-light"><tr><th>Date</th><th>Company</th><th class="text-end">Amount</th><th>Status</th><th>For</th><th>Details</th></tr></thead>
             <tbody>{% for p in page %}<tr>
                 <td>{{ p.created_at|date:"d M Y H:i" }}</td><td><a href="{% url 'superadmin:company_billing' p.company_id %}">{{ p.company.name }}</a></td>
-                <td class="text-end">{{ p.amount_paise|money }}</td><td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
+                <td class="text-end">{{ p.amount_paise|money:p.currency }}</td><td><span class="bl-pill {{ p.status }}">{{ p.get_status_display }}</span></td>
                 <td>{{ p.purpose }}{% if p.invoice %} · {{ p.invoice.number }}{% endif %}</td>
                 <td class="small text-muted text-truncate" style="max-width:280px">{{ p.error|default:p.method }}{% if p.gateway_payment_id %} · {{ p.gateway_payment_id }}{% endif %}{% if p.recorded_by %} · by {{ p.recorded_by.email }}{% endif %}</td>
             </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No payments match.</td></tr>{% endfor %}</tbody>
@@ -72,7 +72,7 @@
 <div class="modal fade" id="paid-{{ i.pk }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" action="{% url 'superadmin:invoice_action' i.pk %}">{% csrf_token %}
     <input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="op" value="paid">
     <div class="modal-header"><h5 class="modal-title">Mark {{ i.number }} paid</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-    <div class="modal-body"><p class="small">{{ i.company.name }} · {{ i.total_paise|money }}</p>
+    <div class="modal-body"><p class="small">{{ i.company.name }} · {{ i.total_paise|money:i.currency }}</p>
         <label class="form-label small" for="m-{{ i.pk }}">Method</label><select id="m-{{ i.pk }}" class="form-select form-select-sm mb-2" name="method"><option value="bank">Bank transfer (NEFT / RTGS / IMPS)</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="cash">Cash</option></select>
         <label class="form-label small" for="r-{{ i.pk }}">Reference (UTR, cheque no.)</label><input id="r-{{ i.pk }}" class="form-control form-control-sm" name="reference" required></div>
     <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button><button class="btn btn-success">Mark paid</button></div>

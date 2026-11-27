@@ -31,16 +31,39 @@ def setting(key):
 
 
 @register.filter
-def money(paise, decimals=True):
-    """Paise → "₹1,23,456.00" (Billing); money:False drops the paise."""
+def money(minor, code=""):
+    """Minor units → "₹1,23,456.00" / "$1,234.50" (Billing). money:"USD" names the currency (default: the base
+    currency); money:False drops the decimals in the base currency."""
     from apps.billing.services import fmt
 
-    return "—" if paise is None else fmt(paise, decimals=decimals is not False)
+    if minor is None:
+        return "—"
+    return fmt(minor, decimals=False) if code is False else fmt(minor, code or "")
 
 
 @register.filter
-def rupees(paise):
-    """Paise → "1234.50" for form inputs (empty for None)."""
-    from decimal import Decimal
+def money_short(minor, code=""):
+    """Like money, without decimals: "$49", "₹2,999"."""
+    from apps.billing.services import fmt
 
-    return "" if paise in (None, "") else f"{Decimal(paise) / 100:.2f}".removesuffix(".00")
+    return "—" if minor is None else fmt(minor, code or "", decimals=False)
+
+
+@register.filter
+def convert(minor, code=""):
+    """A base-currency amount in another currency at today's rate (unrounded)."""
+    from apps.billing.currency import convert as to
+
+    return None if minor is None else to(minor, code, rounded=False) if code else minor
+
+
+@register.filter
+def rupees(minor, code=""):
+    """Minor units → "1234.50" for form inputs (empty for None); rupees:"JPY" for another currency."""
+    from apps.billing.currency import base, exponent, to_major
+
+    if minor in (None, ""):
+        return ""
+    code = code or base()
+    text = f"{to_major(minor, code):.{exponent(code)}f}"
+    return text.rstrip("0").rstrip(".") if "." in text and set(text.split(".")[1]) == {"0"} else text

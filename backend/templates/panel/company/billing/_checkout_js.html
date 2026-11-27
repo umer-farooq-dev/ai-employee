@@ -1,6 +1,7 @@
-{# SUB-03: buttons with data-pay='{"what": …}' ask the server for Razorpay checkout options, open the checkout and confirm. #}
+{# SUB-03: buttons with data-pay='{"what": …}' ask the server how to pay: Stripe → its hosted payment page opens;
+   Razorpay → its checkout opens here and the payment is confirmed. #}
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080"><div id="pay-error" class="alert alert-danger shadow-sm d-none mb-0" role="alert"></div></div>
-{% if online %}<script src="{{ checkout_js }}" defer></script>{% endif %}
+{% if online and checkout_js %}<script src="{{ checkout_js }}" defer></script>{% endif %}
 <script>
 (function () {
     var CSRF = "{{ csrf_token }}";
@@ -23,6 +24,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Please wait';
         post("{% url 'panel:billing_checkout' %}", JSON.parse(btn.dataset.pay)).then(function (res) {
             if (!res.ok) return fail(res.d.error || "Something went wrong.", btn);
+            if (res.d.url) { location.href = res.d.url; return; }  // Stripe: hosted payment page, back to Billing after
             if (!res.d.key) { location.href = "{% url 'panel:billing' %}"; return; }  // scheduled change / resumed
             if (typeof Razorpay === "undefined") return fail("The payment window could not load. Check your connection and try again.", btn);
             var opts = Object.assign({}, res.d, {

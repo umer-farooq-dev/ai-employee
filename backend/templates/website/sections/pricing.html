@@ -4,8 +4,24 @@
   <div class="container">
     <div class="row"><div class="col-lg-8 m-auto text-center"><div class="heading9">
       {% include 'website/sections/_heading.html' %}
-      {% if c.subtext %}<div class="space16"></div><p>{{ c.subtext }}</p>{% endif %}
+      {% if region.pays_gst %}{% if c.subtext %}<div class="space16"></div><p>{{ c.subtext }}</p>{% endif %}
+      {% elif c.subtext_abroad %}<div class="space16"></div><p>{{ c.subtext_abroad }}</p>{% endif %}
+      {% if region.currencies|length > 1 %}
+      <div class="space16"></div>
+      <form class="price-currency" method="get" aria-label="Currency">
+        <label for="price-currency">Prices in</label>
+        <select id="price-currency" name="currency" onchange="this.form.submit()">
+          {% for code, label in region.currencies %}<option value="{{ code }}"{% if code == region.currency %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit">Show</button></noscript>
+      </form>
+      {% endif %}
     </div></div></div>
+    <style>
+      .price-currency { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; }
+      .price-currency select { max-width: 260px; padding: 6px 30px 6px 12px; border: 1px solid rgba(0, 0, 0, .15); border-radius: 8px;
+        background: #fff; font-size: 15px; cursor: pointer; }
+    </style>
     <div class="space30"></div>
     <div class="princing-plans">
       {% if c.yearly_label %}

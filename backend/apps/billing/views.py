@@ -1,5 +1,6 @@
-"""Razorpay webhook (SEC-13): /webhooks/razorpay/ — accepted only with a valid X-Razorpay-Signature (webhook secret).
-Renewals, failed payments, cancellations and paid orders update the subscription (apps.billing.services.webhook)."""
+"""Payment webhooks (SEC-13), accepted only with a valid signature (the webhook secret in Super Admin):
+/webhooks/razorpay/ (X-Razorpay-Signature) and /webhooks/stripe/ (Stripe-Signature). Renewals, failed payments,
+cancellations and paid orders update the subscription (apps.billing.services)."""
 
 import logging
 
@@ -21,6 +22,19 @@ def razorpay_webhook(request):
         result = services.webhook(request.body.decode("utf-8"), request.headers.get("X-Razorpay-Signature", ""))
     except ProviderError as exc:
         log.warning("Razorpay webhook refused: %s", exc)
+        return HttpResponseForbidden()
+    except ValueError:
+        return HttpResponse(status=400)
+    return HttpResponse(result)
+
+
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    try:
+        result = services.stripe_webhook(request.body.decode("utf-8"), request.headers.get("Stripe-Signature", ""))
+    except ProviderError as exc:
+        log.warning("Stripe webhook refused: %s", exc)
         return HttpResponseForbidden()
     except ValueError:
         return HttpResponse(status=400)

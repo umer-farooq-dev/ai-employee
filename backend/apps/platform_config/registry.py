@@ -43,13 +43,34 @@ GROUPS = {
     "notifications": ("system", "Team alerts"),
     "campaigns": ("system", "Campaigns"),
     "analytics": ("system", "Dashboard & analytics"),
-    "billing": ("system", "Billing & GST"),
+    "billing": ("system", "Billing, GST & currencies"),
     "support": ("system", "Support"),
     "retention": ("system", "Data retention & privacy"),
     "monitoring": ("system", "Monitoring & alerts"),
 }
 
-TIMEZONES = (("Asia/Kolkata", "Asia/Kolkata (IST)"), ("UTC", "UTC"))
+
+def _timezones():
+    from zoneinfo import available_timezones
+
+    return tuple((z, z.replace("_", " ")) for z in sorted(available_timezones()) if "/" in z or z == "UTC")
+
+
+TIMEZONES = _timezones()
+
+
+def currency_choices():
+    """Every current ISO currency (CLDR reference data)."""
+    from apps.billing.currency import countries, country_currency, name
+
+    codes = sorted({country_currency(c) for c, _ in countries()})
+    return [(code, f"{code} — {name(code)}") for code in codes]
+
+
+def country_choices():
+    from apps.billing.currency import countries
+
+    return list(countries())
 
 
 def plan_choices():
@@ -143,7 +164,16 @@ SETTINGS = [
         help="{year} is replaced with the current year",
     ),
     Setting("locale.timezone", "choice", "Asia/Kolkata", "Timezone", "locale", choices=TIMEZONES),
-    Setting("locale.currency", "choice", "INR", "Currency", "locale", choices=(("INR", "Indian Rupee (₹)"),)),
+    Setting(
+        "locale.currency",
+        "choice",
+        "INR",
+        "Base currency",
+        "locale",
+        choices=currency_choices,
+        help="Plan prices are entered in it. Other currencies use their own plan price or today's exchange rate "
+        "(Billing → Currencies).",
+    ),
     Setting(
         "locale.number_format",
         "choice",
@@ -890,6 +920,48 @@ SETTINGS = [
     ),
     Setting("billing.invoice_due_days", "number", 7, "Manual invoices are due in (days)", "billing", min=0, max=90),
     Setting("billing.invoice_footer", "textarea", "", "Invoice footer (bank details, terms)", "billing"),
+    # Worldwide sales: visitors see prices in their own currency (Billing → Currencies has rates and gateways)
+    Setting(
+        "billing.seller_country",
+        "choice",
+        "IN",
+        "Your country (where the business is registered)",
+        "billing",
+        choices=country_choices,
+        help="Customers in this country pay GST; customers abroad get an invoice without GST (export of services).",
+    ),
+    Setting(
+        "billing.fallback_currency",
+        "choice",
+        "USD",
+        "Currency for countries whose own currency is not offered",
+        "billing",
+        choices=currency_choices,
+    ),
+    Setting(
+        "billing.export_note",
+        "textarea",
+        "Supply meant for export under LUT without payment of integrated tax (IGST).",
+        "Note on invoices to customers abroad",
+        "billing",
+        help="Printed on invoices without GST; ask your accountant for the wording (LUT / bond number).",
+    ),
+    Setting(
+        "billing.fx_auto_update",
+        "boolean",
+        True,
+        "Update exchange rates every day",
+        "billing",
+        help="Currencies with a manually entered rate are left as they are.",
+    ),
+    Setting(
+        "billing.fx_rates_url",
+        "url",
+        "https://open.er-api.com/v6/latest/{base}",
+        "Exchange rates address",
+        "billing",
+        help='A JSON service that answers with {"rates": {"USD": 0.012, …}}; {base} becomes the base currency.',
+    ),
     # Support tickets (SA-19, CP-05)
     Setting(
         "support.categories",

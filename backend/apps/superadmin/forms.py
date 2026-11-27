@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -163,20 +161,32 @@ class RoleForm(BootstrapMixin, forms.ModelForm):
             self.fields["key"].disabled = True
 
 
-def _rupees(paise):
-    """Paise → rupees for a form field (2999, not 2999.0)."""
-    return None if paise is None else Decimal(paise) / 100
+def _rupees(minor, code=""):
+    """Minor units → a form value in the currency (default: the base currency)."""
+    from apps.billing import currency
+
+    return None if minor is None else currency.to_major(minor, code or currency.base())
+
+
+def _minor(value, code=""):
+    from apps.billing import currency
+
+    return None if value is None else currency.to_minor(value, code or currency.base())
+
+
+PREVIEW_CURRENCIES = ("USD", "EUR", "GBP", "AED", "SAR", "PKR", "CAD", "AUD")
+EXTRA_PRICE_ROWS = 3
 
 
 class PlanForm(BootstrapMixin, forms.ModelForm):
     price_monthly = forms.DecimalField(
         required=False,
         min_value=0,
-        decimal_places=2,
-        label="Monthly price (₹)",
+        decimal_places=3,
+        label="Monthly price",
         help_text="Empty = custom / on request",
     )
-    price_yearly = forms.DecimalField(required=False, min_value=0, decimal_places=2, label="Yearly price (₹)")
+    price_yearly = forms.DecimalField(required=False, min_value=0, decimal_places=3, label="Yearly price")
     features_text = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 4}),
@@ -202,8 +212,19 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
         help_texts = {"is_custom": 'Shown as "Custom" pricing; each company\'s terms are set on its Billing page'}
 
     def __init__(self, *args, **kwargs):
+        from apps.billing import currency
+
         super().__init__(*args, **kwargs)
         plan = self.instance
+        base = currency.base()
+        self.fields["price_monthly"].label = f"Monthly price ({base})"
+        self.fields["price_yearly"].label = f"Yearly price ({base})"
+        self.fields[
+            "price_monthly"
+        ].help_text = (
+            "Empty = custom / on request. Other currencies: their own price below, else converted at today's rate."
+        )
+        self._price_rows(plan, base)
         if not plan._state.adding:
             self.fields["key"].disabled = True
             self.initial["price_monthly"] = _rupees(plan.price_monthly_paise)
@@ -218,7 +239,7 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
                 required=False,
                 min_value=0,
                 decimal_places=2,
-                label="Overage price (₹)",
+                label=f"Overage price ({base})",
                 initial=_rupees(ent.overage_price_paise) if ent else None,
             )
             self.fields[f"enforce__{key}"] = forms.ChoiceField(
@@ -239,6 +260,56 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
             if name.startswith("feature__"):
                 field.widget.attrs["class"] = "form-check-input"
 
+    def _price_rows(self, plan, base):
+        from apps.billing import currency
+
+        codes = sorted(c for c in currency.offered() if c != base)
+        choices = [("", "— currency —"), *((c, f"{c} — {currency.name(c)}") for c in codes)]
+        rows = list(plan.prices.all()) if not plan._state.adding else []
+        self.price_count = len(rows) + EXTRA_PRICE_ROWS
+        for i in range(self.price_count):
+            row = rows[i] if i < len(rows) else None
+            code = row.currency if row else ""
+            self.fields[f"cp{i}_currency"] = forms.ChoiceField(
+                required=False, choices=choices, initial=code, label="Currency"
+            )
+            self.fields[f"cp{i}_monthly"] = forms.DecimalField(
+                required=False, min_value=0, label="Monthly", initial=_rupees(row.monthly_paise, code) if row else None
+            )
+            self.fields[f"cp{i}_yearly"] = forms.DecimalField(
+                required=False, min_value=0, label="Yearly", initial=_rupees(row.yearly_paise, code) if row else None
+            )
+
+    def price_rows(self):
+        return [
+            (self[f"cp{i}_currency"], self[f"cp{i}_monthly"], self[f"cp{i}_yearly"]) for i in range(self.price_count)
+        ]
+
+    def auto_prices(self):
+        """What visitors pay in a few currencies without their own price (today's rate, rounded)."""
+        from apps.billing import currency
+
+        plan = self.instance
+        if plan._state.adding or plan.price_monthly_paise is None:
+            return []
+        rows, own = currency.offered(), {p.currency for p in plan.prices.all()}
+        out = []
+        for code in PREVIEW_CURRENCIES:
+            amount = currency.convert(plan.price_monthly_paise, code, rows)
+            if code != currency.base() and code not in own and amount is not None:
+                out.append(currency.fmt(amount, code, decimals=False))
+        return out
+
+    def clean(self):
+        data = super().clean()
+        seen = set()
+        for i in range(self.price_count):
+            code = data.get(f"cp{i}_currency")
+            if code and code in seen:
+                self.add_error(f"cp{i}_currency", f"{code} is listed twice.")
+            seen.add(code)
+        return data
+
     def entitlement_rows(self):
         return [
             (label, self[f"limit__{key}"], self[f"enforce__{key}"], self[f"overage__{key}"])
@@ -249,15 +320,15 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
         return [self[f"feature__{key}"] for key, _ in FEATURES]
 
     def plan_fields(self):
-        return [f for f in self if not f.name.startswith(("limit__", "overage__", "enforce__", "feature__"))]
+        return [f for f in self if not f.name.startswith(("limit__", "overage__", "enforce__", "feature__", "cp"))]
 
     def save(self, commit=True):
-        from apps.billing.models import PlanEntitlement
+        from apps.billing.models import PlanEntitlement, PlanPrice
 
         plan = super().save(commit=False)
         d = self.cleaned_data
-        plan.price_monthly_paise = None if d["price_monthly"] is None else int(d["price_monthly"] * 100)
-        plan.price_yearly_paise = None if d["price_yearly"] is None else int(d["price_yearly"] * 100)
+        plan.price_monthly_paise = _minor(d["price_monthly"])
+        plan.price_yearly_paise = _minor(d["price_yearly"])
         plan.features = [line.strip() for line in d["features_text"].splitlines() if line.strip()]
         plan.flags = {key: bool(d[f"feature__{key}"]) for key, _ in FEATURES}
         plan.save()
@@ -269,9 +340,17 @@ class PlanForm(BootstrapMixin, forms.ModelForm):
                 defaults={
                     "limit_value": d[f"limit__{key}"],
                     "enforcement": d[f"enforce__{key}"] or PlanEntitlement.HARD,
-                    "overage_price_paise": None if overage is None else int(overage * 100),
+                    "overage_price_paise": _minor(overage),
                 },
             )
+        keep = {}
+        for i in range(self.price_count):
+            code, monthly, yearly = d[f"cp{i}_currency"], d[f"cp{i}_monthly"], d[f"cp{i}_yearly"]
+            if code and (monthly is not None or yearly is not None):
+                keep[code] = {"monthly_paise": _minor(monthly, code), "yearly_paise": _minor(yearly, code)}
+        plan.prices.exclude(currency__in=keep).delete()
+        for code, values in keep.items():
+            PlanPrice.objects.update_or_create(plan=plan, currency=code, defaults=values)
         return plan
 
 

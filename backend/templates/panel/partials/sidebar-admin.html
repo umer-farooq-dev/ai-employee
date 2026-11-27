@@ -26,6 +26,7 @@
                     {% if u|can:"calls_oversight.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:calls' %}"><i class="iconoir-phone-income menu-icon"></i><span>Calls</span></a></li>{% endif %}
                     {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:plan_list' %}"><i class="iconoir-wallet menu-icon"></i><span>Plans &amp; Pricing</span></a></li>{% endif %}
                     {% if u|can:"subscriptions.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:billing' %}"><i class="iconoir-credit-card menu-icon"></i><span>Billing</span></a></li>{% endif %}
+                    {% if u|can:"plans.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:currencies' %}"><i class="iconoir-coins menu-icon"></i><span>Currencies</span></a></li>{% endif %}
                     {% if u|can:"usage_reports.view" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:usage' %}"><i class="iconoir-stats-report menu-icon"></i><span>Usage &amp; Margin</span></a></li>{% endif %}
                     <li class="menu-label mt-2"><span>Platform</span></li>
                     {% if u|can:"settings.general" %}<li class="nav-item"><a class="nav-link" href="{% url 'superadmin:general_settings' %}"><i class="iconoir-settings menu-icon"></i><span>General Settings</span></a></li>{% endif %}
