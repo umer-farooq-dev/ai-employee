@@ -39,7 +39,7 @@ def public_plans(code=""):
 
 
 def region_context(request):
-    """The visitor's country and currency, and the currencies the price switcher offers."""
+    """The visitor's country and currency (automatic; ?region=US previews another country)."""
     from apps.billing import currency, region
     from apps.billing.services import seller_country
 
@@ -48,7 +48,6 @@ def region_context(request):
         "country": country,
         "country_name": currency.country_name(country),
         "currency": code,
-        "currencies": region.sellable(),
         "pays_gst": country == seller_country(),
     }
 
