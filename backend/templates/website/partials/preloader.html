@@ -1,3 +1,4 @@
+{# Brand preloader: the platform icon (General Settings → Branding → Small logo) inside the spinning ring. #}
 <div class="overlay flex cac vac preloader-parent" aria-hidden="true">
   <div>
     <div class="loader preloader flex vac">
@@ -5,8 +6,16 @@
         <circle class="background" cx="90" cy="90" r="80" transform="rotate(-90, 100, 90)"/>
         <circle class="outer" cx="90" cy="90" r="80" transform="rotate(-90, 100, 90)"/>
       </svg>
-      <span class="circle-background"></span>
-      <span class="logo animated fade-in"><img src="{% firstof platform.logo_small platform.favicon %}" alt=""></span>
+      <span class="logo animated fade-in brand-preloader-logo"><img src="{% firstof platform.logo_small platform.favicon %}" alt=""></span>
     </div>
   </div>
 </div>
+<style>
+  .overlay.preloader-parent { background: radial-gradient(circle at 50% 45%, #241a5c 0%, #0e0b2b 70%); }
+  .overlay .preloader .logo.brand-preloader-logo { background: none !important; }
+  .overlay .preloader .logo.brand-preloader-logo { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
+  .overlay .preloader .logo.brand-preloader-logo img { width: 110px; height: 110px; animation: brandFloat 1.8s ease-in-out infinite;
+    filter: drop-shadow(0 10px 24px rgba(101, 52, 244, .55)); }
+  .overlay .preloader .outer { stroke: #8B5CFF; }
+  @keyframes brandFloat { 50% { transform: translateY(-6px) scale(1.04); } }
+</style>

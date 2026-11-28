@@ -12,9 +12,14 @@ from apps.platform_config import services as config
 def manifest(request):
     """Name, colours and icon come from General Settings → Branding."""
     icons = [
-        {"src": static("brand/app-icon-192.png"), "sizes": "192x192", "type": "image/png"},
-        {"src": static("brand/app-icon-512.png"), "sizes": "512x512", "type": "image/png"},
-        {"src": static("brand/app-icon-maskable.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        {"src": static("brand/aidra-app-icon-192.png"), "sizes": "192x192", "type": "image/png"},
+        {"src": static("brand/aidra-app-icon-512.png"), "sizes": "512x512", "type": "image/png"},
+        {
+            "src": static("brand/aidra-app-icon-maskable.png"),
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable",
+        },
     ]
     if config.get("general.app_icon"):
         icons = [{"src": config.get("general.app_icon"), "sizes": "512x512", "purpose": "any"}, *icons]
@@ -38,7 +43,7 @@ def service_worker(request):
     response = render(
         request,
         "panel/pwa/sw.js",
-        {"icon": config.get("general.app_icon") or static("brand/app-icon-192.png")},
+        {"icon": config.get("general.app_icon") or static("brand/aidra-app-icon-192.png")},
         content_type="application/javascript",
     )
     response["Service-Worker-Allowed"] = "/"
