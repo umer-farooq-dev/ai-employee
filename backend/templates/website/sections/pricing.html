@@ -9,24 +9,46 @@
     </div></div></div>
     <div class="space30"></div>
     <div class="princing-plans">
-      {% if c.yearly_label %}
-      <div class="row"><div class="col-12 text-center">
-        <div class="plan-toggle-wrap">
-          {% if c.yearly_saving_text %}<p class="pera">{{ c.yearly_saving_text }}</p>{% endif %}
-          <div class="toggle-inner toggle-inner2">
-            <input id="ce-toggle" type="checkbox" checked aria-label="{{ c.monthly_label }} / {{ c.yearly_label }}">
-            <span class="custom-toggle"></span>
-            <span class="t-month">{{ c.monthly_label }}</span>
-            <span class="t-year">{{ c.yearly_label }}</span>
-          </div>
+      {% if c.yearly_label and has_yearly %}
+      <div class="text-center">
+        <div class="billing-switch" role="radiogroup" aria-label="Billing period">
+          <button type="button" class="billing-opt is-on" role="radio" aria-checked="true" data-period="monthly">{{ c.monthly_label }}</button>
+          <button type="button" class="billing-opt" role="radio" aria-checked="false" data-period="yearly">{{ c.yearly_label }}{% if best_saving %} <span class="billing-save">Save {{ best_saving }}%</span>{% endif %}</button>
         </div>
-      </div></div>
+        {% if c.yearly_saving_text %}<p class="pera mt-3 mb-0">{{ c.yearly_saving_text }}</p>{% endif %}
+      </div>
       <div class="space60"></div>
       {% endif %}
       <div class="tab-content">
-        <div id="monthly">{% include 'website/sections/_plans.html' with yearly=False %}</div>
-        {% if c.yearly_label %}<div id="yearly" style="display:none;">{% include 'website/sections/_plans.html' with yearly=True %}</div>{% endif %}
+        <div id="monthly" data-period-panel="monthly">{% include 'website/sections/_plans.html' with yearly=False %}</div>
+        {% if c.yearly_label and has_yearly %}<div id="yearly" data-period-panel="yearly" hidden>{% include 'website/sections/_plans.html' with yearly=True %}</div>{% endif %}
       </div>
     </div>
   </div>
 </div>
+<style>
+  .billing-switch { display: inline-flex; gap: 4px; padding: 5px; border-radius: 999px; background: #F1EEFF; border: 1px solid #E4DEFB; }
+  .billing-opt { border: 0; background: transparent; color: #4E4D61; font-size: 16px; font-weight: 600; padding: 10px 22px;
+    border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background .2s, color .2s; }
+  .billing-opt.is-on { background: var(--qt-bg-bg-7, #6534F4); color: #fff; box-shadow: 0 6px 16px rgba(101, 52, 244, .3); }
+  .billing-opt:focus-visible { outline: 2px solid #6534F4; outline-offset: 2px; }
+  .billing-save { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #D1FAE5; color: #047857; }
+  .billing-opt.is-on .billing-save { background: rgba(255, 255, 255, .22); color: #fff; }
+</style>
+<script>
+  document.querySelectorAll(".billing-switch").forEach(function (sw) {
+    var root = sw.closest(".princing-plans");
+    sw.addEventListener("click", function (e) {
+      var btn = e.target.closest(".billing-opt");
+      if (!btn) return;
+      sw.querySelectorAll(".billing-opt").forEach(function (b) {
+        var on = b === btn;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-checked", String(on));
+      });
+      root.querySelectorAll("[data-period-panel]").forEach(function (panel) {
+        panel.hidden = panel.dataset.periodPanel !== btn.dataset.period;
+      });
+    });
+  });
+</script>

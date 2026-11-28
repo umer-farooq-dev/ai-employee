@@ -21,7 +21,9 @@ def _render(request, template, context, status=200):
     context = {
         "site": services.site_sections(),
         "region": region,
-        "plans": services.public_plans(region["currency"]),
+        "plans": (plans := services.public_plans(region["currency"])),
+        "best_saving": services.best_saving(plans),
+        "has_yearly": any(getattr(p, "yearly", None) for p in plans),
         "industries": services.active_industries(),
         "enquiry_form": EnquiryForm(),
         "structured_data": services.structured_data(request),

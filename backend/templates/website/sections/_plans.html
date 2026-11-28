@@ -8,11 +8,13 @@
         <div class="text-center">
           <span class="span">{{ plan.name }}</span>
           {% if custom or plan.monthly is None and plan.yearly is None %}
-          <h3>{{ c.custom_price_text }}</h3><p class="pera" aria-hidden="true">&nbsp;</p>
+          <h3>{{ c.custom_price_text }}</h3><p class="pera" aria-hidden="true">&nbsp;</p>{% if yearly %}<p class="plan-yearly-note" aria-hidden="true">&nbsp;</p>{% endif %}
           {% elif yearly and plan.yearly is not None %}
           <h3>{{ plan.yearly|money_short:region.currency }}</h3><p class="pera">{{ c.per_year_text }}</p>
+          <p class="plan-yearly-note">{% if plan.yearly_per_month %}{{ plan.yearly_per_month|money_short:region.currency }}{{ c.per_month_text }}, billed yearly{% if plan.saving %}<br><span class="plan-save">Save {{ plan.saving }}%</span>{% endif %}{% endif %}</p>
           {% elif plan.monthly is not None %}
           <h3>{{ plan.monthly|money_short:region.currency }}</h3><p class="pera">{{ c.per_month_text }}</p>
+          {% if yearly %}<p class="plan-yearly-note">Billed monthly</p>{% endif %}
           {% else %}
           <h3>{{ plan.yearly|money_short:region.currency }}</h3><p class="pera">{{ c.per_year_text }}</p>
           {% endif %}
@@ -38,6 +40,9 @@
   .plan-card .pricing-box-single { background: #fff; border: 1px solid #E9E7F7; border-radius: 16px;
     box-shadow: 0 12px 32px rgba(23, 19, 61, .06); transition: transform .25s, box-shadow .25s; }
   .plan-card:hover .pricing-box-single { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(23, 19, 61, .10); }
+  .plan-card .plan-yearly-note { margin: -8px 0 6px; min-height: 48px; font-size: 13.5px; line-height: 1.6; color: #4E4D61; }
+  .plan-card .plan-save { display: inline-block; margin-top: 4px; padding: 1px 10px; border-radius: 999px; background: #D1FAE5;
+    color: #047857; font-size: 12.5px; font-weight: 700; }
   .plan-card .plan-desc { color: #4E4D61; font-size: 15px; line-height: 1.5; margin: 14px 0 0; text-align: center; }
   .plan-card .plan-points { margin: 18px 0 0; padding: 18px 0 0; border-top: 1px solid #EFEEF8; }
   .plan-card .plan-points li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px !important;
