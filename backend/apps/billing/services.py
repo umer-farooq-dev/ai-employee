@@ -1097,6 +1097,11 @@ def _set_region(company, sub, data):
             raise ValidationError("Cancel the running auto-renewal before changing the currency.")
         company.currency = code
         fields.append("currency")
+        from django.core.cache import cache
+
+        from apps.core.money import currency_cache_key
+
+        cache.delete(currency_cache_key(company.id))
     if fields:
         company.save(update_fields=[*fields, "updated_at"])
 

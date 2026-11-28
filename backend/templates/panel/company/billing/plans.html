@@ -69,4 +69,15 @@
 })();
 </script>
 {% if can_manage %}{% include 'panel/company/billing/_checkout_js.html' %}{% endif %}
+{% if auto_pay %}<script>
+  // just approved: the payment for the plan chosen at registration opens by itself
+  window.addEventListener("load", function () {
+    var iv = (document.querySelector("[name=interval]:checked") || {}).value || "monthly";
+    var btn = Array.prototype.find.call(document.querySelectorAll("[data-pay]"), function (b) {
+      var d = JSON.parse(b.dataset.pay);
+      return d.plan === "{{ auto_pay }}" && d.interval === iv && !b.disabled;
+    });
+    if (btn) btn.click();
+  });
+</script>{% endif %}
 {% endblock page_content %}

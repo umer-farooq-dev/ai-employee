@@ -67,3 +67,35 @@ def rupees(minor, code=""):
     code = code or base()
     text = f"{to_major(minor, code):.{exponent(code)}f}"
     return text.rstrip("0").rstrip(".") if "." in text and set(text.split(".")[1]) == {"0"} else text
+
+
+def _viewer_currency(context):
+    from apps.billing.currency import base
+    from apps.billing.region import visitor_currency
+
+    request = context.get("request")
+    return visitor_currency(request) if request else base()
+
+
+@register.simple_tag(takes_context=True)
+def local_money(context, minor, decimals=False):
+    """Platform figures (kept in the base currency) in the viewer's own currency: Rs in Pakistan, $ in the USA."""
+    from apps.billing.currency import base, convert, fmt
+
+    code = _viewer_currency(context)
+    value = convert(minor or 0, code, rounded=False)
+    if value is None:  # no rate for it yet
+        code, value = base(), minor or 0
+    return fmt(value, code, decimals=bool(decimals))
+
+
+@register.simple_tag(takes_context=True)
+def local_currency(context):
+    """{code, rate per 1 base unit, digits} for charts that format amounts in the browser."""
+    from apps.billing.currency import base, exponent, rate
+
+    code = _viewer_currency(context)
+    r = rate(code)
+    if r is None:
+        code, r = base(), 1
+    return {"code": code, "rate": float(r), "base_digits": exponent(base())}

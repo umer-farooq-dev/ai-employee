@@ -158,7 +158,14 @@ def pending(request):
         except ValidationError as exc:
             _errors(request, exc)
         return redirect("panel:pending")
-    return render(request, "panel/company/pending.html", {"reason": reason, "company": request.company, "form": form})
+    from allauth.account.models import EmailAddress
+
+    email_verified = EmailAddress.objects.filter(user=request.user, verified=True).exists()
+    return render(
+        request,
+        "panel/company/pending.html",
+        {"reason": reason, "company": request.company, "form": form, "email_verified": email_verified},
+    )
 
 
 @company_perm("company.view")

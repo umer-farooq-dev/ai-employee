@@ -5,14 +5,14 @@ message category (the provider's key popup). Stored in paise on the usage rows f
 from .models import Provider
 
 TELEPHONY_PRICES = [
-    ("cost_inbound_per_min", "Cost per inbound minute (₹, for margin reports)", "0.00", False),
-    ("cost_outbound_per_min", "Cost per outbound minute (₹, for margin reports)", "0.00", False),
+    ("cost_inbound_per_min", "Cost per inbound minute (base currency, for margin reports)", "0.00", False),
+    ("cost_outbound_per_min", "Cost per outbound minute (base currency, for margin reports)", "0.00", False),
 ]
 WHATSAPP_PRICES = [
-    ("cost_marketing", "Cost per marketing message (₹)", "0.00", False),
-    ("cost_utility", "Cost per utility message (₹)", "0.00", False),
-    ("cost_authentication", "Cost per authentication message (₹)", "0.00", False),
-    ("cost_service", "Cost per service message (₹)", "0.00", False),
+    ("cost_marketing", "Cost per marketing message (base currency)", "0.00", False),
+    ("cost_utility", "Cost per utility message (base currency)", "0.00", False),
+    ("cost_authentication", "Cost per authentication message (base currency)", "0.00", False),
+    ("cost_service", "Cost per service message (base currency)", "0.00", False),
 ]
 
 

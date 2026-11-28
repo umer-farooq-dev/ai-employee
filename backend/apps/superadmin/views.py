@@ -93,7 +93,7 @@ def company_list(request):
         Company.objects.filter(deleted_at__isnull=True)
         .select_related("plan")
         .annotate(members=Count("membership"))
-        .order_by("name")
+        .order_by("-created_at")
     )
     q, status = request.GET.get("q", ""), request.GET.get("status", "")
     if q:
