@@ -564,6 +564,14 @@ def online(company):
     return bool(_module(gateway_name(company)).provider())
 
 
+def gateway_badge(company):
+    """(title, image) of the company's payment gateway for "Secure payment by …" (Super Admin → Payment Gateways)."""
+    p = _module(gateway_name(company)).provider()
+    if not p:
+        return "", ""
+    return (p.config or {}).get("title") or p.name, p.logo
+
+
 def _gateway(company):
     name = gateway_name(company)
     p = _module(name).provider()

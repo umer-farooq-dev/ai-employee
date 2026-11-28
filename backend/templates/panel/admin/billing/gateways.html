@@ -1,0 +1,74 @@
+{% extends 'panel/admin/layout.html' %}
+{% block title %}Payment Gateways{% endblock %}
+{% block page_content %}
+<div class="mt-3 mb-3">
+    <h4 class="mb-0">Payment Gateways</h4>
+    <span class="text-muted small">Choose Live to take real payments or Test to try them with test cards. Both sets of keys stay saved. Which currency uses which gateway: <a href="{% url 'superadmin:currencies' %}">Currencies</a>.</span>
+</div>
+<div class="row g-3">
+{% for c in cards %}
+<div class="col-lg-6">
+<form class="card h-100 mb-0 pg-card" method="post" enctype="multipart/form-data" data-mode="{{ c.mode }}">{% csrf_token %}
+    <input type="hidden" name="gateway" value="{{ c.p.vendor }}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">{{ c.spec.label }}</h5>
+        {% if c.p.health.message %}<span class="small {% if c.p.health.ok %}text-success{% else %}text-danger{% endif %}">{% if c.p.health.ok %}<i class="iconoir-check-circle"></i>{% else %}<i class="iconoir-warning-circle"></i>{% endif %} {{ c.p.health.message|truncatechars:60 }}</span>{% endif %}
+    </div>
+    <div class="card-body">
+        <div class="d-flex gap-4 mb-3">
+            <div class="form-check"><input class="form-check-input" type="radio" name="active" value="on" id="{{ c.p.vendor }}-on"{% if c.p.is_active %} checked{% endif %}><label class="form-check-label" for="{{ c.p.vendor }}-on">Active</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="active" value="off" id="{{ c.p.vendor }}-off"{% if not c.p.is_active %} checked{% endif %}><label class="form-check-label" for="{{ c.p.vendor }}-off">Inactive</label></div>
+        </div>
+        <label class="form-label" for="{{ c.p.vendor }}-mode">Mode</label>
+        <select id="{{ c.p.vendor }}-mode" class="form-select mb-3 pg-mode" name="mode">{% for v, l in modes %}<option value="{{ v }}"{% if v == c.mode %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+
+        <div class="pg-keys" data-for="live">
+            <label class="form-label" for="{{ c.p.vendor }}-ls">{{ c.spec.secret_label }} *</label>
+            <input id="{{ c.p.vendor }}-ls" class="form-control mb-3" name="live_secret" type="password" autocomplete="new-password" placeholder="{% if c.has.live_secret %}•••••••••• saved — type to replace{% else %}{{ c.spec.secret_hint.live }}{% endif %}">
+            <label class="form-label" for="{{ c.p.vendor }}-lp">{{ c.spec.public_label }} *</label>
+            <input id="{{ c.p.vendor }}-lp" class="form-control mb-3" name="live_public" value="{{ c.live_public }}" placeholder="{{ c.spec.public_hint.live }}" autocomplete="off">
+            <label class="form-label" for="{{ c.p.vendor }}-lw">Webhook secret</label>
+            <input id="{{ c.p.vendor }}-lw" class="form-control mb-3" name="live_webhook" type="password" autocomplete="new-password" placeholder="{% if c.has.live_webhook %}•••••••••• saved — type to replace{% else %}{{ c.spec.webhook_hint }}{% endif %}">
+        </div>
+        <div class="pg-keys" data-for="test">
+            <label class="form-label" for="{{ c.p.vendor }}-ts">{{ c.spec.secret_label }} (test) *</label>
+            <input id="{{ c.p.vendor }}-ts" class="form-control mb-3" name="test_secret" type="password" autocomplete="new-password" placeholder="{% if c.has.test_secret %}•••••••••• saved — type to replace{% else %}{{ c.spec.secret_hint.test }}{% endif %}">
+            <label class="form-label" for="{{ c.p.vendor }}-tp">{{ c.spec.public_label }} (test) *</label>
+            <input id="{{ c.p.vendor }}-tp" class="form-control mb-3" name="test_public" value="{{ c.test_public }}" placeholder="{{ c.spec.public_hint.test }}" autocomplete="off">
+            <label class="form-label" for="{{ c.p.vendor }}-tw">Webhook secret (test)</label>
+            <input id="{{ c.p.vendor }}-tw" class="form-control mb-3" name="test_webhook" type="password" autocomplete="new-password" placeholder="{% if c.has.test_webhook %}•••••••••• saved — type to replace{% else %}{{ c.spec.webhook_hint }}{% endif %}">
+        </div>
+
+        <label class="form-label" for="{{ c.p.vendor }}-title">Gateway title</label>
+        <input id="{{ c.p.vendor }}-title" class="form-control mb-3" name="title" value="{{ c.title }}" maxlength="80" placeholder="e.g. Pay by card">
+
+        <label class="form-label d-block" for="{{ c.p.vendor }}-img">Gateway image</label>
+        <div class="d-flex align-items-center gap-3 mb-3">
+            {% if c.p.logo %}<img src="{{ c.p.logo }}" alt="" class="pg-img">{% endif %}
+            <input id="{{ c.p.vendor }}-img" class="form-control" type="file" name="image" accept="image/*">
+        </div>
+
+        <label class="form-label" for="{{ c.p.vendor }}-hook">Webhook address</label>
+        <div class="input-group mb-1"><input id="{{ c.p.vendor }}-hook" class="form-control" value="{{ c.webhook_url }}" readonly onclick="this.select()">
+            <button class="btn btn-light" type="button" onclick="navigator.clipboard.writeText('{{ c.webhook_url }}'); this.textContent='Copied'">Copy</button></div>
+        <div class="form-text mb-3">Add this address in your {{ c.spec.label }} dashboard (Webhooks) and paste its secret above: renewals and failed payments arrive through it.</div>
+    </div>
+    <div class="card-footer d-flex gap-2 justify-content-end">
+        <button class="btn btn-light" name="op" value="test" formnovalidate>Test connection</button>
+        <button class="btn btn-primary" name="op" value="save">Save</button>
+    </div>
+</form>
+</div>
+{% endfor %}
+</div>
+<style>
+  .pg-card .pg-keys { display: none; }
+  .pg-card[data-mode="live"] .pg-keys[data-for="live"], .pg-card[data-mode="test"] .pg-keys[data-for="test"] { display: block; }
+  .pg-img { height: 34px; max-width: 120px; object-fit: contain; }
+</style>
+<script>
+  document.querySelectorAll(".pg-card .pg-mode").forEach(function (sel) {
+    sel.addEventListener("change", function () { sel.closest(".pg-card").dataset.mode = sel.value; });
+  });
+</script>
+{% endblock %}

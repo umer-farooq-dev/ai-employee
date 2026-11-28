@@ -325,3 +325,57 @@ def currencies(request):
             "invoice.payment_failed, customer.subscription.deleted",
         },
     )
+
+
+@staff_perm("plans.manage")
+def payment_gateways(request):
+    """Stripe and Razorpay: active or not, live or test, both key sets, the title and image customers see."""
+    from django.conf import settings
+    from django.urls import reverse
+
+    from apps.billing import gateways
+    from apps.providers.models import Provider
+
+    rows = {p.vendor: p for p in Provider.objects.filter(vendor__in=gateways.GATEWAYS)}
+    if request.method == "POST":
+        p = rows.get(request.POST.get("gateway"))
+        if p:
+            try:
+                if request.POST.get("op") == "test":
+                    health = gateways.check(p)
+                    (messages.success if health["ok"] else messages.error)(request, health["message"])
+                else:
+                    gateways.save(p, request.POST, request.FILES, request.user, request)
+                    health = gateways.check(p) if p.is_active else None
+                    if health and not health["ok"]:
+                        messages.error(request, f"Saved, but the connection test failed: {health['message']}")
+                    else:
+                        messages.success(request, f"{gateways.GATEWAYS[p.vendor]['label']} saved.")
+            except ValidationError as exc:
+                _errors(request, exc)
+        return redirect("superadmin:payment_gateways")
+    base = settings.PUBLIC_BASE_URL.rstrip("/")
+    cards = []
+    for vendor, spec in gateways.GATEWAYS.items():
+        p = rows.get(vendor)
+        if not p:
+            continue
+        cfg = p.config or {}
+        cards.append(
+            {
+                "p": p,
+                "spec": spec,
+                "mode": gateways.mode(p),
+                "live_public": cfg.get(spec["public"], ""),
+                "test_public": cfg.get(f"test_{spec['public']}", ""),
+                "has": {
+                    "live_secret": bool(p.api_key),
+                    "test_secret": bool(p.test_api_key),
+                    "live_webhook": bool(p.webhook_secret),
+                    "test_webhook": bool(p.test_webhook_secret),
+                },
+                "title": cfg.get("title", ""),
+                "webhook_url": base + reverse(f"billing:{vendor}_webhook"),
+            }
+        )
+    return render(request, "panel/admin/billing/gateways.html", {"cards": cards, "modes": gateways.MODES})

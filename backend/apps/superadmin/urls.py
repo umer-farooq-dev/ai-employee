@@ -59,6 +59,7 @@ urlpatterns = [
     path("roles/<uuid:pk>/delete/", views.role_delete, name="role_delete"),
     path("billing/", billing_views.billing_home, name="billing"),
     path("billing/currencies/", billing_views.currencies, name="currencies"),
+    path("billing/gateways/", billing_views.payment_gateways, name="payment_gateways"),
     path("billing/invoices/<uuid:pk>/", billing_views.invoice_action, name="invoice_action"),
     path("billing/invoices/<uuid:pk>/pdf/", billing_views.invoice_pdf, name="invoice_pdf"),
     path("companies/<uuid:pk>/billing/", billing_views.company_billing, name="company_billing"),
