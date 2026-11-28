@@ -37,6 +37,9 @@ def public_plans(code=""):
         for plan in plans:
             plan.monthly = currency.plan_amount(plan, "monthly", code, rows)
             plan.yearly = currency.plan_amount(plan, "yearly", code, rows)
+            plan.yearly_per_month = round(plan.yearly / 12) if plan.yearly else None
+            full = plan.monthly * 12 if plan.monthly else 0
+            plan.saving = round((full - plan.yearly) * 100 / full) if full and plan.yearly and plan.yearly < full else 0
     return plans
 
 
@@ -69,6 +72,11 @@ def plan_points(plan):
             points.append((one if limits[key] == 1 else many).format(n=f"{limits[key]:,}"))
     points += [label for key, label in FEATURES if (plan.flags or {}).get(key, True)]
     return points + list(plan.features or [])
+
+
+def best_saving(plans):
+    """The biggest yearly saving (%) for the "Save up to" badge on the billing switch."""
+    return max((getattr(p, "saving", 0) for p in plans), default=0)
 
 
 def region_context(request):
