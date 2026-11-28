@@ -333,3 +333,14 @@ def test_plan_cards_list_limits_and_only_the_plans_features(db):
     points = plan_points(plan)
     assert points[:2] == ["1 AI Employee", "1,500 voice minutes a month"]
     assert "Call recordings" not in points and "WhatsApp" in points and points[-1] == "Email support"
+
+
+def test_catalogue_prices_use_the_companys_currency(us_co):
+    from django.core.cache import cache
+
+    from apps.core.money import currency_cache_key, format_inr, format_inr_short
+
+    assert format_inr(7000000) == "₹70,000"  # no company: rupees as before
+    cache.delete(currency_cache_key(us_co.id))
+    with company_context(us_co.id):
+        assert format_inr(8500000) == "$85,000" and format_inr_short(8500000) == "$85,000"

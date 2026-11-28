@@ -16,7 +16,7 @@
                             </div>
                         </div>
                         <div class="card-body pt-3">
-                            {% include 'panel/partials/messages.html' %}
+                            {% block messages %}{% include 'panel/partials/messages.html' %}{% endblock %}
                             {% block auth_content %}{% endblock %}
                         </div>
                     </div>

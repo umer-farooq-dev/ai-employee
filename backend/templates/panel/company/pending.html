@@ -1,6 +1,7 @@
 {% extends 'panel/auth.html' %}
 {# AUTH-12 / AUTH-02: status page shown until mobile verification and Super Admin approval are done. #}
 {% block title %}Account status{% endblock %}
+{% block messages %}{% if reason == 'phone' %}{% include 'panel/partials/messages.html' %}{% else %}{% for m in messages %}{% endfor %}{% endif %}{% endblock %}{# sign-in notices are cleared, not shown #}
 {% block auth_content %}
 {% if reason == 'phone' %}
     <h5 class="mb-2">Verify your mobile number</h5>
@@ -11,8 +12,32 @@
         {% include 'panel/partials/form_fields.html' %}
         <button class="btn btn-primary w-100">Verify</button></form>
 {% elif reason == 'pending' %}
-    <h5 class="mb-2">Thank you for registering {{ company.name }}</h5>
-    <p class="text-muted mb-0">Our team is reviewing your details. You will get an email as soon as your account is approved.</p>
+    <div class="text-center mb-3">
+        <span class="pd-badge"><i class="iconoir-clock"></i></span>
+        <h5 class="mt-3 mb-1 fw-semibold">Your application is under review</h5>
+        <p class="text-muted mb-0">Thanks for choosing {{ platform.platform_name }}, <strong>{{ company.name }}</strong>. We are checking your details and will email you at <strong>{{ request.user.email }}</strong> as soon as your account is approved.</p>
+    </div>
+    <ol class="pd-steps list-unstyled mb-0">
+        <li class="done"><span class="dot"><i class="iconoir-check"></i></span><div><strong>Account created</strong><small>{{ company.created_at|date:"d M Y, H:i" }}</small></div></li>
+        <li class="{% if email_verified %}done{% else %}now{% endif %}"><span class="dot">{% if email_verified %}<i class="iconoir-check"></i>{% else %}2{% endif %}</span><div><strong>Confirm your email</strong><small>{% if email_verified %}Confirmed{% else %}Open the link we sent to {{ request.user.email }}{% endif %}</small></div></li>
+        <li class="now"><span class="dot">3</span><div><strong>Approval by our team</strong><small>In progress — usually within one business day</small></div></li>
+        <li><span class="dot">4</span><div><strong>Choose your plan</strong><small>Pay monthly or yearly in your own currency</small></div></li>
+        <li><span class="dot">5</span><div><strong>Set up your AI Employee</strong><small>A short guided tour shows you how</small></div></li>
+    </ol>
+    {% if platform.support_email %}<p class="small text-muted text-center mt-3 mb-0">Questions? <a href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a></p>{% endif %}
+    <style>
+      .pd-badge { width: 64px; height: 64px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        background: #EEE9FF; color: #6534F4; font-size: 30px; }
+      .pd-steps { margin-top: 20px; border-top: 1px solid #EEF0F4; padding-top: 16px; }
+      .pd-steps li { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; position: relative; }
+      .pd-steps li:not(:last-child)::after { content: ""; position: absolute; left: 14px; top: 38px; bottom: -6px; width: 2px; background: #EEF0F4; }
+      .pd-steps .dot { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: inline-flex; align-items: center;
+        justify-content: center; background: #F1F2F6; color: #8A8CA3; font-weight: 600; font-size: 13px; }
+      .pd-steps li.done .dot { background: #10B981; color: #fff; }
+      .pd-steps li.now .dot { background: #6534F4; color: #fff; box-shadow: 0 0 0 4px #EEE9FF; }
+      .pd-steps strong { display: block; font-size: 14px; color: #1f2235; }
+      .pd-steps small { color: #8A8CA3; font-size: 12.5px; }
+    </style>
 {% elif reason == 'rejected' %}
     <h5 class="mb-2">Registration not approved</h5>
     <p class="text-muted">{{ company.rejected_reason }}</p>

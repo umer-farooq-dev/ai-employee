@@ -14,8 +14,8 @@
     <a class="an-kpi" href="{% url 'superadmin:ai_employees' %}"><span class="ico"><i class="iconoir-user-star"></i></span><div class="txt"><div class="lbl">Active AI Employees</div><div class="val">{{ d.ai_employees }}</div><div class="hint">working for companies</div></div></a>
     <a class="an-kpi" href="{% url 'superadmin:calls' %}"><span class="ico"><i class="iconoir-phone"></i></span><div class="txt"><div class="lbl">Calls today</div><div class="val">{{ d.calls_today }}</div><div class="hint">{{ d.minutes_month }} voice minutes this month</div></div></a>
     {% if request.user|can:"subscriptions.view" %}
-    <a class="an-kpi" href="{% url 'superadmin:billing' %}"><span class="ico"><i class="iconoir-graph-up"></i></span><div class="txt"><div class="lbl">MRR</div><div class="val">{{ d.mrr|money:False }}</div><div class="hint">monthly recurring, before GST</div></div></a>
-    <a class="an-kpi" href="{% url 'superadmin:billing' %}?tab=invoices&status=paid"><span class="ico"><i class="iconoir-coins"></i></span><div class="txt"><div class="lbl">Revenue this month</div><div class="val">{{ d.revenue_month|money:False }}</div><div class="hint">provider cost {{ d.cost_month|money:False }}</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:billing' %}"><span class="ico"><i class="iconoir-graph-up"></i></span><div class="txt"><div class="lbl">MRR</div><div class="val">{% local_money d.mrr %}</div><div class="hint">monthly recurring, before GST</div></div></a>
+    <a class="an-kpi" href="{% url 'superadmin:billing' %}?tab=invoices&status=paid"><span class="ico"><i class="iconoir-coins"></i></span><div class="txt"><div class="lbl">Revenue this month</div><div class="val">{% local_money d.revenue_month %}</div><div class="hint">provider cost {% local_money d.cost_month %}</div></div></a>
     <a class="an-kpi" href="{% url 'superadmin:billing' %}?tab=subscriptions&status=past_due"><span class="ico"><i class="iconoir-warning-circle"></i></span><div class="txt"><div class="lbl">Billing issues</div><div class="val">{{ d.past_due|add:d.companies.on_hold }}</div><div class="hint">{{ d.past_due }} overdue · {{ d.companies.on_hold }} on hold · {{ d.failed_payments_month }} failed payments</div></div></a>
     {% endif %}
     <div class="an-kpi"><span class="ico"><i class="iconoir-sparks"></i></span><div class="txt"><div class="lbl">AI usage this month</div><div class="val">{{ d.ai_credits_month }}</div><div class="hint">AI credits · {{ d.wa_messages_month }} WhatsApp messages</div></div></div>
@@ -47,22 +47,24 @@
     </div></div>
 </div>
 {% if d.revenue_series %}
-{{ d.revenue_series|json_script:"rev-data" }}
+{{ d.revenue_series|json_script:"rev-data" }}{% local_currency as cur %}{{ cur|json_script:"rev-cur" }}
 <script src="{% static 'panel/vendor/apexcharts/apexcharts.min.js' %}"></script>
 <script>
 (function () {
     var el = document.getElementById("chart-revenue");
     if (!el) return;
     var rows = JSON.parse(document.getElementById("rev-data").textContent);
+    var cur = JSON.parse(document.getElementById("rev-cur").textContent);  // the viewer's currency and today's rate
+    var money = new Intl.NumberFormat(undefined, {style: "currency", currency: cur.code, maximumFractionDigits: 0});
     var brand = (getComputedStyle(document.documentElement).getPropertyValue("--brand-primary") || "#6534F4").trim();
     new ApexCharts(el, {
         chart: {type: "bar", height: 240, toolbar: {show: false}, fontFamily: "inherit"}, colors: [brand],
         plotOptions: {bar: {borderRadius: 4, columnWidth: "45%"}}, dataLabels: {enabled: false},
         grid: {borderColor: "rgba(148,163,184,.25)", strokeDashArray: 4},
-        series: [{name: "Revenue", data: rows.map(function (r) { return Math.round(r.revenue / 100); })}],
+        series: [{name: "Revenue", data: rows.map(function (r) { return Math.round(r.revenue / Math.pow(10, cur.base_digits) * cur.rate); })}],
         xaxis: {categories: rows.map(function (r) { return r.month; }), axisTicks: {show: false}},
-        yaxis: {labels: {formatter: function (v) { return "₹" + Math.round(v).toLocaleString("en-IN"); }}},
-        tooltip: {y: {formatter: function (v) { return "₹" + v.toLocaleString("en-IN"); }}}
+        yaxis: {labels: {formatter: function (v) { return money.format(v); }}},
+        tooltip: {y: {formatter: function (v) { return money.format(v); }}}
     }).render();
 })();
 </script>

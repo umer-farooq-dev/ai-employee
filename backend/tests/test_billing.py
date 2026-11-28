@@ -521,3 +521,16 @@ def test_super_admin_gives_free_access_until_a_day(admin_client, co, owner_a):
         f"/superadmin/companies/{co.pk}/billing/", {"op": "free", "plan": str(pro.pk), "until": day, "reason": ""}
     )
     assert bad.status_code == 302 and fresh(co).billing_hold
+
+
+def test_new_company_goes_straight_to_paying_for_its_plan(client, co, owner_a, rzp):
+    co.status, co.billing_hold, co.trial_ends_at = Company.ACTIVE, timezone.now(), None  # approved, no trial
+    co.save()
+    with company_context(co.id):
+        billing.subscription(co)
+    client.force_login(owner_a)
+    r = client.get("/app/billing/")
+    assert r.status_code == 302 and r.url == "/app/billing/plans/?pay=1"
+    page = client.get(r.url).content.decode()
+    assert f'd.plan === "{co.plan_id}"' in page  # the chosen plan's payment opens by itself
+    assert client.get("/app/billing/").status_code == 200  # only once: Billing stays reachable

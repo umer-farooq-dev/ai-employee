@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.billing import access, currency, gst, razorpay, usage
@@ -66,6 +67,8 @@ def billing_page(request):
             _errors(request, exc)
         return redirect("panel:billing")
     sub = billing.subscription(company)
+    if _first_payment_due(request, company, sub):  # just approved: straight to paying for the chosen plan
+        return redirect(reverse("panel:billing_plans") + "?pay=1")
     invoices = Invoice.objects.filter(company=company).exclude(status=Invoice.VOID)[:24]
     payments = Payment.objects.filter(company=company).exclude(status=Payment.CREATED)[:24]
     rows = usage.overview(company)
@@ -100,6 +103,20 @@ def billing_page(request):
             "country_name": currency.country_name(company.country) if company.country else "",
         },
     )
+
+
+def _first_payment_due(request, company, sub):
+    """Approved, unpaid, nothing running: open the payment for the plan chosen at registration (once per visit)."""
+    if request.GET or request.session.get("first_payment_opened") or not _can_manage(request):
+        return False
+    if not company.billing_hold or sub.status == Subscription.ACTIVE or not company.plan_id:
+        return False
+    if Invoice.objects.filter(company=company, status=Invoice.DUE).exists():
+        return False
+    if Payment.objects.filter(company=company, status=Payment.CAPTURED).exists():  # a customer before, not new
+        return False
+    request.session["first_payment_opened"] = True
+    return True
 
 
 @company_perm("billing.view")
@@ -142,6 +159,11 @@ def plans_page(request):
             "running": sub.status == Subscription.ACTIVE
             and bool(sub.current_period_end)
             and not sub.cancel_at_period_end,
+            "auto_pay": (
+                str(company.plan_id)
+                if request.GET.get("pay") and company.plan_id and billing.online(company) and _can_manage(request)
+                else ""
+            ),
         },
     )
 

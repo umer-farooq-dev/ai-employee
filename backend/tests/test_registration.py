@@ -67,7 +67,7 @@ def test_terms_and_required_fields(client):
 def test_pending_company_sees_only_status_page(client):
     register(client)
     assert client.get("/app/").url == "/app/pending/"
-    assert b"reviewing your details" in client.get("/app/pending/").content
+    assert b"Your application is under review" in client.get("/app/pending/").content
     assert client.get("/api/v1/company/team/members/").json()["error"]["code"] == "company_pending"
     assert client.get("/api/v1/company/").json()["status"] == "pending"
     assert client.get("/").status_code == 200  # website stays open
