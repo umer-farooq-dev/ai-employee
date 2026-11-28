@@ -159,6 +159,7 @@ def plans_page(request):
             "running": sub.status == Subscription.ACTIVE
             and bool(sub.current_period_end)
             and not sub.cancel_at_period_end,
+            "gateway_badge": billing.gateway_badge(company),
             "auto_pay": (
                 str(company.plan_id)
                 if request.GET.get("pay") and company.plan_id and billing.online(company) and _can_manage(request)

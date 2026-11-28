@@ -52,6 +52,9 @@ class Provider(BaseModel):
     base_url = models.URLField(max_length=500)
     api_key = EncryptedTextField(blank=True, help_text="The vendor's secret (API key, auth token, service account)")
     webhook_secret = EncryptedTextField(blank=True, help_text="Secret that signs the vendor's webhooks (SEC-13)")
+    # payment gateways keep a second set of keys for their test mode; config["mode"] picks the set in use
+    test_api_key = EncryptedTextField(blank=True, help_text="Payment gateways: secret key of the test mode")
+    test_webhook_secret = EncryptedTextField(blank=True, help_text="Payment gateways: webhook secret of the test mode")
     config = models.JSONField(default=dict, blank=True, help_text="Non-secret vendor settings: account id, region …")
     logo = models.CharField(max_length=500, blank=True, help_text="Image URL")
     capabilities = models.JSONField(default=list, blank=True)

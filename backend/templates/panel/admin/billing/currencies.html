@@ -37,7 +37,7 @@
     </div>
     <div class="col-lg-4">
         <div class="card"><div class="card-header"><h5 class="card-title mb-0">Payment gateways</h5></div><div class="card-body small">
-            <p class="mb-2">Keys: <strong>Voice &amp; Channels → Razorpay / Stripe</strong> (Super Admin only). Each currency is charged through the gateway chosen in the table.</p>
+            <p class="mb-2">Keys: <strong><a href="{% url 'superadmin:payment_gateways' %}">Payment Gateways</a></strong>. Each currency is charged through the gateway chosen in the table.</p>
             <ul class="list-unstyled mb-3">
                 <li>Razorpay: {% if ready.razorpay %}<span class="text-success">ready</span>{% else %}<span class="text-warning">not set up</span>{% endif %}</li>
                 <li>Stripe: {% if ready.stripe %}<span class="text-success">ready</span>{% else %}<span class="text-warning">not set up</span>{% endif %}</li>

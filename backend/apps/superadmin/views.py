@@ -640,7 +640,8 @@ def _provider_page(request, page):
     from apps.providers.services import production, routes
     from apps.providers.vendors import VENDORS
 
-    caps = dict(LLM_CAPABILITIES if page == "ai" else VOICE_CAPABILITIES)
+    # payment gateways have their own screen (Billing → Payment Gateways)
+    caps = dict(LLM_CAPABILITIES if page == "ai" else [c for c in VOICE_CAPABILITIES if c[0] != "payments"])
     rows = [p for p in Provider.objects.prefetch_related("routes", "speech_routes") if set(p.capabilities) & set(caps)]
     chains = routes() if page == "ai" else {}
     data = {

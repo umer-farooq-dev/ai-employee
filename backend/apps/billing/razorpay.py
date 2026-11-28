@@ -1,6 +1,6 @@
 """Razorpay (SUB-03): plans, subscriptions (auto-renewal), one-time orders (prorated upgrades, invoice payments),
-checkout and webhook signatures (SEC-13). Keys live only in Super Admin → Voice & Channels → Razorpay
-(key id in the config, key secret as the provider key, webhook secret)."""
+checkout and webhook signatures (SEC-13). Keys live only in Super Admin → Payment Gateways → Razorpay
+(live and test key id, key secret and webhook secret)."""
 
 import hashlib
 import hmac
@@ -16,8 +16,13 @@ def provider():
     from apps.providers.models import Provider
     from apps.providers.services import production
 
+    from .gateways import in_use
+
     p = Provider.objects.filter(vendor="razorpay", is_active=True).first()
-    if not p or not p.api_key or not _cfg(p, "key_id") or (production() and p.test_only):
+    if not p:
+        return None
+    p = in_use(p)  # the live or the test keys, as chosen in Super Admin → Payment Gateways
+    if not p.api_key or not _cfg(p, "key_id") or (production() and p.test_only):
         return None
     return p
 

@@ -344,3 +344,31 @@ def test_catalogue_prices_use_the_companys_currency(us_co):
     cache.delete(currency_cache_key(us_co.id))
     with company_context(us_co.id):
         assert format_inr(8500000) == "$85,000" and format_inr_short(8500000) == "$85,000"
+
+
+def test_payment_gateways_page_keeps_live_and_test_keys(admin_client, db, monkeypatch):
+    from apps.billing import stripe as stripe_mod
+
+    monkeypatch.setattr(stripe_mod, "test", lambda p, timeout=30: f"Connected · {p.api_key[:8]}")
+    page = admin_client.get("/superadmin/billing/gateways/")
+    assert page.status_code == 200 and b"Published key" in page.content and b"/webhooks/stripe/" in page.content
+    form = {"gateway": "stripe", "op": "save", "active": "on", "mode": "test", "title": "Pay by card"}
+    keys = {
+        "live_secret": "sk_live_1",
+        "live_public": "pk_live_1",
+        "test_secret": "sk_test_2",
+        "test_public": "pk_test_2",
+    }
+    assert admin_client.post("/superadmin/billing/gateways/", {**form, **keys}).status_code == 302
+    p = stripe_mod.provider()
+    assert (
+        p.api_key == "sk_test_2" and p.config["publishable_key"] == "pk_test_2" and p.config["title"] == "Pay by card"
+    )
+    # switching to live keeps both sets; an empty secret keeps the saved one
+    admin_client.post("/superadmin/billing/gateways/", {**form, "mode": "live", "live_public": "pk_live_1"})
+    assert stripe_mod.provider().api_key == "sk_live_1"
+    stored = Provider.objects.get(key="stripe")
+    assert stored.test_api_key == "sk_test_2"
+    # a key of the wrong kind is refused
+    admin_client.post("/superadmin/billing/gateways/", {**form, "test_secret": "sk_live_9", "test_public": "pk_test_2"})
+    assert Provider.objects.get(key="stripe").test_api_key == "sk_test_2"

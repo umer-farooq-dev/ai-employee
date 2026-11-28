@@ -68,6 +68,7 @@
     show(document.querySelector("[name=interval]:checked").value);
 })();
 </script>
+{% if online and gateway_badge.0 %}<div class="text-center text-muted small mt-3"><i class="iconoir-lock"></i> Secure payment by {{ gateway_badge.0 }}{% if gateway_badge.1 %}<img src="{{ gateway_badge.1 }}" alt="" style="height:26px;max-width:160px;object-fit:contain;margin-left:10px;vertical-align:middle">{% endif %}</div>{% endif %}
 {% if can_manage %}{% include 'panel/company/billing/_checkout_js.html' %}{% endif %}
 {% if auto_pay %}<script>
   // just approved: the payment for the plan chosen at registration opens by itself

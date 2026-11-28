@@ -1,6 +1,6 @@
 """Stripe (SUB-03, worldwide): hosted Checkout for subscriptions (auto-renewal) and one-time payments (prorated
 upgrades, invoices), plan changes at renewal, cancel / resume, webhook signatures (SEC-13). Keys live only in
-Super Admin → Voice & Channels → Stripe (secret key as the provider key, webhook signing secret).
+Super Admin → Payment Gateways → Stripe (live and test secret key, published key, webhook signing secret).
 
 The API version is pinned so Stripe's yearly changes never alter the shapes read here."""
 
@@ -20,8 +20,13 @@ def provider():
     from apps.providers.models import Provider
     from apps.providers.services import production
 
+    from .gateways import in_use
+
     p = Provider.objects.filter(vendor="stripe", is_active=True).first()
-    if not p or not p.api_key or (production() and p.test_only):
+    if not p:
+        return None
+    p = in_use(p)  # the live or the test keys, as chosen in Super Admin → Payment Gateways
+    if not p.api_key or (production() and p.test_only):
         return None
     return p
 
