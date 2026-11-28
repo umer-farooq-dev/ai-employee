@@ -50,8 +50,19 @@ def _call(p, method, path, body=None):
     if body:
         data = urllib.parse.urlencode(_form(body)).encode()
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-    data_out, _ = request_raw(method, p.base_url.rstrip("/") + path, headers, data, timeout=30)
+    try:
+        data_out, _ = request_raw(method, p.base_url.rstrip("/") + path, headers, data, timeout=30)
+    except ProviderError as exc:
+        raise ProviderError(_message(str(exc))) from None
     return data_out
+
+
+def _message(text):
+    """'HTTP 400: {"error": {"message": "No such customer …"}}' → "No such customer …" (Stripe's own words)."""
+    import re
+
+    found = re.search(r'"message":\s*"((?:[^"\\]|\\.)*)', text)
+    return found.group(1).replace('\\"', '"') if found else text
 
 
 # ------------------------------------------------------------------ products and prices (cached on our plan)

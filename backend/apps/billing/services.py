@@ -520,7 +520,7 @@ def _paid(
         sub.current_period_start, sub.current_period_end = start, end
         if gateway_sub:
             sub.gateway = payment.gateway if payment.gateway in (S.RAZORPAY, S.STRIPE) else S.RAZORPAY
-            sub.gateway_subscription_id = gateway_sub
+            sub.gateway_subscription_id, sub.gateway_mode = gateway_sub, _current_mode(sub.gateway)
             sub.cancel_at_period_end, sub.cancel_reason, sub.cancelled_at = False, "", None
         if sub.pending_plan_id == plan.pk:
             sub.pending_plan, sub.pending_interval = None, ""
@@ -604,7 +604,34 @@ def _return_urls():
     return done, base + reverse("panel:billing") + "?payment=cancelled"
 
 
+def _current_mode(gateway):
+    from apps.providers.models import Provider
+
+    from .gateways import mode
+
+    p = Provider.objects.filter(vendor=gateway).first()
+    return mode(p) if p else "live"
+
+
+def other_mode(sub):
+    """Made with the gateway's other keys (test while live is on, or the reverse): its ids do not exist there."""
+    return (
+        sub.gateway in (S.RAZORPAY, S.STRIPE)
+        and bool(sub.gateway_mode)
+        and sub.gateway_mode != _current_mode(sub.gateway)
+    )
+
+
+def _forget_other_mode(sub):
+    """A test subscription is not carried into live mode (or back): the next payment starts a new one."""
+    if other_mode(sub):
+        sub.gateway_subscription_id, sub.gateway_customer_id, sub.gateway_mode = "", "", ""
+        sub.save(update_fields=["gateway_subscription_id", "gateway_customer_id", "gateway_mode", "updated_at"])
+
+
 def _stripe_customer(sub):
+    if other_mode(sub):
+        return ""
     return sub.gateway_customer_id if sub.gateway_customer_id.startswith("cus_") else ""
 
 
@@ -619,6 +646,7 @@ def subscribe(company, plan, interval, user, request=None, start_at=None):
     """New subscription with auto-renewal: Razorpay checkout opens on the page, Stripe's hosted page opens."""
     _check_plan(company, plan, interval)
     sub = subscription(company)
+    _forget_other_mode(sub)
     if sub.status == S.ACTIVE and sub.gateway_subscription_id and not sub.cancel_at_period_end:
         raise ValidationError("You already have an active subscription. Change the plan instead.")
     q = plan_quote(company, plan, interval)
@@ -724,8 +752,8 @@ def _stripe_session_paid(company, payment, session, user=None):
         return None
     sub = subscription(company)
     if str(session.get("customer") or "").startswith("cus_") and sub.gateway_customer_id != session["customer"]:
-        sub.gateway_customer_id = session["customer"]
-        sub.save(update_fields=["gateway_customer_id", "updated_at"])
+        sub.gateway_customer_id, sub.gateway_mode = session["customer"], _current_mode(S.STRIPE)
+        sub.save(update_fields=["gateway_customer_id", "gateway_mode", "updated_at"])
     if session.get("mode") == "subscription":
         start = end = None
         inv_id = session.get("invoice") or ""
@@ -773,7 +801,7 @@ def _schedule_gateway_price(company, plan, interval):
     """From the next renewal the gateway charges the new plan's price."""
     sub = subscription(company)
     p = _module(sub.gateway).provider() if sub.gateway in (S.RAZORPAY, S.STRIPE) else None
-    if not (p and sub.gateway_subscription_id):
+    if not (p and sub.gateway_subscription_id) or other_mode(sub):
         return
     try:
         amount = plan_quote(company, plan, interval)["total"]
@@ -810,7 +838,7 @@ def change_plan(company, plan, interval, user, request=None):
     sub = subscription(company)
     if sub.manual and sub.status == S.ACTIVE and sub.current_period_end:
         raise ValidationError("Your plan is billed by invoice. Please contact support to change it.")
-    if sub.free or sub.status != S.ACTIVE or not sub.current_period_end or sub.cancel_at_period_end:
+    if sub.free or other_mode(sub) or sub.status != S.ACTIVE or not sub.current_period_end or sub.cancel_at_period_end:
         return subscribe(company, plan, interval, user, request)
     if plan.pk == company.plan_id and interval == sub.interval:
         if sub.pending_plan_id:
@@ -847,7 +875,7 @@ def cancel(company, user, reason="", request=None):
         raise ValidationError("There is no running subscription to cancel.")
     if sub.cancel_at_period_end:
         raise ValidationError("The subscription is already set to end.")
-    if sub.gateway_subscription_id and sub.gateway in (S.RAZORPAY, S.STRIPE):
+    if sub.gateway_subscription_id and sub.gateway in (S.RAZORPAY, S.STRIPE) and not other_mode(sub):
         p = _module(sub.gateway).provider()
         try:
             if p and sub.gateway == S.STRIPE:
@@ -871,10 +899,10 @@ def resume(company, user, request=None):
     sub = subscription(company)
     if not sub.cancel_at_period_end or sub.status != S.ACTIVE:
         raise ValidationError("Nothing to resume.")
-    if sub.gateway == S.RAZORPAY and sub.gateway_subscription_id:
+    if sub.gateway == S.RAZORPAY and sub.gateway_subscription_id and not other_mode(sub):
         out = subscribe(company, company.plan, sub.interval, user, request, start_at=sub.current_period_end)
         return out
-    if sub.gateway == S.STRIPE and sub.gateway_subscription_id:
+    if sub.gateway == S.STRIPE and sub.gateway_subscription_id and not other_mode(sub):
         p = stripe.provider()
         if not p:
             raise ValidationError("Online payment is not set up yet. Please contact support.")
