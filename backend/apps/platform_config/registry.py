@@ -113,25 +113,27 @@ FALLBACK = {
 
 SETTINGS = [
     # A. General Settings (SA-21 … SA-27)
-    Setting("general.platform_name", "text", "AI Employee", "Platform name", "branding"),
-    Setting("general.short_name", "text", "AIE", "Short name", "branding"),
+    Setting("general.platform_name", "text", "Aidra", "Platform name", "branding"),
+    Setting("general.short_name", "text", "Aidra", "Short name", "branding"),
     Setting("general.tagline", "text", "Hire an AI Employee for your business", "Tagline", "branding"),
-    Setting("general.logo_light", "image", "/static/brand/logo-light.svg", "Logo (for dark backgrounds)", "branding"),
+    Setting(
+        "general.logo_light", "image", "/static/brand/aidra-logo-light.svg", "Logo (for dark backgrounds)", "branding"
+    ),
     Setting(
         "general.logo_dark",
         "image",
-        "/static/brand/logo-dark.svg",
+        "/static/brand/aidra-logo-dark.svg",
         "Logo (for light backgrounds)",
         "branding",
     ),
-    Setting("general.logo_small", "image", "/static/brand/logo-sm.svg", "Small logo / icon", "branding"),
-    Setting("general.favicon", "image", "/static/brand/favicon.svg", "Favicon", "branding"),
+    Setting("general.logo_small", "image", "/static/brand/aidra-logo-sm.svg", "Small logo / icon", "branding"),
+    Setting("general.favicon", "image", "/static/brand/aidra-favicon.svg", "Favicon", "branding"),
     Setting("general.app_icon", "image", "", "App / PWA icon", "branding"),
     Setting("general.login_image", "image", "", "Login page image", "branding"),
     Setting("general.color_primary", "color", "#6534F4", "Primary colour", "branding"),
     Setting("general.color_secondary", "color", "#101537", "Secondary colour", "branding"),
     Setting("general.color_company_panel", "color", "#0D9488", "Company panel accent colour", "branding"),
-    Setting("general.widget_powered_by", "text", "Powered by AI Employee", 'Chat widget "Powered by" text', "branding"),
+    Setting("general.widget_powered_by", "text", "Powered by Aidra", 'Chat widget "Powered by" text', "branding"),
     Setting("contact.support_email", "email", "", "Support email", "contact"),
     Setting(
         "contact.support_phone",
@@ -158,7 +160,7 @@ SETTINGS = [
     Setting(
         "contact.copyright",
         "text",
-        "© {year} AI Employee",
+        "© {year} Aidra",
         "Copyright text",
         "contact",
         help="{year} is replaced with the current year",
@@ -203,7 +205,7 @@ SETTINGS = [
         "seo_email",
         help="Switch off on demo / staging servers so they are not listed in Google.",
     ),
-    Setting("email.sender_name", "text", "AI Employee", "Email sender name", "seo_email"),
+    Setting("email.sender_name", "text", "Aidra", "Email sender name", "seo_email"),
     Setting("email.sender_address", "email", "no-reply@localhost", "Email sender address", "seo_email"),
     Setting("email.header_html", "rich", "", "Email header", "seo_email"),
     Setting("email.footer_html", "rich", "", "Email footer", "seo_email"),

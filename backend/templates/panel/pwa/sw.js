@@ -1,7 +1,7 @@
 {% load static %}/* MOB-03: installable app — push alerts and an offline page. Pages are never cached (live data). */
 "use strict";
 const CACHE = "aie-shell-v1", OFFLINE = "/offline/";
-const ICON = "{{ icon|escapejs }}", BADGE = "{% static 'brand/app-badge-96.png' %}";
+const ICON = "{{ icon|escapejs }}", BADGE = "{% static 'brand/aidra-app-badge-96.png' %}";
 
 self.addEventListener("install", (event) => {
     event.waitUntil(caches.open(CACHE).then((c) => c.addAll([OFFLINE, ICON, BADGE])).then(() => self.skipWaiting()));
