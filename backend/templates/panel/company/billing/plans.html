@@ -30,7 +30,7 @@
                 <div class="pl-amount" style="font-size:1.4rem">Custom</div><div class="small text-muted mt-1">Priced for your business</div></div>
             <ul class="pl-list">
                 {% for f in c.plan.features %}<li><i class="iconoir-check"></i><span>{{ f }}</span></li>{% endfor %}
-                {% for label, e in c.limits %}<li><i class="iconoir-check"></i><span>{% if e.limit_value is None %}Unlimited{% else %}{{ e.limit_value }}{% endif %} {{ label|lower|cut:" / month" }}{% if '/ month' in label %} a month{% endif %}{% if e.enforcement == 'soft' and e.overage_price_paise %} · then {{ e.overage_price_paise|convert:currency|money:currency }} each{% endif %}</span></li>{% endfor %}
+                {% for line in c.limits %}<li><i class="iconoir-check"></i><span>{{ line }}</span></li>{% endfor %}
             </ul>
             <div class="mt-auto">
                 {% for iv, p in c.prices.items %}

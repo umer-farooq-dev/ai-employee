@@ -945,7 +945,7 @@ def mark_paid(inv, reference, user=None, method="manual", payment=None, request=
         company=company, amount_paise=inv.total_paise, currency=inv.currency, purpose="invoice", gateway=method
     )
     payment.status, payment.invoice, payment.method = Payment.CAPTURED, inv, method
-    payment.gateway_payment_id = payment.gateway_payment_id or reference[:60]
+    payment.gateway_payment_id = payment.gateway_payment_id or reference[:255]
     payment.recorded_by = user if user and user.is_authenticated else None
     payment.save()
     inv.status, inv.paid_at, inv.payment_ref = Invoice.PAID, now, reference[:120]
