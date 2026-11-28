@@ -372,3 +372,38 @@ def test_payment_gateways_page_keeps_live_and_test_keys(admin_client, db, monkey
     # a key of the wrong kind is refused
     admin_client.post("/superadmin/billing/gateways/", {**form, "test_secret": "sk_live_9", "test_public": "pk_test_2"})
     assert Provider.objects.get(key="stripe").test_api_key == "sk_test_2"
+
+
+def test_switching_stripe_from_test_to_live_starts_a_new_subscription(client, us_co, owner_a, fake_stripe):
+    p = Provider.objects.get(key="stripe")
+    p.test_api_key, p.config = "sk_test_x", {**(p.config or {}), "mode": "test"}
+    p.save()
+    client.force_login(owner_a)
+    plan = us_co.plan
+    r = client.post(
+        "/app/billing/checkout/", {"plan": str(plan.pk), "interval": "monthly"}, content_type="application/json"
+    )
+    sid = r.json()["url"].rsplit("/", 1)[1]
+    fake_stripe.complete(sid, subscription="sub_test_1", invoice="in_t1")
+    client.get(f"/app/billing/return/?session_id={sid}")
+    with company_context(us_co.id):
+        assert Subscription.objects.get(company=us_co).gateway_mode == "test"
+    # now live: an upgrade starts a new subscription without the test customer
+    p.config = {**p.config, "mode": "live"}
+    p.save()
+    business = Plan.objects.get(key="business")
+    r = client.post(
+        "/app/billing/checkout/", {"plan": str(business.pk), "interval": "monthly"}, content_type="application/json"
+    )
+    assert r.status_code == 200 and r.json()["gateway"] == "stripe", r.content
+    session = fake_stripe.sessions[r.json()["url"].rsplit("/", 1)[1]]
+    assert session["mode"] == "subscription" and "customer" not in session and session.get("customer_email")
+    with company_context(us_co.id):
+        assert Subscription.objects.get(company=us_co).gateway_subscription_id == ""
+
+
+def test_stripe_errors_read_as_stripes_own_words():
+    from apps.billing.stripe import _message
+
+    raw = 'HTTP 400: {"error": {"code": "resource_missing", "message": "No such customer: \'cus_1\'", "param": "cus'
+    assert _message(raw) == "No such customer: 'cus_1'"

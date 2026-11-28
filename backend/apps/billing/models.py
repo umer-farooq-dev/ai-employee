@@ -150,6 +150,9 @@ class Subscription(TenantModel):
     )
     gateway_subscription_id = models.CharField(max_length=255, blank=True, db_index=True)
     gateway_customer_id = models.CharField(max_length=255, blank=True)
+    gateway_mode = models.CharField(
+        max_length=4, blank=True, help_text="live / test: the gateway keys the subscription and customer were made with"
+    )
     # SUB-04 enterprise: set by Super Admin for this company only
     custom_price_paise = models.BigIntegerField(
         null=True, blank=True, help_text="Price per interval in the company's currency, before GST"
