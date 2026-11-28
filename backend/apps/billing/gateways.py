@@ -14,7 +14,7 @@ GATEWAYS = {
         "public": "publishable_key",
         "public_label": "Published key",
         "public_hint": {"live": "pk_live_…", "test": "pk_test_…"},
-        "secret_label": "API key (secret key)",
+        "secret_label": "API key (secret key)",  # nosec B105 — field label, not a secret
         "secret_hint": {"live": "sk_live_…", "test": "sk_test_…"},
         "secret_prefix": {"live": ("sk_live_", "rk_live_"), "test": ("sk_test_", "rk_test_")},
         "public_prefix": {"live": ("pk_live_",), "test": ("pk_test_",)},
@@ -25,7 +25,7 @@ GATEWAYS = {
         "public": "key_id",
         "public_label": "Key ID",
         "public_hint": {"live": "rzp_live_…", "test": "rzp_test_…"},
-        "secret_label": "Key secret",
+        "secret_label": "Key secret",  # nosec B105 — field label, not a secret
         "secret_hint": {"live": "Razorpay → Settings → API keys", "test": "Razorpay (test mode) → API keys"},
         "secret_prefix": {},  # Razorpay key secrets have no prefix
         "public_prefix": {"live": ("rzp_live_",), "test": ("rzp_test_",)},
