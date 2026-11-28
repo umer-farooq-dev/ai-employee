@@ -40,7 +40,7 @@
                     {% if sub.status == 'trialing' and company.trial_ends_at %}<dt>Trial ends</dt><dd>{{ company.trial_ends_at|date:"d M Y" }} ({{ company.trial_ends_at|timeuntil }})</dd>{% endif %}
                     {% if sub.current_period_end %}<dt>Current period</dt><dd>{{ sub.current_period_start|date:"d M" }} – {{ sub.current_period_end|date:"d M Y" }}</dd>
                     <dt>{% if sub.free %}Free until{% elif sub.cancel_at_period_end %}Ends on{% elif sub.manual %}Next invoice{% else %}Renews on{% endif %}</dt><dd>{{ sub.current_period_end|date:"d M Y" }}</dd>{% endif %}
-                    <dt>Billing</dt><dd>{% if sub.free %}Free access (no payment){% elif sub.manual %}By invoice{% else %}Automatic (card / UPI / net banking){% endif %}</dd>
+                    <dt>Billing</dt><dd>{% if sub.free %}Free access (no payment){% elif sub.manual %}By invoice{% elif sub.gateway == 'stripe' %}Automatic (card){% else %}Automatic (card / UPI / net banking){% endif %}</dd>
                     {% if sub.last_payment_at %}<dt>Last payment</dt><dd>{{ sub.last_payment_at|date:"d M Y" }}</dd>{% endif %}
                 </dl>
                 {% if sub.pending_plan %}
