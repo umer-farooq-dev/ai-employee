@@ -130,7 +130,7 @@ class Subscription(TenantModel):
         (PAST_DUE, "Payment overdue"),
         (CANCELLED, "Cancelled"),
     ]
-    RAZORPAY, STRIPE, MANUAL = "razorpay", "stripe", "manual"
+    RAZORPAY, STRIPE, MANUAL, FREE = "razorpay", "stripe", "manual", "free"
 
     interval = models.CharField(max_length=10, choices=INTERVALS, default="monthly")
     status = models.CharField(max_length=10, choices=STATUSES, default=TRIALING, db_index=True)
@@ -145,7 +145,9 @@ class Subscription(TenantModel):
     failed_payments = models.PositiveSmallIntegerField(default=0)
     last_payment_at = models.DateTimeField(null=True, blank=True)
     reminded_at = models.DateTimeField(null=True, blank=True, help_text="Last trial / renewal reminder")
-    gateway = models.CharField(max_length=20, default=RAZORPAY, help_text="razorpay / stripe / manual")
+    gateway = models.CharField(
+        max_length=20, default=RAZORPAY, help_text="razorpay / stripe / manual / free (given by Super Admin)"
+    )
     gateway_subscription_id = models.CharField(max_length=60, blank=True, db_index=True)
     gateway_customer_id = models.CharField(max_length=60, blank=True)
     # SUB-04 enterprise: set by Super Admin for this company only
@@ -163,6 +165,11 @@ class Subscription(TenantModel):
     @property
     def manual(self):
         return self.gateway == self.MANUAL
+
+    @property
+    def free(self):
+        """Plan given by Super Admin without payment (promotion, partner, test) until current_period_end."""
+        return self.gateway == self.FREE
 
 
 class InvoiceSequence(BaseModel):

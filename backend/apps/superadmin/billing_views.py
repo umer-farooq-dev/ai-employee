@@ -166,6 +166,20 @@ def company_billing(request, pk):
                         period=period,
                     )
                     messages.success(request, f"Invoice {inv.number} issued and e-mailed.")
+                elif op == "free":
+                    plan = get_object_or_404(Plan, pk=request.POST.get("plan"))
+                    try:
+                        day = datetime.fromisoformat(request.POST.get("until", ""))
+                    except ValueError:
+                        raise ValidationError("Choose the last day of the free access.") from None
+                    until = timezone.make_aware(datetime.combine(day.date(), datetime.max.time()))
+                    billing.give_free_access(
+                        company, plan, until, request.POST.get("reason", ""), request.user, request
+                    )
+                    messages.success(request, f"{plan.name} is active free of charge until {day:%d %b %Y}.")
+                elif op == "end_free":
+                    billing.end_free_access(company, request.user, request)
+                    messages.success(request, "Free access ended; the company now sees Billing to buy a plan.")
                 elif op == "release":
                     billing.release(company)
                     messages.success(request, "Billing hold lifted.")

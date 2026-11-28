@@ -247,7 +247,7 @@ SETTINGS = [
     Setting("registration.otp_length", "number", 6, "OTP length (digits)", "registration", min=4, max=8),
     Setting("registration.otp_valid_minutes", "number", 10, "OTP valid for (minutes)", "registration", min=1, max=60),
     Setting("registration.otp_max_attempts", "number", 5, "Wrong OTP attempts allowed", "registration", min=1, max=20),
-    Setting("registration.trial_enabled", "boolean", True, "Free trial", "registration"),
+    Setting("registration.trial_enabled", "boolean", False, "Free trial", "registration"),
     Setting("registration.trial_days", "number", 14, "Trial days", "registration", min=0, max=365),
     Setting(
         "registration.default_plan", "choice", "starter", "Plan for new companies", "registration", choices=plan_choices

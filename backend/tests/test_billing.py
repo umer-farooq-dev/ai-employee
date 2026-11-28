@@ -497,3 +497,27 @@ def test_provider_cost_on_calls(realty, sara):
     assert minutes.provider_cost_paise == 150  # 2 started minutes × ₹0.75
     assert stt.provider_cost_paise == 75  # 1.5 min × ₹0.50
     assert call.cost_paise == 225
+
+
+def test_super_admin_gives_free_access_until_a_day(admin_client, co, owner_a):
+    co.status, co.billing_hold = Company.ACTIVE, timezone.now()  # approved, waiting to buy a plan
+    co.save()
+    pro = Plan.objects.get(key="pro")
+    day = (timezone.localdate() + timedelta(days=30)).isoformat()
+    r = admin_client.post(
+        f"/superadmin/companies/{co.pk}/billing/", {"op": "free", "plan": str(pro.pk), "until": day, "reason": "Promo"}
+    )
+    assert r.status_code == 302
+    co = fresh(co)
+    sub = sub_of(co)
+    assert co.plan == pro and not co.billing_hold and sub.free and sub.status == Subscription.ACTIVE
+    with company_context(co.id):
+        assert not Invoice.objects.filter(company=co).exists()  # no invoice for free access
+    # the day passes → back to Billing to buy a plan
+    billing.run(now=sub.current_period_end + timedelta(minutes=1))
+    assert fresh(co).billing_hold and sub_of(co).status == Subscription.CANCELLED
+    # a reason is required
+    bad = admin_client.post(
+        f"/superadmin/companies/{co.pk}/billing/", {"op": "free", "plan": str(pro.pk), "until": day, "reason": ""}
+    )
+    assert bad.status_code == 302 and fresh(co).billing_hold
