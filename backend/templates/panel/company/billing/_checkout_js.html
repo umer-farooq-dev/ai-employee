@@ -7,7 +7,10 @@
     var CSRF = "{{ csrf_token }}";
     function post(url, body) {
         return fetch(url, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF}, body: JSON.stringify(body)})
-            .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); });
+            .then(function (r) {
+                return r.json().catch(function () { return {error: "Payment could not be started. Please try again or contact support."}; })
+                    .then(function (d) { return {ok: r.ok, d: d}; });
+            });
     }
     function fail(msg, btn) {
         var el = document.getElementById("pay-error");

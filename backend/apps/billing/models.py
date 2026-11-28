@@ -148,8 +148,8 @@ class Subscription(TenantModel):
     gateway = models.CharField(
         max_length=20, default=RAZORPAY, help_text="razorpay / stripe / manual / free (given by Super Admin)"
     )
-    gateway_subscription_id = models.CharField(max_length=60, blank=True, db_index=True)
-    gateway_customer_id = models.CharField(max_length=60, blank=True)
+    gateway_subscription_id = models.CharField(max_length=255, blank=True, db_index=True)
+    gateway_customer_id = models.CharField(max_length=255, blank=True)
     # SUB-04 enterprise: set by Super Admin for this company only
     custom_price_paise = models.BigIntegerField(
         null=True, blank=True, help_text="Price per interval in the company's currency, before GST"
@@ -239,8 +239,8 @@ class Payment(TenantModel):
     status = models.CharField(max_length=10, choices=STATUSES, default=CREATED, db_index=True)
     purpose = models.CharField(max_length=20, default="subscription", help_text="subscription / upgrade / invoice")
     gateway = models.CharField(max_length=20, default="razorpay")
-    gateway_payment_id = models.CharField(max_length=60, blank=True, db_index=True)
-    gateway_order_id = models.CharField(max_length=60, blank=True, db_index=True)
+    gateway_payment_id = models.CharField(max_length=255, blank=True, db_index=True)
+    gateway_order_id = models.CharField(max_length=255, blank=True, db_index=True)
     method = models.CharField(max_length=30, blank=True)
     error = models.CharField(max_length=300, blank=True)
     data = models.JSONField(default=dict, blank=True, help_text="What the payment is for (plan, interval …)")

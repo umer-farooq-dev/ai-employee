@@ -15,6 +15,7 @@ from apps.billing.models import FEATURES, CreditAdjustment, Invoice, Payment, Pl
 from apps.platform_config.services import get as setting
 from apps.rbac.services import has_perm
 from apps.tenancy.models import Company
+from apps.website import services as website
 
 from .company_views import _errors, company_perm
 
@@ -125,7 +126,6 @@ def plans_page(request):
     sub = billing.subscription(company)
     cards = []
     for plan in billing.purchasable(company):
-        rows = {e.key: e for e in plan.entitlements.all()}
         prices = {}
         for interval in ("monthly", "yearly"):
             amount = billing.price(company, plan, interval)
@@ -136,7 +136,7 @@ def plans_page(request):
                 "plan": plan,
                 "current": plan.pk == company.plan_id,
                 "prices": prices,
-                "limits": [(label, rows.get(key)) for key, label in usage.ENTITLEMENTS if rows.get(key)],
+                "limits": website.limit_lines(plan),
                 "upgrade": {i: billing.proration(company, plan, i) for i in ("monthly", "yearly")},
             }
         )

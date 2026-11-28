@@ -59,17 +59,25 @@ LIMIT_TEXT = {
 }
 
 
-def plan_points(plan):
-    """What a plan includes, from Super Admin → Plans: the limits that are set, the features switched on for it, then
-    its own bullet points (e.g. "Dedicated onboarding")."""
-    from apps.billing.models import ENTITLEMENTS, FEATURES
+def limit_lines(plan):
+    """The limits set on a plan in plain words: "1 AI Employee", "250 voice minutes a month"."""
+    from apps.billing.models import ENTITLEMENTS
 
     limits = {e.key: e.limit_value for e in plan.entitlements.all() if e.limit_value}
-    points = []
+    lines = []
     for key, label in ENTITLEMENTS:
         if key in limits:
             one, many = LIMIT_TEXT.get(key, (f"{{n}} {label}", f"{{n}} {label}"))
-            points.append((one if limits[key] == 1 else many).format(n=f"{limits[key]:,}"))
+            lines.append((one if limits[key] == 1 else many).format(n=f"{limits[key]:,}"))
+    return lines
+
+
+def plan_points(plan):
+    """What a plan includes, from Super Admin → Plans: the limits that are set, the features switched on for it, then
+    its own bullet points (e.g. "Dedicated onboarding")."""
+    from apps.billing.models import FEATURES
+
+    points = limit_lines(plan)
     points += [label for key, label in FEATURES if (plan.flags or {}).get(key, True)]
     return points + list(plan.features or [])
 

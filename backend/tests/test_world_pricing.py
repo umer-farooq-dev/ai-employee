@@ -39,7 +39,7 @@ class FakeStripe:
         self.calls.append((method, path, body))
         self.n += 1
         if path == "/v1/checkout/sessions":
-            sid = f"cs_{self.n}"
+            sid = f"cs_test_a1{self.n:0>58}"  # real Checkout Session ids are about 66 characters
             self.sessions[sid] = {"id": sid, "url": f"https://checkout.stripe.com/c/{sid}", **(body or {})}
             return self.sessions[sid]
         if path.startswith("/v1/checkout/sessions/"):
