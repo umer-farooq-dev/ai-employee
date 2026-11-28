@@ -75,6 +75,7 @@ def test_pending_company_sees_only_status_page(client):
 
 @pytest.mark.django_db
 def test_super_admin_approves_and_owner_gets_in(visitor, admin_client, mailoutbox, set_setting):
+    set_setting("registration.trial_enabled", True)  # the free trial is off by default; this covers it switched on
     set_setting("registration.trial_days", 7)
     register(visitor)
     company = Company.objects.get()
@@ -110,7 +111,9 @@ def test_approval_api_and_permissions(visitor, admin_client, support):
     pending = admin_client.get("/api/v1/admin/companies/?status=pending").json()["results"]
     assert [c["name"] for c in pending] == ["Sunrise Realty"]
     data = admin_client.post(f"/api/v1/admin/companies/{company.pk}/approve/").json()
-    assert data["status"] == "trial"
+    assert data["status"] == "active"  # no free trial: approved, then Billing until a plan is paid
+    company.refresh_from_db()
+    assert company.billing_hold
     assert admin_client.post(f"/api/v1/admin/companies/{company.pk}/reject/", {"reason": "x"}).status_code == 400
 
 
@@ -137,6 +140,7 @@ def test_mandatory_email_verification_from_settings(client, set_setting):
 def test_mobile_otp_flow(client, set_setting, monkeypatch):
     sent = []
     monkeypatch.setattr(sms, "_development_log", lambda to, text: sent.append((to, text)))
+    set_setting("registration.trial_enabled", True)  # straight into the panel, not to Billing first
     set_setting("registration.mobile_otp_required", True)
     set_setting("registration.approval_required", False)
     register(client)

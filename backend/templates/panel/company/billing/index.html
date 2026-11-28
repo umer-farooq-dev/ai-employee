@@ -39,8 +39,8 @@
                 <dl class="bl-kv mb-3">
                     {% if sub.status == 'trialing' and company.trial_ends_at %}<dt>Trial ends</dt><dd>{{ company.trial_ends_at|date:"d M Y" }} ({{ company.trial_ends_at|timeuntil }})</dd>{% endif %}
                     {% if sub.current_period_end %}<dt>Current period</dt><dd>{{ sub.current_period_start|date:"d M" }} – {{ sub.current_period_end|date:"d M Y" }}</dd>
-                    <dt>{% if sub.cancel_at_period_end %}Ends on{% elif sub.manual %}Next invoice{% else %}Renews on{% endif %}</dt><dd>{{ sub.current_period_end|date:"d M Y" }}</dd>{% endif %}
-                    <dt>Billing</dt><dd>{% if sub.manual %}By invoice{% else %}Automatic (card / UPI / net banking){% endif %}</dd>
+                    <dt>{% if sub.free %}Free until{% elif sub.cancel_at_period_end %}Ends on{% elif sub.manual %}Next invoice{% else %}Renews on{% endif %}</dt><dd>{{ sub.current_period_end|date:"d M Y" }}</dd>{% endif %}
+                    <dt>Billing</dt><dd>{% if sub.free %}Free access (no payment){% elif sub.manual %}By invoice{% else %}Automatic (card / UPI / net banking){% endif %}</dd>
                     {% if sub.last_payment_at %}<dt>Last payment</dt><dd>{{ sub.last_payment_at|date:"d M Y" }}</dd>{% endif %}
                 </dl>
                 {% if sub.pending_plan %}
@@ -53,7 +53,8 @@
                     <span>Cancelled — works until {{ sub.current_period_end|date:"d M Y" }}.</span>
                     {% if can_manage %}<button class="btn btn-sm btn-light" data-pay='{"what":"resume"}'>Keep subscription</button>{% endif %}
                 </div>{% endif %}
-                {% if can_manage and sub.status == 'active' and sub.current_period_end and not sub.cancel_at_period_end %}
+                {% if sub.free %}<div class="small text-muted mt-2"><i class="iconoir-gift"></i> Your plan is free until {{ sub.current_period_end|date:"d M Y" }}. Choose a plan any time to keep everything running after that.</div>
+                {% elif can_manage and sub.status == 'active' and sub.current_period_end and not sub.cancel_at_period_end %}
                 <button class="btn btn-sm btn-link text-danger px-0" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel subscription</button>{% endif %}
                 {% if not online and can_manage and not sub.manual %}<div class="small text-muted mt-2"><i class="iconoir-info-circle"></i> Online payment is being set up. Contact support to subscribe.</div>{% endif %}
             </div>

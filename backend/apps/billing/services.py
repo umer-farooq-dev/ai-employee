@@ -802,7 +802,7 @@ def change_plan(company, plan, interval, user, request=None):
     sub = subscription(company)
     if sub.manual and sub.status == S.ACTIVE and sub.current_period_end:
         raise ValidationError("Your plan is billed by invoice. Please contact support to change it.")
-    if sub.status != S.ACTIVE or not sub.current_period_end or sub.cancel_at_period_end:
+    if sub.free or sub.status != S.ACTIVE or not sub.current_period_end or sub.cancel_at_period_end:
         return subscribe(company, plan, interval, user, request)
     if plan.pk == company.plan_id and interval == sub.interval:
         if sub.pending_plan_id:
@@ -877,6 +877,52 @@ def resume(company, user, request=None):
     sub.cancel_at_period_end, sub.cancel_reason, sub.cancelled_at = False, "", None
     sub.save()
     return {"resumed": True}
+
+
+# ------------------------------------------------------------------ free access given by Super Admin
+def give_free_access(company, plan, until, reason, user=None, request=None):
+    """The plan works without payment until the given day (promotion, partner, demo, test). No invoice; when the day
+    passes the company goes back to Billing to buy a plan. A running auto-renewal must be cancelled first."""
+    now = timezone.now()
+    if not reason.strip():
+        raise ValidationError("Write why the access is free (it is kept in the audit log).")
+    if until <= now:
+        raise ValidationError("Choose a day in the future.")
+    sub = subscription(company)
+    if sub.status == S.ACTIVE and sub.gateway_subscription_id and not sub.cancel_at_period_end:
+        raise ValidationError("This company pays by automatic renewal. Cancel it first, then give free access.")
+    sub.status, sub.gateway, sub.gateway_subscription_id = S.ACTIVE, S.FREE, ""
+    sub.current_period_start, sub.current_period_end = now, until
+    sub.pending_plan, sub.pending_interval, sub.grace_until, sub.failed_payments = None, "", None, 0
+    sub.cancel_at_period_end, sub.cancel_reason, sub.cancelled_at = False, "", None
+    sub.save()
+    company.plan = plan
+    company.status, company.trial_ends_at, company.billing_hold = Company.ACTIVE, None, None
+    company.save(update_fields=["plan", "status", "trial_ends_at", "billing_hold", "updated_at"])
+    when = timezone.localtime(until).strftime("%d %b %Y")
+    record(
+        request,
+        "billing.free_access",
+        "company",
+        company.id,
+        company=company,
+        user=user,
+        changes={"plan": plan.key, "until": when, "reason": reason.strip()[:300]},
+    )
+    _email(
+        company, "billing/plan_changed", {"summary": f"Your {plan.name} plan is active, free of charge, until {when}"}
+    )
+    return sub
+
+
+def end_free_access(company, user=None, request=None):
+    sub = subscription(company)
+    if not sub.free:
+        raise ValidationError("This company has no free access.")
+    sub.status, sub.current_period_end = S.CANCELLED, timezone.now()
+    sub.save(update_fields=["status", "current_period_end", "updated_at"])
+    record(request, "billing.free_access_end", "company", company.id, company=company, user=user)
+    hold(company, "The free access has ended. Choose a plan to continue.", request)
 
 
 # ------------------------------------------------------------------ invoices paid outside the gateway (SUB-04)
@@ -1300,6 +1346,11 @@ def _run_one(company, now):
             sub.save(update_fields=["status", "updated_at"])
             hold(company, "The free trial has ended. Choose a plan to continue.")
             changed += 1
+    if sub.status == S.ACTIVE and sub.free and sub.current_period_end and sub.current_period_end <= now:
+        sub.status = S.CANCELLED
+        sub.save(update_fields=["status", "updated_at"])
+        hold(company, "The free access has ended. Choose a plan to continue.")
+        changed += 1
     if sub.status == S.ACTIVE and sub.cancel_at_period_end and sub.current_period_end and sub.current_period_end <= now:
         sub.status = S.CANCELLED
         sub.save(update_fields=["status", "updated_at"])

@@ -22,7 +22,7 @@ def heading(badge, text):
 PRICING_LABELS = {
     "per_month_text": "/month",
     "per_year_text": "/year",
-    "button_label": "Start free trial",
+    "button_label": "Get started",
     "custom_price_text": "Custom",
     "custom_button_label": "Contact us",
 }
@@ -202,8 +202,8 @@ CONTENT = {
     ("home", "testimonials"): {**heading("Testimonials", "What Our Customers Say"), "items": []},
     ("home", "pricing"): {
         **heading("Pricing", "Simple Plans For Every Business"),
-        "subtext": "Start with a free trial. Prices exclude GST.",
-        "subtext_abroad": "Start with a free trial.",
+        "subtext": "Prices exclude GST.",
+        "subtext_abroad": "",
         "monthly_label": "Monthly",
         "yearly_label": "Yearly",
         "yearly_saving_text": "",
@@ -384,7 +384,7 @@ CONTENT = {
     },
     ("pricing", "page_hero"): {
         "heading": "Pricing",
-        "paragraph": "Simple plans. Start with a free trial.",
+        "paragraph": "Simple plans. Pay monthly or yearly, cancel any time.",
         "button": REGISTER,
         "button2": DEMO,
         "image": IMG + "about/about-main-img.png",

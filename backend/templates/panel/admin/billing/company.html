@@ -21,7 +21,7 @@
             <div class="bl-plan mb-1">{{ company.plan.name|default:"No plan" }}</div>
             <div class="bl-price mb-3">{% if price is not None %}{{ price|money_short:currency }} <span class="text-muted small fw-normal">/ {{ sub.interval }}{% if sub.custom_price_paise is not None %} · custom price{% endif %}</span>{% else %}<span class="text-muted small">Not priced</span>{% endif %}</div>
             <dl class="bl-kv mb-0">
-                <dt>Billing</dt><dd>{% if sub.manual %}By invoice{% else %}Razorpay (automatic){% endif %}</dd>
+                <dt>Billing</dt><dd>{% if sub.free %}<span class="badge bg-success-subtle text-success">Free access</span> until {{ sub.current_period_end|date:"d M Y" }}{% elif sub.manual %}By invoice{% else %}{{ sub.gateway|title }} (automatic){% endif %}</dd>
                 {% if company.trial_ends_at %}<dt>Trial ends</dt><dd>{{ company.trial_ends_at|date:"d M Y" }}</dd>{% endif %}
                 {% if sub.current_period_end %}<dt>Period</dt><dd>{{ sub.current_period_start|date:"d M" }} – {{ sub.current_period_end|date:"d M Y" }}</dd>{% endif %}
                 {% if sub.pending_plan %}<dt>Changes to</dt><dd>{{ sub.pending_plan.name }} ({{ sub.pending_interval }})</dd>{% endif %}
@@ -89,6 +89,16 @@
                 <ul class="list-unstyled small mb-0">{% for c in credits %}<li class="d-flex justify-content-between py-1 border-bottom"><span class="text-truncate me-2">{{ c.reason }} <span class="text-muted">· {{ c.month|date:"M Y" }}{% if c.created_by %} · {{ c.created_by.email }}{% endif %}</span></span><strong class="{% if c.credits > 0 %}text-success{% else %}text-danger{% endif %}">{% if c.credits > 0 %}+{% endif %}{{ c.credits }}</strong></li>{% empty %}<li class="text-muted">No adjustments yet.</li>{% endfor %}</ul>
             </div></div>
         {% if can_manage %}
+        {% if can_manage %}<form class="card mb-3" method="post">{% csrf_token %}<input type="hidden" name="op" value="free">
+            <div class="card-header"><h4 class="card-title mb-0">Give free access</h4><span class="text-muted small">Promotion, partner, demo or test: the plan works without payment until the day you choose, with no invoice. Afterwards the company sees Billing to buy a plan.</span></div>
+            <div class="card-body row g-2">
+                <div class="col-md-4"><label class="form-label small" for="f-plan">Plan</label><select id="f-plan" class="form-select form-select-sm" name="plan">{% for p in plans %}<option value="{{ p.pk }}"{% if p.pk == company.plan_id %} selected{% endif %}>{{ p.name }}</option>{% endfor %}</select></div>
+                <div class="col-md-4"><label class="form-label small" for="f-until">Free until (last day)</label><input id="f-until" type="date" class="form-control form-control-sm" name="until" min="{{ today|date:'Y-m-d' }}" required></div>
+                <div class="col-md-4"><label class="form-label small" for="f-reason">Reason</label><input id="f-reason" class="form-control form-control-sm" name="reason" maxlength="300" placeholder="e.g. Launch promotion" required></div>
+                <div class="col-12 d-flex gap-2"><button class="btn btn-sm btn-success">Give free access</button>
+                    {% if sub.free %}<button class="btn btn-sm btn-outline-danger" name="op" value="end_free" formnovalidate onclick="return confirm('End the free access now? The company will see only Billing until it buys a plan.')">End free access now</button>{% endif %}</div>
+            </div>
+        </form>{% endif %}
         <form class="card mb-0" method="post">{% csrf_token %}<input type="hidden" name="op" value="invoice">
             <div class="card-header"><h4 class="card-title mb-0">Issue an invoice</h4><span class="text-muted small">GST is added by the company's state. E-mailed with the PDF.</span></div>
             <div class="card-body row g-2">
